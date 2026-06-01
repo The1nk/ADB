@@ -2,7 +2,8 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="clr-namespace:BotBuilder"
-        Title="ADB Bot Builder" Height="720" Width="1100">
+        Title="ADB Bot Builder" Height="720" Width="1100"
+        KeyDown="Window_KeyDown">
     <Window.Resources>
         <local:CategoryColorToBrushConverter x:Key="CategoryBrush" />
     </Window.Resources>
@@ -12,6 +13,12 @@
                 <MenuItem Header="_New" Click="New_Click" />
                 <MenuItem Header="_Open..." Click="Open_Click" />
                 <MenuItem Header="_Save..." Click="Save_Click" />
+            </MenuItem>
+            <MenuItem Header="_Edit">
+                <MenuItem Header="_Undo" Click="Undo_Click" InputGestureText="Ctrl+Z" />
+                <MenuItem Header="_Redo" Click="Redo_Click" InputGestureText="Ctrl+Y" />
+                <Separator />
+                <MenuItem Header="_Delete" Click="Delete_Click" InputGestureText="Del" />
             </MenuItem>
         </Menu>
 

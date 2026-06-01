@@ -5,6 +5,7 @@ using AdbCore.Actions;
 using AdbCore.Actions.BuiltIn;
 using AdbCore.Execution;
 using BotBuilder.Core;
+using BotBuilder.Core.Connections;
 using BotBuilder.Core.Palette;
 using Microsoft.Win32;
 
@@ -21,6 +22,9 @@ public partial class MainWindow : Window
     private double _dragStartNodeX;
     private double _dragStartNodeY;
     private Point _paletteMouseDownPoint;
+
+    private NodeViewModel? _connectSourceNode;
+    private PortViewModel? _connectSourcePort;
 
     public MainWindow()
     {
@@ -130,13 +134,100 @@ public partial class MainWindow : Window
             Mouse.Capture(null);
             NodeHost.MouseMove -= NodeHost_MouseMove;
             NodeHost.MouseLeftButtonUp -= NodeHost_MouseLeftButtonUp;
+            _editor.CommitMove(_draggingNode, _dragStartNodeX, _dragStartNodeY);
             _draggingNode = null;
         }
     }
 
-    private void Connection_MouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e) { }
-    private void InputPort_MouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e) { }
-    private void OutputPort_MouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e) { }
+    private void Undo_Click(object sender, RoutedEventArgs e) => _editor.Undo();
+    private void Redo_Click(object sender, RoutedEventArgs e) => _editor.Redo();
+    private void Delete_Click(object sender, RoutedEventArgs e) => _editor.DeleteSelection();
+
+    private void Window_KeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Delete)
+        {
+            _editor.DeleteSelection();
+            e.Handled = true;
+        }
+        else if (e.Key == Key.Z && Keyboard.Modifiers == ModifierKeys.Control)
+        {
+            _editor.Undo();
+            e.Handled = true;
+        }
+        else if (e.Key == Key.Y && Keyboard.Modifiers == ModifierKeys.Control)
+        {
+            _editor.Redo();
+            e.Handled = true;
+        }
+    }
+
+    private void Connection_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (sender is FrameworkElement { DataContext: ConnectionViewModel connection })
+        {
+            _editor.SelectConnection(connection);
+            e.Handled = true;
+        }
+    }
+
+    private void InputPort_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        // Connections are dragged starting from an OUTPUT port; ignore input-port mouse-down.
+    }
+
+    private void OutputPort_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (sender is FrameworkElement { DataContext: PortViewModel port } fe && NodeOf(fe) is { } node)
+        {
+            _connectSourceNode = node;
+            _connectSourcePort = port;
+            ((UIElement)sender).CaptureMouse();
+            NodeHost.MouseLeftButtonUp += FinishConnectionDrag;
+            e.Handled = true;
+        }
+    }
+
+    private void FinishConnectionDrag(object sender, MouseButtonEventArgs e)
+    {
+        NodeHost.MouseLeftButtonUp -= FinishConnectionDrag;
+        Mouse.Capture(null);
+
+        var source = _connectSourceNode;
+        var sourcePort = _connectSourcePort;
+        _connectSourceNode = null;
+        _connectSourcePort = null;
+        if (source is null || sourcePort is null)
+        {
+            return;
+        }
+
+        var hit = Mouse.DirectlyOver as DependencyObject;
+        while (hit is not null)
+        {
+            if (hit is FrameworkElement { DataContext: PortViewModel { Direction: PortDirection.In } targetPort } portElement
+                && NodeOf(portElement) is { } targetNode)
+            {
+                _editor.Connect(source, sourcePort, targetNode, targetPort);
+                return;
+            }
+            hit = System.Windows.Media.VisualTreeHelper.GetParent(hit);
+        }
+    }
+
+    private static NodeViewModel? NodeOf(DependencyObject start)
+    {
+        var current = start;
+        while (current is not null)
+        {
+            if (current is FrameworkElement { DataContext: NodeViewModel node })
+            {
+                return node;
+            }
+            current = System.Windows.Media.VisualTreeHelper.GetParent(current);
+        }
+        return null;
+    }
 
     private static PaletteItem? PaletteItemFrom(object sender)
         => (sender as FrameworkElement)?.DataContext as PaletteItem;
