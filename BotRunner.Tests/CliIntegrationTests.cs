@@ -23,7 +23,7 @@ public class CliIntegrationTests
         var bot = new Bot { Name = "hello" };
         bot.Actions.Add(new BotAction { Id = startId, TypeKey = "control.start", Label = "Start" });
         var log = new BotAction { Id = logId, TypeKey = "data.log", Label = "Log" };
-        log.Config["message"] = "hello from M2";
+        log.Config["message"] = message;
         bot.Actions.Add(log);
         bot.Actions.Add(new BotAction { Id = endId, TypeKey = "control.end", Label = "End" });
         bot.Connections.Add(new ActionConnection { Id = Guid.NewGuid(), SourceActionId = startId, SourcePort = "out", TargetActionId = logId, TargetPort = "in" });
