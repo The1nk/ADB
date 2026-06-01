@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="AdbCore.Tests/AdbCore.Tests.csproj" />
+  <Project Path="AdbCore/AdbCore.csproj" />
+</Solution>
