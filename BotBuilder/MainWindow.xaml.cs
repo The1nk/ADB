@@ -300,9 +300,9 @@ public partial class MainWindow : Window
         UpdateMarqueeRect(_marqueeStartWorld, _marqueeStartWorld);
         MarqueeRect.Visibility = Visibility.Visible;
 
-        CanvasRoot.CaptureMouse();
-        CanvasRoot.MouseMove += Canvas_MarqueeMove;
-        CanvasRoot.MouseLeftButtonUp += Canvas_MarqueeEnd;
+        ViewportHost.CaptureMouse();
+        ViewportHost.MouseMove += Canvas_MarqueeMove;
+        ViewportHost.MouseLeftButtonUp += Canvas_MarqueeEnd;
         e.Handled = true;
     }
 
@@ -323,9 +323,9 @@ public partial class MainWindow : Window
         }
 
         _isMarqueeing = false;
-        CanvasRoot.ReleaseMouseCapture();
-        CanvasRoot.MouseMove -= Canvas_MarqueeMove;
-        CanvasRoot.MouseLeftButtonUp -= Canvas_MarqueeEnd;
+        ViewportHost.ReleaseMouseCapture();
+        ViewportHost.MouseMove -= Canvas_MarqueeMove;
+        ViewportHost.MouseLeftButtonUp -= Canvas_MarqueeEnd;
         MarqueeRect.Visibility = Visibility.Collapsed;
 
         var end = e.GetPosition(NodeHost);
