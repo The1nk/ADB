@@ -112,10 +112,15 @@
                                         </StackPanel>
                                         <ItemsControl ItemsSource="{Binding InputPorts}">
                                             <ItemsControl.ItemsPanel><ItemsPanelTemplate><Canvas /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemContainerStyle>
+                                                <Style TargetType="ContentPresenter">
+                                                    <Setter Property="Canvas.Left" Value="{Binding AnchorOffset.X}" />
+                                                    <Setter Property="Canvas.Top" Value="{Binding AnchorOffset.Y}" />
+                                                </Style>
+                                            </ItemsControl.ItemContainerStyle>
                                             <ItemsControl.ItemTemplate>
                                                 <DataTemplate>
                                                     <Ellipse Width="10" Height="10" Fill="#555" ToolTip="{Binding Name}"
-                                                             Canvas.Left="{Binding AnchorOffset.X}" Canvas.Top="{Binding AnchorOffset.Y}"
                                                              RenderTransform="{x:Static local:PortCenteringTransform.Instance}"
                                                              MouseLeftButtonDown="InputPort_MouseLeftButtonDown" />
                                                 </DataTemplate>
@@ -123,10 +128,15 @@
                                         </ItemsControl>
                                         <ItemsControl ItemsSource="{Binding OutputPorts}">
                                             <ItemsControl.ItemsPanel><ItemsPanelTemplate><Canvas /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemContainerStyle>
+                                                <Style TargetType="ContentPresenter">
+                                                    <Setter Property="Canvas.Left" Value="{Binding AnchorOffset.X}" />
+                                                    <Setter Property="Canvas.Top" Value="{Binding AnchorOffset.Y}" />
+                                                </Style>
+                                            </ItemsControl.ItemContainerStyle>
                                             <ItemsControl.ItemTemplate>
                                                 <DataTemplate>
                                                     <Ellipse Width="10" Height="10" Fill="#555" ToolTip="{Binding Name}"
-                                                             Canvas.Left="{Binding AnchorOffset.X}" Canvas.Top="{Binding AnchorOffset.Y}"
                                                              RenderTransform="{x:Static local:PortCenteringTransform.Instance}"
                                                              MouseLeftButtonDown="OutputPort_MouseLeftButtonDown" />
                                                 </DataTemplate>

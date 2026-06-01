@@ -190,6 +190,11 @@ public partial class MainWindow : Window
 
     private void FinishConnectionDrag(object sender, MouseButtonEventArgs e)
     {
+        // Capture the drop position BEFORE releasing capture. (While the mouse is captured
+        // to the source port, Mouse.DirectlyOver reports the captured element, not the element
+        // actually under the pointer — so we resolve the drop target geometrically instead.)
+        var dropPosition = e.GetPosition(NodeHost);
+
         NodeHost.MouseLeftButtonUp -= FinishConnectionDrag;
         Mouse.Capture(null);
 
@@ -202,7 +207,7 @@ public partial class MainWindow : Window
             return;
         }
 
-        var hit = Mouse.DirectlyOver as DependencyObject;
+        var hit = System.Windows.Media.VisualTreeHelper.HitTest(NodeHost, dropPosition)?.VisualHit;
         while (hit is not null)
         {
             if (hit is FrameworkElement { DataContext: PortViewModel { Direction: PortDirection.In } targetPort } portElement
