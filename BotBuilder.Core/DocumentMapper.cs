@@ -1,6 +1,7 @@
 using AdbCore.Actions;
 using AdbCore.Models;
 using BotBuilder.Core.Connections;
+using BotBuilder.Core.Targets;
 
 namespace BotBuilder.Core;
 
@@ -21,6 +22,7 @@ public static class DocumentMapper
                 TypeKey = node.TypeKey,
                 Label = node.Label,
                 CanvasPosition = new Position { X = node.X, Y = node.Y },
+                TargetId = node.TargetId,
             });
         }
 
@@ -36,6 +38,17 @@ public static class DocumentMapper
             });
         }
 
+        foreach (var t in editor.TargetBar.Targets)
+        {
+            bot.Targets.Add(new BotTarget
+            {
+                Id = t.Id,
+                Name = t.Name,
+                Type = t.Type,
+                Config = new Dictionary<string, string> { ["selector"] = t.Selector },
+            });
+        }
+
         return bot;
     }
 
@@ -43,6 +56,20 @@ public static class DocumentMapper
     {
         var nodes = bot.Actions.Select(a => BuildNode(a, registry)).ToList();
         editor.LoadFrom(bot.Id, bot.Name, nodes, placedNodes => BuildConnections(bot, placedNodes));
+
+        editor.TargetBar.Targets.Clear();
+        foreach (var t in bot.Targets)
+        {
+            editor.TargetBar.Targets.Add(new TargetViewModel
+            {
+                Id = t.Id,
+                Name = t.Name,
+                Type = t.Type,
+                Selector = t.Config.TryGetValue("selector", out var sel) ? sel : string.Empty,
+            });
+        }
+
+        editor.RefreshTargetBadges();
     }
 
     private static IEnumerable<ConnectionViewModel> BuildConnections(Bot bot, IReadOnlyList<NodeViewModel> nodes)
@@ -70,15 +97,21 @@ public static class DocumentMapper
 
     private static NodeViewModel BuildNode(BotAction action, ActionRegistry registry)
     {
+        NodeViewModel node;
         if (registry.TryGet(action.TypeKey, out var definition) && definition is not null)
         {
-            return NodeViewModel.FromDefinition(
+            node = NodeViewModel.FromDefinition(
                 definition, action.Id, action.Label, action.CanvasPosition.X, action.CanvasPosition.Y);
         }
+        else
+        {
+            node = new NodeViewModel(
+                action.Id, action.TypeKey, action.Label, UnknownCategory,
+                Array.Empty<PortViewModel>(), Array.Empty<PortViewModel>(),
+                action.CanvasPosition.X, action.CanvasPosition.Y);
+        }
 
-        return new NodeViewModel(
-            action.Id, action.TypeKey, action.Label, UnknownCategory,
-            Array.Empty<PortViewModel>(), Array.Empty<PortViewModel>(),
-            action.CanvasPosition.X, action.CanvasPosition.Y);
+        node.TargetId = action.TargetId;
+        return node;
     }
 }
