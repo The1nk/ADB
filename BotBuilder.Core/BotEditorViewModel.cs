@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using AdbCore.Actions;
 using AdbCore.Serialization;
+using BotBuilder.Core.Canvas;
 using BotBuilder.Core.Connections;
 using BotBuilder.Core.Palette;
 using BotBuilder.Core.Undo;
@@ -27,12 +28,14 @@ public partial class BotEditorViewModel : ObservableObject
         Palette = new PaletteViewModel(registry);
         Nodes = new ObservableCollection<NodeViewModel>();
         Connections = new ObservableCollection<ConnectionViewModel>();
+        Viewport = new CanvasViewport();
         New();
     }
 
     public ObservableCollection<NodeViewModel> Nodes { get; }
     public ObservableCollection<ConnectionViewModel> Connections { get; }
     public PaletteViewModel Palette { get; }
+    public CanvasViewport Viewport { get; }
     public Guid BotId { get; private set; }
 
     public bool CanUndo => _undo.CanUndo;
@@ -85,10 +88,8 @@ public partial class BotEditorViewModel : ObservableObject
 
     public void DeleteNode(NodeViewModel node)
     {
-        var incident = Connections
-            .Where(c => ReferenceEquals(c.Source, node) || ReferenceEquals(c.Target, node))
-            .ToList();
-        _undo.Execute(new DeleteNodeCommand(this, node, incident));
+        var incident = IncidentConnections(new[] { node });
+        _undo.Execute(new DeleteNodesCommand(this, new[] { node }, incident));
         AfterEdit();
     }
 
@@ -98,12 +99,18 @@ public partial class BotEditorViewModel : ObservableObject
         {
             Disconnect(connection);
             SelectedConnection = null;
+            return;
         }
-        else if (SelectedNode is { } node)
+
+        var nodes = Nodes.Where(n => n.IsSelected).ToList();
+        if (nodes.Count == 0)
         {
-            DeleteNode(node);
-            SelectedNode = null;
+            return;
         }
+
+        _undo.Execute(new DeleteNodesCommand(this, nodes, IncidentConnections(nodes)));
+        SelectedNode = null;
+        AfterEdit();
     }
 
     public void Select(NodeViewModel? node)
@@ -112,6 +119,18 @@ public partial class BotEditorViewModel : ObservableObject
         ClearConnectionSelection();
         SelectedConnection = null;
         SelectedNode = node;
+    }
+
+    public void SelectNodes(IEnumerable<NodeViewModel> nodes)
+    {
+        var selected = nodes.ToList();
+        var set = new HashSet<NodeViewModel>(selected);
+
+        foreach (var n in Nodes) { n.IsSelected = set.Contains(n); }
+        foreach (var c in Connections) { c.IsSelected = false; }
+
+        SelectedConnection = null;
+        SelectedNode = selected.Count == 1 ? selected[0] : null;
     }
 
     public void SelectConnection(ConnectionViewModel? connection)
@@ -175,6 +194,12 @@ public partial class BotEditorViewModel : ObservableObject
     }
 
     // ---- internal mutation helpers used by commands and the mapper ----
+
+    private List<ConnectionViewModel> IncidentConnections(IReadOnlyCollection<NodeViewModel> nodes)
+        => Connections
+            .Where(c => nodes.Any(n => ReferenceEquals(c.Source, n) || ReferenceEquals(c.Target, n)))
+            .Distinct()
+            .ToList();
 
     internal void AddNodeCore(NodeViewModel node) => Nodes.Add(node);
     internal void RemoveNodeCore(NodeViewModel node) => Nodes.Remove(node);
