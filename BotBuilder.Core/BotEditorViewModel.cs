@@ -4,6 +4,7 @@ using AdbCore.Serialization;
 using BotBuilder.Core.Canvas;
 using BotBuilder.Core.Connections;
 using BotBuilder.Core.Palette;
+using BotBuilder.Core.Properties;
 using BotBuilder.Core.Targets;
 using BotBuilder.Core.Undo;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -32,6 +33,7 @@ public partial class BotEditorViewModel : ObservableObject
         Viewport = new CanvasViewport();
         TargetBar = new TargetBarViewModel();
         TargetBar.Changed += OnTargetsChanged;
+        Properties = new PropertiesViewModel(this, registry);
         New();
     }
 
@@ -40,7 +42,11 @@ public partial class BotEditorViewModel : ObservableObject
     public PaletteViewModel Palette { get; }
     public CanvasViewport Viewport { get; }
     public TargetBarViewModel TargetBar { get; }
+    public PropertiesViewModel Properties { get; }
     public Guid BotId { get; private set; }
+
+    /// <summary>Marks the document dirty (used by property edits that don't go through the undo stack).</summary>
+    public void MarkDirty() => IsDirty = true;
 
     public bool CanUndo => _undo.CanUndo;
     public bool CanRedo => _undo.CanRedo;
