@@ -66,7 +66,8 @@
 
             <Border Grid.Column="1" x:Name="ViewportHost" Background="#FAFAFA" BorderBrush="#CCC" BorderThickness="1,0,1,0"
                     ClipToBounds="True" MouseWheel="Viewport_MouseWheel" MouseDown="Viewport_MouseDown">
-                <Grid x:Name="CanvasRoot" Background="Transparent" AllowDrop="True" Drop="Canvas_Drop">
+                <Grid x:Name="CanvasRoot" Background="Transparent" AllowDrop="True" Drop="Canvas_Drop"
+                      MouseLeftButtonDown="Canvas_MarqueeStart">
                     <Grid.RenderTransform>
                         <TransformGroup>
                             <ScaleTransform ScaleX="{Binding Viewport.Scale}" ScaleY="{Binding Viewport.Scale}" />
@@ -153,6 +154,10 @@
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
+                    <Canvas IsHitTestVisible="False">
+                        <Rectangle x:Name="MarqueeRect" Visibility="Collapsed"
+                                   Fill="#332962D6" Stroke="#2962D6" StrokeThickness="1" />
+                    </Canvas>
                 </Grid>
             </Border>
 

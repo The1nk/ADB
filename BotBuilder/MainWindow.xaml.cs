@@ -29,6 +29,9 @@ public partial class MainWindow : Window
     private bool _isPanning;
     private Point _panLastPoint;
 
+    private bool _isMarqueeing;
+    private Point _marqueeStartWorld;
+
     public MainWindow()
     {
         InitializeComponent();
@@ -287,5 +290,61 @@ public partial class MainWindow : Window
         ViewportHost.MouseMove -= Viewport_PanMouseMove;
         ViewportHost.MouseUp -= Viewport_PanMouseUp;
         e.Handled = true;
+    }
+
+    private void Canvas_MarqueeStart(object sender, MouseButtonEventArgs e)
+    {
+        _isMarqueeing = true;
+        _marqueeStartWorld = e.GetPosition(NodeHost);
+
+        UpdateMarqueeRect(_marqueeStartWorld, _marqueeStartWorld);
+        MarqueeRect.Visibility = Visibility.Visible;
+
+        CanvasRoot.CaptureMouse();
+        CanvasRoot.MouseMove += Canvas_MarqueeMove;
+        CanvasRoot.MouseLeftButtonUp += Canvas_MarqueeEnd;
+        e.Handled = true;
+    }
+
+    private void Canvas_MarqueeMove(object sender, MouseEventArgs e)
+    {
+        if (!_isMarqueeing)
+        {
+            return;
+        }
+        UpdateMarqueeRect(_marqueeStartWorld, e.GetPosition(NodeHost));
+    }
+
+    private void Canvas_MarqueeEnd(object sender, MouseButtonEventArgs e)
+    {
+        if (!_isMarqueeing)
+        {
+            return;
+        }
+
+        _isMarqueeing = false;
+        CanvasRoot.ReleaseMouseCapture();
+        CanvasRoot.MouseMove -= Canvas_MarqueeMove;
+        CanvasRoot.MouseLeftButtonUp -= Canvas_MarqueeEnd;
+        MarqueeRect.Visibility = Visibility.Collapsed;
+
+        var end = e.GetPosition(NodeHost);
+        var x = Math.Min(_marqueeStartWorld.X, end.X);
+        var y = Math.Min(_marqueeStartWorld.Y, end.Y);
+        var w = Math.Abs(end.X - _marqueeStartWorld.X);
+        var h = Math.Abs(end.Y - _marqueeStartWorld.Y);
+
+        _editor.SelectNodes(BotBuilder.Core.Canvas.MarqueeSelection.NodesInRect(_editor.Nodes, x, y, w, h));
+        e.Handled = true;
+    }
+
+    private void UpdateMarqueeRect(Point a, Point b)
+    {
+        var x = Math.Min(a.X, b.X);
+        var y = Math.Min(a.Y, b.Y);
+        Canvas.SetLeft(MarqueeRect, x);
+        Canvas.SetTop(MarqueeRect, y);
+        MarqueeRect.Width = Math.Abs(b.X - a.X);
+        MarqueeRect.Height = Math.Abs(b.Y - a.Y);
     }
 }
