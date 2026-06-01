@@ -75,6 +75,21 @@ public class ConnectionValidatorTests
     }
 
     [Fact]
+    public void FanIn_MultipleOutputsIntoOneInputPort_IsAllowed()
+    {
+        var a = Log();
+        var b = Log();
+        var c = Log();
+        var existing = new[] { Edge(a, c) }; // a.out -> c.in already
+
+        // b.out -> c.in : a different source into the SAME input port (convergence) is allowed.
+        var result = ConnectionValidator.Validate(existing,
+            b, b.OutputPorts[0], c, c.InputPorts[0]);
+
+        Assert.Equal(ConnectionError.None, result);
+    }
+
+    [Fact]
     public void Cycle_IsRejected()
     {
         var a = Log();
