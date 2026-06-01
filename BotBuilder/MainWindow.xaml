@@ -64,8 +64,15 @@
                 </ItemsControl>
             </DockPanel>
 
-            <Border Grid.Column="1" Background="#FAFAFA" BorderBrush="#CCC" BorderThickness="1,0,1,0" ClipToBounds="True">
+            <Border Grid.Column="1" x:Name="ViewportHost" Background="#FAFAFA" BorderBrush="#CCC" BorderThickness="1,0,1,0"
+                    ClipToBounds="True" MouseWheel="Viewport_MouseWheel" MouseDown="Viewport_MouseDown">
                 <Grid x:Name="CanvasRoot" Background="Transparent" AllowDrop="True" Drop="Canvas_Drop">
+                    <Grid.RenderTransform>
+                        <TransformGroup>
+                            <ScaleTransform ScaleX="{Binding Viewport.Scale}" ScaleY="{Binding Viewport.Scale}" />
+                            <TranslateTransform X="{Binding Viewport.OffsetX}" Y="{Binding Viewport.OffsetY}" />
+                        </TransformGroup>
+                    </Grid.RenderTransform>
                     <!-- Connection layer (under the nodes) -->
                     <ItemsControl ItemsSource="{Binding Connections}">
                         <ItemsControl.ItemsPanel>

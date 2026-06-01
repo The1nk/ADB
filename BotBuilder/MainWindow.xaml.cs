@@ -26,6 +26,9 @@ public partial class MainWindow : Window
     private NodeViewModel? _connectSourceNode;
     private PortViewModel? _connectSourcePort;
 
+    private bool _isPanning;
+    private Point _panLastPoint;
+
     public MainWindow()
     {
         InitializeComponent();
@@ -236,4 +239,53 @@ public partial class MainWindow : Window
 
     private static PaletteItem? PaletteItemFrom(object sender)
         => (sender as FrameworkElement)?.DataContext as PaletteItem;
+
+    private void Viewport_MouseWheel(object sender, MouseWheelEventArgs e)
+    {
+        var factor = e.Delta > 0 ? 1.1 : 1.0 / 1.1;
+        var anchor = e.GetPosition(ViewportHost);
+        _editor.Viewport.ZoomAt(anchor.X, anchor.Y, factor);
+        e.Handled = true;
+    }
+
+    private void Viewport_MouseDown(object sender, MouseButtonEventArgs e)
+    {
+        if (e.ChangedButton != MouseButton.Middle)
+        {
+            return;
+        }
+
+        _isPanning = true;
+        _panLastPoint = e.GetPosition(ViewportHost);
+        ViewportHost.CaptureMouse();
+        ViewportHost.MouseMove += Viewport_PanMouseMove;
+        ViewportHost.MouseUp += Viewport_PanMouseUp;
+        e.Handled = true;
+    }
+
+    private void Viewport_PanMouseMove(object sender, MouseEventArgs e)
+    {
+        if (!_isPanning)
+        {
+            return;
+        }
+
+        var p = e.GetPosition(ViewportHost);
+        _editor.Viewport.Pan(p.X - _panLastPoint.X, p.Y - _panLastPoint.Y);
+        _panLastPoint = p;
+    }
+
+    private void Viewport_PanMouseUp(object sender, MouseButtonEventArgs e)
+    {
+        if (e.ChangedButton != MouseButton.Middle)
+        {
+            return;
+        }
+
+        _isPanning = false;
+        ViewportHost.ReleaseMouseCapture();
+        ViewportHost.MouseMove -= Viewport_PanMouseMove;
+        ViewportHost.MouseUp -= Viewport_PanMouseUp;
+        e.Handled = true;
+    }
 }
