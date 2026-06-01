@@ -274,6 +274,7 @@ public partial class BotEditorViewModel : ObservableObject
     {
         IsDirty = true;
         RaiseUndoState();
+        RefreshTargetBadges();
     }
 
     private void RaiseUndoState()

@@ -86,6 +86,19 @@ public class EditorTargetTests
     }
 
     [Fact]
+    public void AddingNode_WithMultipleTargets_ImmediatelyShowsBadge()
+    {
+        var e = NewEditor();
+        var first = e.TargetBar.AddTarget();
+        first.Name = "Client 1";
+        e.TargetBar.AddTarget();
+
+        var node = e.AddNode("control.start", 0, 0); // added AFTER targets exist
+
+        Assert.Equal("Client 1", node.TargetBadge);
+    }
+
+    [Fact]
     public void New_ClearsTargets()
     {
         var e = NewEditor();
