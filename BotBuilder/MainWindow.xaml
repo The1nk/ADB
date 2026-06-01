@@ -64,8 +64,8 @@
                 </ItemsControl>
             </DockPanel>
 
-            <Border Grid.Column="1" Background="#FAFAFA" BorderBrush="#CCC" BorderThickness="1,0,1,0">
-                <Grid x:Name="CanvasRoot" Background="Transparent">
+            <Border Grid.Column="1" Background="#FAFAFA" BorderBrush="#CCC" BorderThickness="1,0,1,0" ClipToBounds="True">
+                <Grid x:Name="CanvasRoot" Background="Transparent" AllowDrop="True" Drop="Canvas_Drop">
                     <!-- Connection layer (under the nodes) -->
                     <ItemsControl ItemsSource="{Binding Connections}">
                         <ItemsControl.ItemsPanel>
@@ -84,10 +84,9 @@
                     </ItemsControl>
 
                     <!-- Node layer -->
-                    <ItemsControl x:Name="NodeHost" ItemsSource="{Binding Nodes}"
-                                  AllowDrop="True" Drop="Canvas_Drop" Background="Transparent">
+                    <ItemsControl x:Name="NodeHost" ItemsSource="{Binding Nodes}">
                         <ItemsControl.ItemsPanel>
-                            <ItemsPanelTemplate><Canvas Background="Transparent" /></ItemsPanelTemplate>
+                            <ItemsPanelTemplate><Canvas /></ItemsPanelTemplate>
                         </ItemsControl.ItemsPanel>
                         <ItemsControl.ItemContainerStyle>
                             <Style TargetType="ContentPresenter">

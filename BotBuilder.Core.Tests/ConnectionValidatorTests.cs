@@ -61,6 +61,20 @@ public class ConnectionValidatorTests
     }
 
     [Fact]
+    public void OutputPort_WithExistingConnection_RejectsSecondEdge()
+    {
+        var a = Log();
+        var b = Log();
+        var c = Log();
+        var existing = new[] { Edge(a, b) };
+
+        var result = ConnectionValidator.Validate(existing,
+            a, a.OutputPorts[0], c, c.InputPorts[0]);
+
+        Assert.Equal(ConnectionError.SourcePortOccupied, result);
+    }
+
+    [Fact]
     public void Cycle_IsRejected()
     {
         var a = Log();

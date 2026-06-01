@@ -7,5 +7,6 @@ public enum ConnectionError
     NotOutputToInput,
     SelfConnection,
     Duplicate,
+    SourcePortOccupied,
     WouldCreateCycle,
 }

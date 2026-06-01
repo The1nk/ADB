@@ -28,6 +28,13 @@ public static class ConnectionValidator
             return ConnectionError.Duplicate;
         }
 
+        // An output port drives a single next step; fan-out is via the Run Parallel action's
+        // multiple ports (M5), not multiple edges from one port. So one outgoing edge per port.
+        if (existing.Any(c => ReferenceEquals(c.Source, source) && c.SourcePort.Name == sourcePort.Name))
+        {
+            return ConnectionError.SourcePortOccupied;
+        }
+
         if (TargetReachesSource(existing, source, target))
         {
             return ConnectionError.WouldCreateCycle;
