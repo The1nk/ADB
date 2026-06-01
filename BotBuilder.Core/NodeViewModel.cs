@@ -41,13 +41,22 @@ public partial class NodeViewModel : ObservableObject
 
     /// <summary>Builds a node from an action definition, deriving ports/category from it.</summary>
     public static NodeViewModel FromDefinition(IActionDefinition definition, Guid id, string label, double x, double y)
-        => new(
+    {
+        var inputs = definition.InputPorts
+            .Select((p, i) => new PortViewModel(p.Name, PortDirection.In, NodeLayout.InputAnchor(i)))
+            .ToList();
+        var outputs = definition.OutputPorts
+            .Select((p, i) => new PortViewModel(p.Name, PortDirection.Out, NodeLayout.OutputAnchor(i)))
+            .ToList();
+
+        return new NodeViewModel(
             id,
             definition.TypeKey,
             string.IsNullOrEmpty(label) ? definition.DisplayName : label,
             definition.Category,
-            definition.InputPorts.Select(p => new PortViewModel(p.Name, PortDirection.In)).ToList(),
-            definition.OutputPorts.Select(p => new PortViewModel(p.Name, PortDirection.Out)).ToList(),
+            inputs,
+            outputs,
             x,
             y);
+    }
 }
