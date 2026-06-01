@@ -22,8 +22,7 @@ public partial class ConnectionViewModel : ObservableObject
         Target = target;
         TargetPort = targetPort;
 
-        Source.PropertyChanged += OnEndpointMoved;
-        Target.PropertyChanged += OnEndpointMoved;
+        Attach();
     }
 
     public Guid Id { get; }
@@ -33,6 +32,15 @@ public partial class ConnectionViewModel : ObservableObject
     public PortViewModel TargetPort { get; }
 
     public string PathData => ConnectionGeometry.BuildPath(Anchor(Source, SourcePort), Anchor(Target, TargetPort));
+
+    /// <summary>(Re)subscribes to endpoint move notifications. Idempotent.</summary>
+    public void Attach()
+    {
+        Source.PropertyChanged -= OnEndpointMoved;
+        Source.PropertyChanged += OnEndpointMoved;
+        Target.PropertyChanged -= OnEndpointMoved;
+        Target.PropertyChanged += OnEndpointMoved;
+    }
 
     /// <summary>Detaches endpoint subscriptions; call when the connection is removed.</summary>
     public void Detach()

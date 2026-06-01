@@ -124,12 +124,20 @@ public partial class BotEditorViewModel : ObservableObject
 
     public void Undo()
     {
+        if (!_undo.CanUndo)
+        {
+            return;
+        }
         _undo.Undo();
         AfterEdit();
     }
 
     public void Redo()
     {
+        if (!_undo.CanRedo)
+        {
+            return;
+        }
         _undo.Redo();
         AfterEdit();
     }
@@ -170,8 +178,17 @@ public partial class BotEditorViewModel : ObservableObject
 
     internal void AddNodeCore(NodeViewModel node) => Nodes.Add(node);
     internal void RemoveNodeCore(NodeViewModel node) => Nodes.Remove(node);
-    internal void AddConnectionCore(ConnectionViewModel connection) => Connections.Add(connection);
-    internal void RemoveConnectionCore(ConnectionViewModel connection) => Connections.Remove(connection);
+    internal void AddConnectionCore(ConnectionViewModel connection)
+    {
+        connection.Attach();
+        Connections.Add(connection);
+    }
+
+    internal void RemoveConnectionCore(ConnectionViewModel connection)
+    {
+        connection.Detach();
+        Connections.Remove(connection);
+    }
 
     /// <summary>Replaces editor contents during a load (mapper-only).</summary>
     internal void LoadFrom(

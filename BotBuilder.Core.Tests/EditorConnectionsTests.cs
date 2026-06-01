@@ -154,4 +154,33 @@ public class EditorConnectionsTests
             if (File.Exists(path)) File.Delete(path);
         }
     }
+
+    [Fact]
+    public void Disconnect_ThenUndo_LeavesConnectionLiveToNodeMoves()
+    {
+        var e = NewEditor();
+        var (a, b) = TwoNodes(e);
+        e.Connect(a, a.OutputPorts[0], b, b.InputPorts[0]);
+        e.Disconnect(e.Connections[0]);
+        e.Undo(); // restores the connection
+
+        var conn = e.Connections[0];
+        var raised = new List<string?>();
+        ((System.ComponentModel.INotifyPropertyChanged)conn).PropertyChanged += (_, ev) => raised.Add(ev.PropertyName);
+
+        a.X += 40; // move a node the restored connection is attached to
+
+        Assert.Contains(nameof(BotBuilder.Core.Connections.ConnectionViewModel.PathData), raised);
+    }
+
+    [Fact]
+    public void Undo_WithNothingToUndo_DoesNotMarkDirty()
+    {
+        var e = NewEditor(); // New() leaves IsDirty == false
+        Assert.False(e.IsDirty);
+
+        e.Undo(); // nothing on the stack
+
+        Assert.False(e.IsDirty);
+    }
 }
