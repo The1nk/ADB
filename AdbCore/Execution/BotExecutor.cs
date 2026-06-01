@@ -4,7 +4,7 @@ namespace AdbCore.Execution;
 
 /// <summary>Walks a bot's action graph sequentially from its entry point, executing each action
 /// and following the output port returned by its executor. Halts on failure unless an
-/// <c>onFailure</c> port is wired or <see cref="ExecutionOptions.StopOnError"/> is false.</summary>
+/// <c>onFailure</c> port is wired.</summary>
 public class BotExecutor
 {
     private const string FailurePort = "onFailure";
