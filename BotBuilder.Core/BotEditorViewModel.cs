@@ -4,6 +4,7 @@ using AdbCore.Serialization;
 using BotBuilder.Core.Canvas;
 using BotBuilder.Core.Connections;
 using BotBuilder.Core.Palette;
+using BotBuilder.Core.Targets;
 using BotBuilder.Core.Undo;
 using CommunityToolkit.Mvvm.ComponentModel;
 
@@ -29,6 +30,8 @@ public partial class BotEditorViewModel : ObservableObject
         Nodes = new ObservableCollection<NodeViewModel>();
         Connections = new ObservableCollection<ConnectionViewModel>();
         Viewport = new CanvasViewport();
+        TargetBar = new TargetBarViewModel();
+        TargetBar.Changed += OnTargetsChanged;
         New();
     }
 
@@ -36,6 +39,7 @@ public partial class BotEditorViewModel : ObservableObject
     public ObservableCollection<ConnectionViewModel> Connections { get; }
     public PaletteViewModel Palette { get; }
     public CanvasViewport Viewport { get; }
+    public TargetBarViewModel TargetBar { get; }
     public Guid BotId { get; private set; }
 
     public bool CanUndo => _undo.CanUndo;
@@ -168,6 +172,7 @@ public partial class BotEditorViewModel : ObservableObject
         DetachAllConnections();
         Connections.Clear();
         Nodes.Clear();
+        TargetBar.Targets.Clear();
         SelectedNode = null;
         SelectedConnection = null;
         _undo.Clear();
@@ -233,10 +238,43 @@ public partial class BotEditorViewModel : ObservableObject
         SelectedConnection = null;
     }
 
+    /// <summary>Assigns a node to a target (null = the default first target) and refreshes badges.</summary>
+    public void AssignTarget(NodeViewModel node, Guid? targetId)
+    {
+        node.TargetId = targetId;
+        RefreshTargetBadges();
+        IsDirty = true;
+    }
+
+    /// <summary>Recomputes every node's target badge: shown (the resolved target's name) only when the
+    /// bot has more than one target; an unassigned or dangling node resolves to the first target.</summary>
+    public void RefreshTargetBadges()
+    {
+        var targets = TargetBar.Targets;
+        if (targets.Count <= 1)
+        {
+            foreach (var node in Nodes) { node.TargetBadge = null; }
+            return;
+        }
+
+        foreach (var node in Nodes)
+        {
+            var resolved = targets.FirstOrDefault(t => t.Id == node.TargetId) ?? targets[0];
+            node.TargetBadge = resolved.Name;
+        }
+    }
+
+    private void OnTargetsChanged(object? sender, EventArgs e)
+    {
+        RefreshTargetBadges();
+        IsDirty = true;
+    }
+
     private void AfterEdit()
     {
         IsDirty = true;
         RaiseUndoState();
+        RefreshTargetBadges();
     }
 
     private void RaiseUndoState()

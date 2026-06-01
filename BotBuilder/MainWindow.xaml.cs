@@ -145,6 +145,16 @@ public partial class MainWindow : Window
         }
     }
 
+    private void AddTarget_Click(object sender, RoutedEventArgs e) => _editor.TargetBar.AddTarget();
+
+    private void RemoveTarget_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement { DataContext: BotBuilder.Core.Targets.TargetViewModel target })
+        {
+            _editor.TargetBar.RemoveTarget(target);
+        }
+    }
+
     private void Undo_Click(object sender, RoutedEventArgs e) => _editor.Undo();
     private void Redo_Click(object sender, RoutedEventArgs e) => _editor.Redo();
     private void Delete_Click(object sender, RoutedEventArgs e) => _editor.DeleteSelection();
