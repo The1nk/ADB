@@ -1,0 +1,55 @@
+using AdbCore.Actions;
+using AdbCore.Actions.BuiltIn;
+using AdbCore.Execution;
+using AdbCore.Models;
+using AdbCore.Serialization;
+
+namespace BotRunner;
+
+/// <summary>Orchestrates a single bot run: load, resolve targets, execute, log, and produce an exit code.</summary>
+public sealed class RunnerApp
+{
+    /// <summary>Runs the bot. Returns 0 on success, 1 on run failure.
+    /// Throws <see cref="CommandLineException"/> for usage problems (caller maps to exit 2).</summary>
+    public async Task<int> RunAsync(CommandLineArgs args, TextWriter stdout, CancellationToken ct)
+    {
+        if (!File.Exists(args.BotPath))
+        {
+            throw new CommandLineException($"Bot file not found: {args.BotPath}");
+        }
+
+        var bot = new BotSerializer().Load(args.BotPath);
+
+        // Throws CommandLineException before any file is opened if a declared target is unmatched.
+        var resolvedTargets = TargetResolver.Resolve(bot, args.Targets);
+
+        var logPath = args.LogFile ?? Path.ChangeExtension(args.BotPath, ".log");
+        using var fileWriter = new StreamWriter(logPath, append: false);
+        var logger = new RunLogger(stdout, fileWriter, args.LogLevel);
+
+        var definitions = new ActionRegistry();
+        var executors = new ActionExecutorRegistry();
+        BuiltInActions.Register(definitions, executors);
+
+        var options = new ExecutionOptions
+        {
+            ResolvedTargets = resolvedTargets,
+            Log = logger.Message,
+        };
+        var progress = new InlineProgress<ExecutionProgress>(logger.ActionExecuted);
+
+        logger.RunStart(bot.Name);
+        var result = await new BotExecutor(executors).RunAsync(bot, options, progress, ct);
+        logger.RunEnd(result);
+
+        return result.Success ? 0 : 1;
+    }
+
+    /// <summary>Synchronous <see cref="IProgress{T}"/> so log lines are written in deterministic order.</summary>
+    private sealed class InlineProgress<T> : IProgress<T>
+    {
+        private readonly Action<T> _handler;
+        public InlineProgress(Action<T> handler) => _handler = handler;
+        public void Report(T value) => _handler(value);
+    }
+}
