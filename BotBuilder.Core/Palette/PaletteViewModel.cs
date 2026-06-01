@@ -27,7 +27,8 @@ public partial class PaletteViewModel : ObservableObject
 
         var matches = _registry.All
             .Where(d => string.IsNullOrWhiteSpace(SearchText)
-                        || d.DisplayName.Contains(SearchText, StringComparison.OrdinalIgnoreCase));
+                        || d.DisplayName.Contains(SearchText, StringComparison.OrdinalIgnoreCase)
+                        || d.Category.Contains(SearchText, StringComparison.OrdinalIgnoreCase));
 
         foreach (var group in matches.GroupBy(d => d.Category).OrderBy(g => g.Key))
         {

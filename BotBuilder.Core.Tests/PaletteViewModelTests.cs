@@ -30,7 +30,7 @@ public class PaletteViewModelTests
     [Fact]
     public void Search_FiltersByDisplayName_CaseInsensitive()
     {
-        var palette = new PaletteViewModel(SeededRegistry()) { SearchText = "lo" };
+        var palette = new PaletteViewModel(SeededRegistry()) { SearchText = "LOG" };
 
         var allItems = palette.Categories.SelectMany(c => c.Items).ToList();
 
@@ -53,5 +53,18 @@ public class PaletteViewModelTests
         palette.SearchText = "";
 
         Assert.Equal(3, palette.Categories.SelectMany(c => c.Items).Count());
+    }
+
+    [Fact]
+    public void Search_MatchesByCategoryName()
+    {
+        var palette = new PaletteViewModel(SeededRegistry()) { SearchText = "control" };
+
+        var typeKeys = palette.Categories.SelectMany(c => c.Items).Select(i => i.TypeKey).ToList();
+
+        // "control" matches the "Control Flow" category -> Start + End, but not data.log
+        Assert.Contains("control.start", typeKeys);
+        Assert.Contains("control.end", typeKeys);
+        Assert.DoesNotContain("data.log", typeKeys);
     }
 }
