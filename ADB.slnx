@@ -3,6 +3,7 @@
   <Project Path="AdbCore/AdbCore.csproj" />
   <Project Path="BotBuilder.Core.Tests/BotBuilder.Core.Tests.csproj" />
   <Project Path="BotBuilder.Core/BotBuilder.Core.csproj" />
+  <Project Path="BotBuilder/BotBuilder.csproj" />
   <Project Path="BotRunner.Tests/BotRunner.Tests.csproj" />
   <Project Path="BotRunner/BotRunner.csproj" />
 </Solution>
