@@ -11,6 +11,7 @@ public partial class NodeViewModel : ObservableObject
     [ObservableProperty] private string _label = string.Empty;
     [ObservableProperty] private bool _isSelected;
     [ObservableProperty] private string? _targetBadge;
+    [ObservableProperty] private Guid? _targetId;
 
     public NodeViewModel(
         Guid id,
