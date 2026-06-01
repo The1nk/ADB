@@ -1,19 +1,23 @@
 using System.Collections.ObjectModel;
 using AdbCore.Actions;
 using AdbCore.Serialization;
+using BotBuilder.Core.Connections;
 using BotBuilder.Core.Palette;
+using BotBuilder.Core.Undo;
 using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace BotBuilder.Core;
 
-/// <summary>Root view-model for the editor: nodes, selection, and document operations.</summary>
+/// <summary>Root view-model for the editor: nodes, connections, selection, undoable operations.</summary>
 public partial class BotEditorViewModel : ObservableObject
 {
     private readonly ActionRegistry _registry;
     private readonly BotSerializer _serializer = new();
+    private readonly UndoStack _undo = new();
 
     [ObservableProperty] private string _botName = "Untitled";
     [ObservableProperty] private NodeViewModel? _selectedNode;
+    [ObservableProperty] private ConnectionViewModel? _selectedConnection;
     [ObservableProperty] private bool _isDirty;
     [ObservableProperty] private string? _filePath;
 
@@ -22,19 +26,24 @@ public partial class BotEditorViewModel : ObservableObject
         _registry = registry;
         Palette = new PaletteViewModel(registry);
         Nodes = new ObservableCollection<NodeViewModel>();
+        Connections = new ObservableCollection<ConnectionViewModel>();
         New();
     }
 
     public ObservableCollection<NodeViewModel> Nodes { get; }
+    public ObservableCollection<ConnectionViewModel> Connections { get; }
     public PaletteViewModel Palette { get; }
     public Guid BotId { get; private set; }
+
+    public bool CanUndo => _undo.CanUndo;
+    public bool CanRedo => _undo.CanRedo;
 
     public NodeViewModel AddNode(string typeKey, double x, double y)
     {
         var definition = _registry.Get(typeKey);
         var node = NodeViewModel.FromDefinition(definition, Guid.NewGuid(), definition.DisplayName, x, y);
-        Nodes.Add(node);
-        IsDirty = true;
+        _undo.Execute(new AddNodeCommand(this, node));
+        AfterEdit();
         return node;
     }
 
@@ -45,31 +54,117 @@ public partial class BotEditorViewModel : ObservableObject
         IsDirty = true;
     }
 
+    public void CommitMove(NodeViewModel node, double oldX, double oldY)
+    {
+        if (oldX == node.X && oldY == node.Y)
+        {
+            return;
+        }
+        _undo.PushExecuted(new MoveNodeCommand(node, oldX, oldY, node.X, node.Y));
+        AfterEdit();
+    }
+
+    public ConnectionError Connect(NodeViewModel source, PortViewModel sourcePort, NodeViewModel target, PortViewModel targetPort)
+    {
+        var error = ConnectionValidator.Validate(Connections, source, sourcePort, target, targetPort);
+        if (error != ConnectionError.None)
+        {
+            return error;
+        }
+        var connection = new ConnectionViewModel(Guid.NewGuid(), source, sourcePort, target, targetPort);
+        _undo.Execute(new ConnectCommand(this, connection));
+        AfterEdit();
+        return ConnectionError.None;
+    }
+
+    public void Disconnect(ConnectionViewModel connection)
+    {
+        _undo.Execute(new DisconnectCommand(this, connection));
+        AfterEdit();
+    }
+
+    public void DeleteNode(NodeViewModel node)
+    {
+        var incident = Connections
+            .Where(c => ReferenceEquals(c.Source, node) || ReferenceEquals(c.Target, node))
+            .ToList();
+        _undo.Execute(new DeleteNodeCommand(this, node, incident));
+        AfterEdit();
+    }
+
+    public void DeleteSelection()
+    {
+        if (SelectedConnection is { } connection)
+        {
+            Disconnect(connection);
+            SelectedConnection = null;
+        }
+        else if (SelectedNode is { } node)
+        {
+            DeleteNode(node);
+            SelectedNode = null;
+        }
+    }
+
     public void Select(NodeViewModel? node)
     {
-        foreach (var n in Nodes)
-        {
-            n.IsSelected = ReferenceEquals(n, node);
-        }
+        foreach (var n in Nodes) { n.IsSelected = ReferenceEquals(n, node); }
+        ClearConnectionSelection();
+        SelectedConnection = null;
         SelectedNode = node;
+    }
+
+    public void SelectConnection(ConnectionViewModel? connection)
+    {
+        foreach (var c in Connections) { c.IsSelected = ReferenceEquals(c, connection); }
+        foreach (var n in Nodes) { n.IsSelected = false; }
+        SelectedNode = null;
+        SelectedConnection = connection;
+    }
+
+    public void Undo()
+    {
+        if (!_undo.CanUndo)
+        {
+            return;
+        }
+        _undo.Undo();
+        AfterEdit();
+    }
+
+    public void Redo()
+    {
+        if (!_undo.CanRedo)
+        {
+            return;
+        }
+        _undo.Redo();
+        AfterEdit();
     }
 
     public void New()
     {
         BotId = Guid.NewGuid();
         BotName = "Untitled";
+        DetachAllConnections();
+        Connections.Clear();
         Nodes.Clear();
         SelectedNode = null;
+        SelectedConnection = null;
+        _undo.Clear();
         FilePath = null;
         IsDirty = false;
+        RaiseUndoState();
     }
 
     public void Open(string path)
     {
         var bot = _serializer.Load(path);
         DocumentMapper.Populate(this, bot, _registry);
+        _undo.Clear();
         FilePath = path;
         IsDirty = false;
+        RaiseUndoState();
     }
 
     public void Save(string path)
@@ -79,16 +174,59 @@ public partial class BotEditorViewModel : ObservableObject
         IsDirty = false;
     }
 
-    /// <summary>Used by <see cref="DocumentMapper"/> to replace editor contents during a load.</summary>
-    internal void LoadFrom(Guid botId, string botName, IEnumerable<NodeViewModel> nodes)
+    // ---- internal mutation helpers used by commands and the mapper ----
+
+    internal void AddNodeCore(NodeViewModel node) => Nodes.Add(node);
+    internal void RemoveNodeCore(NodeViewModel node) => Nodes.Remove(node);
+    internal void AddConnectionCore(ConnectionViewModel connection)
+    {
+        connection.Attach();
+        Connections.Add(connection);
+    }
+
+    internal void RemoveConnectionCore(ConnectionViewModel connection)
+    {
+        connection.Detach();
+        Connections.Remove(connection);
+    }
+
+    /// <summary>Replaces editor contents during a load (mapper-only).</summary>
+    internal void LoadFrom(
+        Guid botId,
+        string botName,
+        IEnumerable<NodeViewModel> nodes,
+        Func<IReadOnlyList<NodeViewModel>, IEnumerable<ConnectionViewModel>> connectionFactory)
     {
         BotId = botId;
         BotName = botName;
+        DetachAllConnections();
+        Connections.Clear();
         Nodes.Clear();
-        foreach (var node in nodes)
-        {
-            Nodes.Add(node);
-        }
+        foreach (var node in nodes) { Nodes.Add(node); }
+        foreach (var connection in connectionFactory(Nodes)) { Connections.Add(connection); }
         SelectedNode = null;
+        SelectedConnection = null;
+    }
+
+    private void AfterEdit()
+    {
+        IsDirty = true;
+        RaiseUndoState();
+    }
+
+    private void RaiseUndoState()
+    {
+        OnPropertyChanged(nameof(CanUndo));
+        OnPropertyChanged(nameof(CanRedo));
+    }
+
+    private void ClearConnectionSelection()
+    {
+        foreach (var c in Connections) { c.IsSelected = false; }
+    }
+
+    private void DetachAllConnections()
+    {
+        foreach (var c in Connections) { c.Detach(); }
     }
 }

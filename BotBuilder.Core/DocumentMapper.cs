@@ -1,5 +1,6 @@
 using AdbCore.Actions;
 using AdbCore.Models;
+using BotBuilder.Core.Connections;
 
 namespace BotBuilder.Core;
 
@@ -8,14 +9,9 @@ public static class DocumentMapper
 {
     private const string UnknownCategory = "Unknown";
 
-    /// <summary>Assembles a <see cref="Bot"/> from the current editor state (M3a: nodes only).</summary>
     public static Bot ToBot(BotEditorViewModel editor)
     {
-        var bot = new Bot
-        {
-            Id = editor.BotId,
-            Name = editor.BotName,
-        };
+        var bot = new Bot { Id = editor.BotId, Name = editor.BotName };
 
         foreach (var node in editor.Nodes)
         {
@@ -28,13 +24,48 @@ public static class DocumentMapper
             });
         }
 
+        foreach (var c in editor.Connections)
+        {
+            bot.Connections.Add(new ActionConnection
+            {
+                Id = c.Id,
+                SourceActionId = c.Source.Id,
+                SourcePort = c.SourcePort.Name,
+                TargetActionId = c.Target.Id,
+                TargetPort = c.TargetPort.Name,
+            });
+        }
+
         return bot;
     }
 
-    /// <summary>Replaces the editor's contents with nodes built from <paramref name="bot"/>.</summary>
     public static void Populate(BotEditorViewModel editor, Bot bot, ActionRegistry registry)
     {
-        editor.LoadFrom(bot.Id, bot.Name, bot.Actions.Select(a => BuildNode(a, registry)));
+        var nodes = bot.Actions.Select(a => BuildNode(a, registry)).ToList();
+        editor.LoadFrom(bot.Id, bot.Name, nodes, placedNodes => BuildConnections(bot, placedNodes));
+    }
+
+    private static IEnumerable<ConnectionViewModel> BuildConnections(Bot bot, IReadOnlyList<NodeViewModel> nodes)
+    {
+        var byId = nodes.ToDictionary(n => n.Id);
+
+        foreach (var c in bot.Connections)
+        {
+            if (!byId.TryGetValue(c.SourceActionId, out var source) ||
+                !byId.TryGetValue(c.TargetActionId, out var target))
+            {
+                continue;
+            }
+
+            var sourcePort = source.OutputPorts.FirstOrDefault(p => p.Name == c.SourcePort);
+            var targetPort = target.InputPorts.FirstOrDefault(p => p.Name == c.TargetPort);
+            if (sourcePort is null || targetPort is null)
+            {
+                continue;
+            }
+
+            yield return new ConnectionViewModel(c.Id, source, sourcePort, target, targetPort);
+        }
     }
 
     private static NodeViewModel BuildNode(BotAction action, ActionRegistry registry)
@@ -46,13 +77,8 @@ public static class DocumentMapper
         }
 
         return new NodeViewModel(
-            action.Id,
-            action.TypeKey,
-            action.Label,
-            UnknownCategory,
-            Array.Empty<PortViewModel>(),
-            Array.Empty<PortViewModel>(),
-            action.CanvasPosition.X,
-            action.CanvasPosition.Y);
+            action.Id, action.TypeKey, action.Label, UnknownCategory,
+            Array.Empty<PortViewModel>(), Array.Empty<PortViewModel>(),
+            action.CanvasPosition.X, action.CanvasPosition.Y);
     }
 }
