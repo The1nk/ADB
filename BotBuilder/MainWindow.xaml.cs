@@ -26,6 +26,12 @@ public partial class MainWindow : Window
     private NodeViewModel? _connectSourceNode;
     private PortViewModel? _connectSourcePort;
 
+    private bool _isPanning;
+    private Point _panLastPoint;
+
+    private bool _isMarqueeing;
+    private Point _marqueeStartWorld;
+
     public MainWindow()
     {
         InitializeComponent();
@@ -236,4 +242,109 @@ public partial class MainWindow : Window
 
     private static PaletteItem? PaletteItemFrom(object sender)
         => (sender as FrameworkElement)?.DataContext as PaletteItem;
+
+    private void Viewport_MouseWheel(object sender, MouseWheelEventArgs e)
+    {
+        var factor = e.Delta > 0 ? 1.1 : 1.0 / 1.1;
+        var anchor = e.GetPosition(ViewportHost);
+        _editor.Viewport.ZoomAt(anchor.X, anchor.Y, factor);
+        e.Handled = true;
+    }
+
+    private void Viewport_MouseDown(object sender, MouseButtonEventArgs e)
+    {
+        if (e.ChangedButton != MouseButton.Middle)
+        {
+            return;
+        }
+
+        _isPanning = true;
+        _panLastPoint = e.GetPosition(ViewportHost);
+        ViewportHost.CaptureMouse();
+        ViewportHost.MouseMove += Viewport_PanMouseMove;
+        ViewportHost.MouseUp += Viewport_PanMouseUp;
+        e.Handled = true;
+    }
+
+    private void Viewport_PanMouseMove(object sender, MouseEventArgs e)
+    {
+        if (!_isPanning)
+        {
+            return;
+        }
+
+        var p = e.GetPosition(ViewportHost);
+        _editor.Viewport.Pan(p.X - _panLastPoint.X, p.Y - _panLastPoint.Y);
+        _panLastPoint = p;
+    }
+
+    private void Viewport_PanMouseUp(object sender, MouseButtonEventArgs e)
+    {
+        if (e.ChangedButton != MouseButton.Middle)
+        {
+            return;
+        }
+
+        _isPanning = false;
+        ViewportHost.ReleaseMouseCapture();
+        ViewportHost.MouseMove -= Viewport_PanMouseMove;
+        ViewportHost.MouseUp -= Viewport_PanMouseUp;
+        e.Handled = true;
+    }
+
+    private void Canvas_MarqueeStart(object sender, MouseButtonEventArgs e)
+    {
+        _isMarqueeing = true;
+        _marqueeStartWorld = e.GetPosition(NodeHost);
+
+        UpdateMarqueeRect(_marqueeStartWorld, _marqueeStartWorld);
+        MarqueeRect.Visibility = Visibility.Visible;
+
+        ViewportHost.CaptureMouse();
+        ViewportHost.MouseMove += Canvas_MarqueeMove;
+        ViewportHost.MouseLeftButtonUp += Canvas_MarqueeEnd;
+        e.Handled = true;
+    }
+
+    private void Canvas_MarqueeMove(object sender, MouseEventArgs e)
+    {
+        if (!_isMarqueeing)
+        {
+            return;
+        }
+        UpdateMarqueeRect(_marqueeStartWorld, e.GetPosition(NodeHost));
+    }
+
+    private void Canvas_MarqueeEnd(object sender, MouseButtonEventArgs e)
+    {
+        if (!_isMarqueeing)
+        {
+            return;
+        }
+
+        _isMarqueeing = false;
+        ViewportHost.ReleaseMouseCapture();
+        ViewportHost.MouseMove -= Canvas_MarqueeMove;
+        ViewportHost.MouseLeftButtonUp -= Canvas_MarqueeEnd;
+        MarqueeRect.Visibility = Visibility.Collapsed;
+
+        var end = e.GetPosition(NodeHost);
+        var x = Math.Min(_marqueeStartWorld.X, end.X);
+        var y = Math.Min(_marqueeStartWorld.Y, end.Y);
+        var w = Math.Abs(end.X - _marqueeStartWorld.X);
+        var h = Math.Abs(end.Y - _marqueeStartWorld.Y);
+
+        _editor.SelectNodes(BotBuilder.Core.Canvas.MarqueeSelection.NodesInRect(_editor.Nodes, x, y, w, h));
+        e.Handled = true;
+    }
+
+    private void UpdateMarqueeRect(Point a, Point b)
+    {
+        var x = Math.Min(a.X, b.X);
+        var y = Math.Min(a.Y, b.Y);
+        Canvas.SetLeft(MarqueeRect, x);
+        Canvas.SetTop(MarqueeRect, y);
+        MarqueeRect.Width = Math.Abs(b.X - a.X);
+        MarqueeRect.Height = Math.Abs(b.Y - a.Y);
+    }
 }

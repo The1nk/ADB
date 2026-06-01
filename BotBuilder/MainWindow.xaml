@@ -64,8 +64,16 @@
                 </ItemsControl>
             </DockPanel>
 
-            <Border Grid.Column="1" Background="#FAFAFA" BorderBrush="#CCC" BorderThickness="1,0,1,0" ClipToBounds="True">
-                <Grid x:Name="CanvasRoot" Background="Transparent" AllowDrop="True" Drop="Canvas_Drop">
+            <Border Grid.Column="1" x:Name="ViewportHost" Background="#FAFAFA" BorderBrush="#CCC" BorderThickness="1,0,1,0"
+                    ClipToBounds="True" AllowDrop="True" Drop="Canvas_Drop"
+                    MouseWheel="Viewport_MouseWheel" MouseDown="Viewport_MouseDown" MouseLeftButtonDown="Canvas_MarqueeStart">
+                <Grid x:Name="CanvasRoot">
+                    <Grid.RenderTransform>
+                        <TransformGroup>
+                            <ScaleTransform ScaleX="{Binding Viewport.Scale}" ScaleY="{Binding Viewport.Scale}" />
+                            <TranslateTransform X="{Binding Viewport.OffsetX}" Y="{Binding Viewport.OffsetY}" />
+                        </TransformGroup>
+                    </Grid.RenderTransform>
                     <!-- Connection layer (under the nodes) -->
                     <ItemsControl ItemsSource="{Binding Connections}">
                         <ItemsControl.ItemsPanel>
@@ -146,6 +154,10 @@
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
+                    <Canvas IsHitTestVisible="False">
+                        <Rectangle x:Name="MarqueeRect" Visibility="Collapsed"
+                                   Fill="#332962D6" Stroke="#2962D6" StrokeThickness="1" />
+                    </Canvas>
                 </Grid>
             </Border>
 

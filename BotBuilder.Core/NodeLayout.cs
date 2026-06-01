@@ -5,6 +5,7 @@ namespace BotBuilder.Core;
 public static class NodeLayout
 {
     public const double CardWidth = 160;
+    public const double CardHeight = 70;
     public const double HeaderHeight = 28;
     public const double PortAreaTop = HeaderHeight + 12;
     public const double PortSpacing = 20;

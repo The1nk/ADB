@@ -39,23 +39,32 @@ internal sealed class DisconnectCommand : IUndoableCommand
     public void Undo() => _editor.AddConnectionCore(_connection);
 }
 
-internal sealed class DeleteNodeCommand : IUndoableCommand
+/// <summary>Removes a set of nodes and a set of connections; undo restores all of them.</summary>
+internal sealed class DeleteNodesCommand : IUndoableCommand
 {
     private readonly BotEditorViewModel _editor;
-    private readonly NodeViewModel _node;
-    private readonly IReadOnlyList<ConnectionViewModel> _incident;
-    public DeleteNodeCommand(BotEditorViewModel editor, NodeViewModel node, IReadOnlyList<ConnectionViewModel> incident)
-    { _editor = editor; _node = node; _incident = incident; }
+    private readonly IReadOnlyList<NodeViewModel> _nodes;
+    private readonly IReadOnlyList<ConnectionViewModel> _connections;
+
+    public DeleteNodesCommand(
+        BotEditorViewModel editor,
+        IReadOnlyList<NodeViewModel> nodes,
+        IReadOnlyList<ConnectionViewModel> connections)
+    {
+        _editor = editor;
+        _nodes = nodes;
+        _connections = connections;
+    }
 
     public void Do()
     {
-        foreach (var c in _incident) { _editor.RemoveConnectionCore(c); }
-        _editor.RemoveNodeCore(_node);
+        foreach (var c in _connections) { _editor.RemoveConnectionCore(c); }
+        foreach (var n in _nodes) { _editor.RemoveNodeCore(n); }
     }
 
     public void Undo()
     {
-        _editor.AddNodeCore(_node);
-        foreach (var c in _incident) { _editor.AddConnectionCore(c); }
+        foreach (var n in _nodes) { _editor.AddNodeCore(n); }
+        foreach (var c in _connections) { _editor.AddConnectionCore(c); }
     }
 }
