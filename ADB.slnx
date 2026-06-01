@@ -1,4 +1,6 @@
 <Solution>
   <Project Path="AdbCore.Tests/AdbCore.Tests.csproj" />
   <Project Path="AdbCore/AdbCore.csproj" />
+  <Project Path="BotRunner.Tests/BotRunner.Tests.csproj" />
+  <Project Path="BotRunner/BotRunner.csproj" />
 </Solution>
