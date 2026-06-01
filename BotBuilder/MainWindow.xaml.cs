@@ -134,6 +134,10 @@ public partial class MainWindow : Window
         }
     }
 
+    private void Connection_MouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e) { }
+    private void InputPort_MouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e) { }
+    private void OutputPort_MouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e) { }
+
     private static PaletteItem? PaletteItemFrom(object sender)
         => (sender as FrameworkElement)?.DataContext as PaletteItem;
 }

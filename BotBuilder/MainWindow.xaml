@@ -58,54 +58,79 @@
             </DockPanel>
 
             <Border Grid.Column="1" Background="#FAFAFA" BorderBrush="#CCC" BorderThickness="1,0,1,0">
-                <ItemsControl x:Name="NodeHost" ItemsSource="{Binding Nodes}"
-                              AllowDrop="True" Drop="Canvas_Drop" Background="Transparent">
-                    <ItemsControl.ItemsPanel>
-                        <ItemsPanelTemplate>
-                            <Canvas Background="Transparent" />
-                        </ItemsPanelTemplate>
-                    </ItemsControl.ItemsPanel>
-                    <ItemsControl.ItemContainerStyle>
-                        <Style TargetType="ContentPresenter">
-                            <Setter Property="Canvas.Left" Value="{Binding X}" />
-                            <Setter Property="Canvas.Top" Value="{Binding Y}" />
-                        </Style>
-                    </ItemsControl.ItemContainerStyle>
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate>
-                            <Border Width="160" CornerRadius="6" Background="White"
-                                    BorderBrush="{Binding IsSelected, Converter={x:Static local:SelectionBorderConverter.Instance}}"
-                                    BorderThickness="2"
-                                    MouseLeftButtonDown="Node_MouseLeftButtonDown">
-                                <StackPanel>
-                                    <Border Background="{Binding CategoryColor, Converter={StaticResource CategoryBrush}}"
-                                            CornerRadius="6,6,0,0" Padding="6,3">
-                                        <TextBlock Text="{Binding Label}" Foreground="White" FontWeight="Bold" />
-                                    </Border>
-                                    <Grid Margin="0,4">
-                                        <ItemsControl ItemsSource="{Binding InputPorts}" HorizontalAlignment="Left">
+                <Grid x:Name="CanvasRoot" Background="Transparent">
+                    <!-- Connection layer (under the nodes) -->
+                    <ItemsControl ItemsSource="{Binding Connections}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate><Canvas /></ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Canvas>
+                                    <Path Data="{Binding PathData}" Stroke="Transparent" StrokeThickness="10"
+                                          MouseLeftButtonDown="Connection_MouseLeftButtonDown" />
+                                    <Path Data="{Binding PathData}" StrokeThickness="2" IsHitTestVisible="False"
+                                          Stroke="{Binding IsSelected, Converter={x:Static local:SelectionBorderConverter.Instance}}" />
+                                </Canvas>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <!-- Node layer -->
+                    <ItemsControl x:Name="NodeHost" ItemsSource="{Binding Nodes}"
+                                  AllowDrop="True" Drop="Canvas_Drop" Background="Transparent">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate><Canvas Background="Transparent" /></ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemContainerStyle>
+                            <Style TargetType="ContentPresenter">
+                                <Setter Property="Canvas.Left" Value="{Binding X}" />
+                                <Setter Property="Canvas.Top" Value="{Binding Y}" />
+                            </Style>
+                        </ItemsControl.ItemContainerStyle>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Width="160" MinHeight="70" CornerRadius="6" Background="White"
+                                        BorderBrush="{Binding IsSelected, Converter={x:Static local:SelectionBorderConverter.Instance}}"
+                                        BorderThickness="2"
+                                        MouseLeftButtonDown="Node_MouseLeftButtonDown">
+                                    <Grid>
+                                        <StackPanel>
+                                            <Border Background="{Binding CategoryColor, Converter={StaticResource CategoryBrush}}"
+                                                    CornerRadius="6,6,0,0" Padding="6,3" MinHeight="28">
+                                                <TextBlock Text="{Binding Label}" Foreground="White" FontWeight="Bold" />
+                                            </Border>
+                                            <TextBlock Text="{Binding TargetBadge}" FontSize="10" Foreground="#888" Margin="6,2"
+                                                       Visibility="{Binding TargetBadge, Converter={x:Static local:NullToCollapsedConverter.Instance}}" />
+                                        </StackPanel>
+                                        <ItemsControl ItemsSource="{Binding InputPorts}">
+                                            <ItemsControl.ItemsPanel><ItemsPanelTemplate><Canvas /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
                                             <ItemsControl.ItemTemplate>
                                                 <DataTemplate>
-                                                    <Ellipse Width="10" Height="10" Fill="#555" Margin="2" ToolTip="{Binding Name}" />
+                                                    <Ellipse Width="10" Height="10" Fill="#555" ToolTip="{Binding Name}"
+                                                             Canvas.Left="{Binding AnchorOffset.X}" Canvas.Top="{Binding AnchorOffset.Y}"
+                                                             RenderTransform="{x:Static local:PortCenteringTransform.Instance}"
+                                                             MouseLeftButtonDown="InputPort_MouseLeftButtonDown" />
                                                 </DataTemplate>
                                             </ItemsControl.ItemTemplate>
                                         </ItemsControl>
-                                        <ItemsControl ItemsSource="{Binding OutputPorts}" HorizontalAlignment="Right">
+                                        <ItemsControl ItemsSource="{Binding OutputPorts}">
+                                            <ItemsControl.ItemsPanel><ItemsPanelTemplate><Canvas /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
                                             <ItemsControl.ItemTemplate>
                                                 <DataTemplate>
-                                                    <Ellipse Width="10" Height="10" Fill="#555" Margin="2" ToolTip="{Binding Name}" />
+                                                    <Ellipse Width="10" Height="10" Fill="#555" ToolTip="{Binding Name}"
+                                                             Canvas.Left="{Binding AnchorOffset.X}" Canvas.Top="{Binding AnchorOffset.Y}"
+                                                             RenderTransform="{x:Static local:PortCenteringTransform.Instance}"
+                                                             MouseLeftButtonDown="OutputPort_MouseLeftButtonDown" />
                                                 </DataTemplate>
                                             </ItemsControl.ItemTemplate>
                                         </ItemsControl>
                                     </Grid>
-                                    <TextBlock Text="{Binding TargetBadge}" FontSize="10" Foreground="#888"
-                                               Margin="6,0,6,4"
-                                               Visibility="{Binding TargetBadge, Converter={x:Static local:NullToCollapsedConverter.Instance}}" />
-                                </StackPanel>
-                            </Border>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </Grid>
             </Border>
 
             <Border Grid.Column="2" Background="#F7F7F7">

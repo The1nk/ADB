@@ -28,3 +28,9 @@ public sealed class NullToCollapsedConverter : IValueConverter
     public object ConvertBack(object value, Type targetType, object? parameter, CultureInfo culture)
         => throw new NotSupportedException();
 }
+
+/// <summary>Shifts a 10px port ellipse so its centre sits on the anchor point.</summary>
+public static class PortCenteringTransform
+{
+    public static readonly System.Windows.Media.TranslateTransform Instance = new(-5, -5);
+}
