@@ -1,2 +1,3 @@
-﻿// Program entry point is implemented in the next task.
-return 0;
+using BotRunner;
+
+return await Cli.RunAsync(args, Console.Out, Console.Error, CancellationToken.None);
