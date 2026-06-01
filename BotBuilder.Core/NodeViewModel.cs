@@ -12,6 +12,8 @@ public partial class NodeViewModel : ObservableObject
     [ObservableProperty] private bool _isSelected;
     [ObservableProperty] private string? _targetBadge;
     [ObservableProperty] private Guid? _targetId;
+    [ObservableProperty] private int _retryMaxAttempts = 1;
+    [ObservableProperty] private int _retryDelayMs;
 
     public NodeViewModel(
         Guid id,
@@ -36,6 +38,9 @@ public partial class NodeViewModel : ObservableObject
     public Guid Id { get; }
     public string TypeKey { get; }
     public string Category { get; }
+
+    /// <summary>Action-specific settings, keyed by config-field key.</summary>
+    public Dictionary<string, object> Config { get; } = new();
     public string CategoryColor => CategoryColors.ColorFor(Category);
     public IReadOnlyList<PortViewModel> InputPorts { get; }
     public IReadOnlyList<PortViewModel> OutputPorts { get; }
