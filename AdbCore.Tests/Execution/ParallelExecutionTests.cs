@@ -173,4 +173,106 @@ public class ParallelExecutionTests
         Assert.False(failReached);
         Assert.Equal(3, result.ActionsExecuted); // a + b + okPath; failPath not reached
     }
+
+    /// <summary>An async executor that blocks on a manually-released gate, so tests can deterministically
+    /// hold a branch "in flight" and observe whether a strategy cancels it.</summary>
+    private sealed class GatedExecutor : IActionExecutor
+    {
+        public required string TypeKey { get; init; }
+        public TaskCompletionSource Gate { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public bool Completed { get; private set; }
+
+        public async Task<ActionResult> ExecuteAsync(ActionExecutionContext context, CancellationToken ct)
+        {
+            await Gate.Task.WaitAsync(ct); // throws OperationCanceledException if ct is cancelled first
+            Completed = true;
+            return ActionResult.Ok(string.Empty);
+        }
+    }
+
+    [Fact]
+    public async Task Parallel_HaltAll_CancelsInFlightSiblingOnFirstFailure()
+    {
+        var rp = RunParallel(out var rpId, ParallelErrorStrategy.HaltAll);
+        var bad = Node("bad", out var badId);
+        var blocker = Node("blocker", out var blockerId);
+        var join = Node(JoinAction.JoinTypeKey, out var joinId);
+
+        var bot = new Bot { Name = "par-haltall" };
+        bot.Actions.AddRange(new[] { rp, bad, blocker, join });
+        bot.Connections.Add(Edge(rpId, RunParallelAction.BranchPort(1), badId));
+        bot.Connections.Add(Edge(rpId, RunParallelAction.BranchPort(2), blockerId));
+        bot.Connections.Add(Edge(badId, "out", joinId));
+        bot.Connections.Add(Edge(blockerId, "out", joinId));
+        // Join.someFailed unwired -> HaltAll halts the run
+
+        var gated = new GatedExecutor { TypeKey = "blocker" }; // gate never released
+        var registry = new ActionExecutorRegistry();
+        registry.Register(new FakeExecutor { TypeKey = "bad", Behavior = c => ActionResult.Fail("boom") });
+        registry.Register(gated);
+
+        var result = await new BotExecutor(registry).RunAsync(bot, new ExecutionOptions(), null, default);
+
+        Assert.False(result.Success);       // unhandled failure under HaltAll halts the run
+        Assert.Equal("boom", result.ErrorMessage);
+        Assert.False(gated.Completed);      // the blocked sibling was cancelled, never completed
+    }
+
+    [Fact]
+    public async Task Parallel_WaitThenHalt_LetsSiblingFinishThenHalts()
+    {
+        var rp = RunParallel(out var rpId, ParallelErrorStrategy.WaitThenHalt);
+        var bad = Node("bad", out var badId);
+        var blocker = Node("blocker", out var blockerId);
+        var join = Node(JoinAction.JoinTypeKey, out var joinId);
+
+        var bot = new Bot { Name = "par-waitthenhalt" };
+        bot.Actions.AddRange(new[] { rp, bad, blocker, join });
+        bot.Connections.Add(Edge(rpId, RunParallelAction.BranchPort(1), badId));
+        bot.Connections.Add(Edge(rpId, RunParallelAction.BranchPort(2), blockerId));
+        bot.Connections.Add(Edge(badId, "out", joinId));
+        bot.Connections.Add(Edge(blockerId, "out", joinId));
+        // Join.someFailed unwired -> halt after siblings settle
+
+        var gated = new GatedExecutor { TypeKey = "blocker" };
+        var registry = new ActionExecutorRegistry();
+        registry.Register(new FakeExecutor { TypeKey = "bad", Behavior = c => ActionResult.Fail("boom") });
+        registry.Register(gated);
+
+        var runTask = new BotExecutor(registry).RunAsync(bot, new ExecutionOptions(), null, default);
+        gated.Gate.SetResult(); // release the sibling; WaitThenHalt does not cancel it
+        var result = await runTask;
+
+        Assert.False(result.Success);   // unhandled failure still halts under WaitThenHalt
+        Assert.True(gated.Completed);   // but the sibling was allowed to finish first
+    }
+
+    [Fact]
+    public async Task Parallel_Continue_UnhandledFailure_SucceedsAndLetsSiblingFinish()
+    {
+        var rp = RunParallel(out var rpId, ParallelErrorStrategy.Continue);
+        var bad = Node("bad", out var badId);
+        var blocker = Node("blocker", out var blockerId);
+        var join = Node(JoinAction.JoinTypeKey, out var joinId);
+
+        var bot = new Bot { Name = "par-continue" };
+        bot.Actions.AddRange(new[] { rp, bad, blocker, join });
+        bot.Connections.Add(Edge(rpId, RunParallelAction.BranchPort(1), badId));
+        bot.Connections.Add(Edge(rpId, RunParallelAction.BranchPort(2), blockerId));
+        bot.Connections.Add(Edge(badId, "out", joinId));
+        bot.Connections.Add(Edge(blockerId, "out", joinId));
+        // Join.someFailed unwired -> Continue swallows the failure
+
+        var gated = new GatedExecutor { TypeKey = "blocker" };
+        var registry = new ActionExecutorRegistry();
+        registry.Register(new FakeExecutor { TypeKey = "bad", Behavior = c => ActionResult.Fail("boom") });
+        registry.Register(gated);
+
+        var runTask = new BotExecutor(registry).RunAsync(bot, new ExecutionOptions(), null, default);
+        gated.Gate.SetResult();
+        var result = await runTask;
+
+        Assert.True(result.Success);    // Continue: failure is a warning, run proceeds
+        Assert.True(gated.Completed);
+    }
 }
