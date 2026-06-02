@@ -83,7 +83,7 @@ public class BotExecutor
             }
 
             var result = await ExecuteWithRetryAsync(executor, current, state, ct);
-            state.ActionsExecuted++;
+            state.RecordActionExecuted();
 
             state.Progress?.Report(new ExecutionProgress
             {
@@ -255,7 +255,9 @@ public class BotExecutor
         public BotExecutionContext Context { get; }
         public Action<string> Log { get; }
         public IProgress<ExecutionProgress>? Progress { get; }
-        public int ActionsExecuted { get; set; }
+        private int _actionsExecuted;
+        public int ActionsExecuted => Volatile.Read(ref _actionsExecuted);
+        public void RecordActionExecuted() => Interlocked.Increment(ref _actionsExecuted);
     }
 
     /// <summary>Result of walking a sub-path: completed, or failed at a specific action.</summary>
