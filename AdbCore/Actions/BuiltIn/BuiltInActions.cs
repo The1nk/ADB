@@ -15,6 +15,8 @@ public static class BuiltInActions
         Add(new LogAction(), definitions, executors);
         Add(new DelayAction(), definitions, executors);
         Add(new BranchAction(), definitions, executors);
+        Add(new SetVariableAction(), definitions, executors);
+        Add(new CommentAction(), definitions, executors);
 
         // Loop is engine-native: register its definition only (no executor).
         definitions.Register(new LoopAction());
