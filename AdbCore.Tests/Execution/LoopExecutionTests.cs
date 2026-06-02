@@ -292,4 +292,31 @@ public class LoopExecutionTests
         Assert.Equal(0, bodyCalls);
         Assert.True(doneReached);
     }
+
+    [Fact]
+    public async Task Loop_CountUnset_DefaultsToOneIteration()
+    {
+        // A freshly-dropped Loop has no "count" key in Config (the UI only persists edited fields);
+        // it should iterate once, matching LoopAction's count ConfigField default of 1 — not zero times.
+        var loop = Node(LoopAction.LoopTypeKey, out var loopId);
+        var body = Node("body", out var bodyId);
+        var done = Node("done", out var doneId);
+
+        var bot = new Bot { Name = "loop-count-unset" };
+        bot.Actions.AddRange(new[] { loop, body, done });
+        bot.Connections.Add(Edge(loopId, LoopAction.BodyPort, bodyId));
+        bot.Connections.Add(Edge(loopId, LoopAction.DonePort, doneId));
+
+        var bodyCalls = 0;
+        var doneReached = false;
+        var registry = new ActionExecutorRegistry();
+        registry.Register(new FakeExecutor { TypeKey = "body", Behavior = c => { bodyCalls++; return ActionResult.Ok(string.Empty); } });
+        registry.Register(new FakeExecutor { TypeKey = "done", Behavior = c => { doneReached = true; return ActionResult.Ok(string.Empty); } });
+
+        var result = await new BotExecutor(registry).RunAsync(bot, new ExecutionOptions(), null, default);
+
+        Assert.True(result.Success);
+        Assert.Equal(1, bodyCalls);
+        Assert.True(doneReached);
+    }
 }

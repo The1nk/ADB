@@ -125,12 +125,15 @@ public class BotExecutor
         if (string.Equals(mode, LoopAction.ModeForEach, StringComparison.OrdinalIgnoreCase))
         {
             var collectionVar = ConfigValues.GetString(loop.Config, LoopAction.CollectionVariableKey);
-            var raw = state.Context.Variables.TryGetValue(collectionVar, out var v) ? v : null;
+            var raw = !string.IsNullOrEmpty(collectionVar)
+                && state.Context.Variables.TryGetValue(collectionVar, out var v) ? v : null;
             items = SplitItems(raw);
         }
         else
         {
-            var count = Math.Max(0, ConfigValues.GetInt(loop.Config, LoopAction.CountKey, 0));
+            // Fallback matches LoopAction's "count" ConfigField.DefaultValue (1): a dropped Loop whose
+            // Count was never edited has no "count" key in Config, yet should iterate once, not zero times.
+            var count = Math.Max(0, ConfigValues.GetInt(loop.Config, LoopAction.CountKey, 1));
             var placeholders = new string?[count];
             items = placeholders;
         }
