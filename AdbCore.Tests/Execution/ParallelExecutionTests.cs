@@ -190,7 +190,7 @@ public class ParallelExecutionTests
         }
     }
 
-    [Fact]
+    [Fact(Timeout = 5000)] // guard: a cancellation regression would otherwise hang on the never-released gate
     public async Task Parallel_HaltAll_CancelsInFlightSiblingOnFirstFailure()
     {
         var rp = RunParallel(out var rpId, ParallelErrorStrategy.HaltAll);
@@ -218,7 +218,7 @@ public class ParallelExecutionTests
         Assert.False(gated.Completed);      // the blocked sibling was cancelled, never completed
     }
 
-    [Fact]
+    [Fact(Timeout = 5000)]
     public async Task Parallel_WaitThenHalt_LetsSiblingFinishThenHalts()
     {
         var rp = RunParallel(out var rpId, ParallelErrorStrategy.WaitThenHalt);
@@ -244,10 +244,11 @@ public class ParallelExecutionTests
         var result = await runTask;
 
         Assert.False(result.Success);   // unhandled failure still halts under WaitThenHalt
+        Assert.Equal("boom", result.ErrorMessage);
         Assert.True(gated.Completed);   // but the sibling was allowed to finish first
     }
 
-    [Fact]
+    [Fact(Timeout = 5000)]
     public async Task Parallel_Continue_UnhandledFailure_SucceedsAndLetsSiblingFinish()
     {
         var rp = RunParallel(out var rpId, ParallelErrorStrategy.Continue);
