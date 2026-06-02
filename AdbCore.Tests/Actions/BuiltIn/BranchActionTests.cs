@@ -55,16 +55,36 @@ public class BranchActionTests
         => Assert.Equal("false", await RunAsync(BranchAction.OpGreaterThan, "3", variableValue: "abc"));
 
     [Fact]
+    public async Task LessThan_NotLess_FollowsFalse()
+        => Assert.Equal("false", await RunAsync(BranchAction.OpLessThan, "1", variableValue: 4.0));
+
+    [Fact]
     public async Task IsTrue_BoolVariable_FollowsTrue()
         => Assert.Equal("true", await RunAsync(BranchAction.OpIsTrue, "", variableValue: true));
+
+    [Fact]
+    public async Task IsTrue_FalseVariable_FollowsFalse()
+        => Assert.Equal("false", await RunAsync(BranchAction.OpIsTrue, "", variableValue: false));
 
     [Fact]
     public async Task IsFalse_BoolVariable_FollowsTrue()
         => Assert.Equal("true", await RunAsync(BranchAction.OpIsFalse, "", variableValue: false));
 
     [Fact]
+    public async Task IsFalse_TrueVariable_FollowsFalse()
+        => Assert.Equal("false", await RunAsync(BranchAction.OpIsFalse, "", variableValue: true));
+
+    [Fact]
     public async Task IsEmpty_MissingVariable_FollowsTrue()
         => Assert.Equal("true", await RunAsync(BranchAction.OpIsEmpty, ""));
+
+    [Fact]
+    public async Task IsEmpty_PresentVariable_FollowsFalse()
+        => Assert.Equal("false", await RunAsync(BranchAction.OpIsEmpty, "", variableValue: "x"));
+
+    [Fact]
+    public async Task IsNotEmpty_MissingVariable_FollowsFalse()
+        => Assert.Equal("false", await RunAsync(BranchAction.OpIsNotEmpty, ""));
 
     [Fact]
     public async Task IsNotEmpty_PresentVariable_FollowsTrue()
