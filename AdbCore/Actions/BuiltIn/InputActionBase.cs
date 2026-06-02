@@ -6,7 +6,7 @@ namespace AdbCore.Actions.BuiltIn;
 
 /// <summary>Shared base for Input actions: resolves the target window HWND, exposes the input-method
 /// config field + ports, and runs the chosen <see cref="IInputSender"/>. Subclasses contribute their own
-/// config fields (via <see cref="ActionConfigFields"/>) and the actual operation (via <see cref="Perform"/>).</summary>
+/// config fields (via <see cref="ActionConfigFields"/>) and the actual operation (via <see cref="PerformAsync"/>).</summary>
 public abstract class InputActionBase : IActionDefinition, IActionExecutor
 {
     public const string MethodKey = "method";
