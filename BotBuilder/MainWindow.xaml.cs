@@ -69,8 +69,11 @@ public partial class MainWindow : Window
 
         if (e.ClickCount == 2 && PaletteItemFrom(sender) is { } item)
         {
-            var centre = new Point(NodeHost.ActualWidth / 2, NodeHost.ActualHeight / 2);
-            _editor.AddNode(item.TypeKey, centre.X, centre.Y);
+            // Drop at the center of the *visible* viewport, mapped back to world space, so the node
+            // lands where the user is looking regardless of pan/zoom (ViewportHost is the on-screen
+            // viewport; NodeHost lives inside the pan/zoom transform).
+            var (worldX, worldY) = _editor.Viewport.ScreenToWorld(ViewportHost.ActualWidth / 2, ViewportHost.ActualHeight / 2);
+            _editor.AddNode(item.TypeKey, worldX, worldY);
         }
     }
 
