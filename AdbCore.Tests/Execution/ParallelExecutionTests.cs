@@ -106,4 +106,67 @@ public class ParallelExecutionTests
 
         Assert.True(result.Success);
     }
+
+    [Fact]
+    public async Task Parallel_BranchFails_WiredSomeFailed_FollowsRecoveryPath()
+    {
+        var rp = RunParallel(out var rpId, ParallelErrorStrategy.WaitThenHalt);
+        var good = Node("good", out var goodId);
+        var bad = Node("bad", out var badId);
+        var join = Node(JoinAction.JoinTypeKey, out var joinId);
+        var recover = Node("recover", out var recoverId);
+
+        var bot = new Bot { Name = "par-recover" };
+        bot.Actions.AddRange(new[] { rp, good, bad, join, recover });
+        bot.Connections.Add(Edge(rpId, RunParallelAction.BranchPort(1), goodId));
+        bot.Connections.Add(Edge(rpId, RunParallelAction.BranchPort(2), badId));
+        bot.Connections.Add(Edge(goodId, "out", joinId));
+        bot.Connections.Add(Edge(badId, "out", joinId));
+        bot.Connections.Add(Edge(joinId, JoinAction.SomeFailedPort, recoverId));
+
+        var recovered = false;
+        var registry = new ActionExecutorRegistry();
+        registry.Register(new FakeExecutor { TypeKey = "good", Behavior = c => ActionResult.Ok("out") });
+        registry.Register(new FakeExecutor { TypeKey = "bad", Behavior = c => ActionResult.Fail("nope") });
+        registry.Register(new FakeExecutor { TypeKey = "recover", Behavior = c => { recovered = true; return ActionResult.Ok(string.Empty); } });
+
+        var result = await new BotExecutor(registry).RunAsync(bot, new ExecutionOptions(), null, default);
+
+        Assert.True(result.Success);   // failure was handled by the wired someFailed path
+        Assert.True(recovered);
+    }
+
+    [Fact]
+    public async Task Parallel_AllSucceeded_DoesNotFollowSomeFailed()
+    {
+        var rp = RunParallel(out var rpId, ParallelErrorStrategy.WaitThenHalt);
+        var a = Node("a", out var aId);
+        var b = Node("b", out var bId);
+        var join = Node(JoinAction.JoinTypeKey, out var joinId);
+        var okPath = Node("okPath", out var okId);
+        var failPath = Node("failPath", out var failId);
+
+        var bot = new Bot { Name = "par-route-ok" };
+        bot.Actions.AddRange(new[] { rp, a, b, join, okPath, failPath });
+        bot.Connections.Add(Edge(rpId, RunParallelAction.BranchPort(1), aId));
+        bot.Connections.Add(Edge(rpId, RunParallelAction.BranchPort(2), bId));
+        bot.Connections.Add(Edge(aId, "out", joinId));
+        bot.Connections.Add(Edge(bId, "out", joinId));
+        bot.Connections.Add(Edge(joinId, JoinAction.AllSucceededPort, okId));
+        bot.Connections.Add(Edge(joinId, JoinAction.SomeFailedPort, failId));
+
+        var okReached = false;
+        var failReached = false;
+        var registry = new ActionExecutorRegistry();
+        registry.Register(new FakeExecutor { TypeKey = "a", Behavior = c => ActionResult.Ok("out") });
+        registry.Register(new FakeExecutor { TypeKey = "b", Behavior = c => ActionResult.Ok("out") });
+        registry.Register(new FakeExecutor { TypeKey = "okPath", Behavior = c => { okReached = true; return ActionResult.Ok(string.Empty); } });
+        registry.Register(new FakeExecutor { TypeKey = "failPath", Behavior = c => { failReached = true; return ActionResult.Ok(string.Empty); } });
+
+        var result = await new BotExecutor(registry).RunAsync(bot, new ExecutionOptions(), null, default);
+
+        Assert.True(result.Success);
+        Assert.True(okReached);
+        Assert.False(failReached);
+    }
 }
