@@ -60,6 +60,10 @@ public class ConfigValuesTests
         => Assert.True(ConfigValues.GetBool(Config("k", 1.0), "k"));
 
     [Fact]
+    public void GetBool_Missing_ReturnsFallback()
+        => Assert.True(ConfigValues.GetBool(new Dictionary<string, object>(), "k", true));
+
+    [Fact]
     public void AsString_Null_ReturnsEmpty()
         => Assert.Equal(string.Empty, ConfigValues.AsString(null));
 

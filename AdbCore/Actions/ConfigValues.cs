@@ -5,7 +5,8 @@ namespace AdbCore.Actions;
 
 /// <summary>Reads values out of an action's <c>Config</c> (or run variables), coercing the boxed
 /// primitives stored in memory and the <see cref="JsonElement"/> values produced when a `.bot`
-/// is loaded from disk.</summary>
+/// is loaded from disk. The <c>fallback</c> is returned only when the key is absent; a present
+/// value is always coerced (an uncoercible bool/number reads as <c>false</c>/<c>0</c>, not the fallback).</summary>
 public static class ConfigValues
 {
     public static string GetString(IReadOnlyDictionary<string, object> config, string key, string fallback = "")
@@ -14,7 +15,7 @@ public static class ConfigValues
     public static int GetInt(IReadOnlyDictionary<string, object> config, string key, int fallback = 0)
         => config.TryGetValue(key, out var raw) && TryAsDouble(raw, out var d) ? (int)d : fallback;
 
-    public static double GetDouble(IReadOnlyDictionary<string, object> config, string key, double fallback = 0)
+    public static double GetDouble(IReadOnlyDictionary<string, object> config, string key, double fallback = 0d)
         => config.TryGetValue(key, out var raw) && TryAsDouble(raw, out var d) ? d : fallback;
 
     public static bool GetBool(IReadOnlyDictionary<string, object> config, string key, bool fallback = false)
