@@ -1,3 +1,5 @@
+using AdbCore.Actions;
+using AdbCore.Actions.BuiltIn;
 using AdbCore.Models;
 
 namespace AdbCore.Execution;
@@ -63,6 +65,18 @@ public class BotExecutor
         {
             ct.ThrowIfCancellationRequested();
 
+            if (current.TypeKey == LoopAction.LoopTypeKey)
+            {
+                var loopOutcome = await ExecuteLoopAsync(state, current, ct);
+                if (!loopOutcome.Success)
+                {
+                    return loopOutcome;
+                }
+
+                current = FindNext(state.Bot, current.Id, LoopAction.DonePort);
+                continue;
+            }
+
             if (!state.Executors.TryGet(current.TypeKey, out var executor) || executor is null)
             {
                 return WalkOutcome.Failed($"No executor registered for TypeKey '{current.TypeKey}'.", current.Id);
@@ -96,6 +110,66 @@ public class BotExecutor
         }
 
         return WalkOutcome.Completed();
+    }
+
+    /// <summary>Engine-native Loop: re-walks the Body sub-path once per iteration (count or for-each),
+    /// setting the optional index/item variables, then returns so the caller can follow Done.</summary>
+    private async Task<WalkOutcome> ExecuteLoopAsync(RunState state, BotAction loop, CancellationToken ct)
+    {
+        var bodyStart = FindNext(state.Bot, loop.Id, LoopAction.BodyPort);
+        var mode = ConfigValues.GetString(loop.Config, LoopAction.ModeKey, LoopAction.ModeCount);
+        var indexVar = ConfigValues.GetString(loop.Config, LoopAction.IndexVariableKey);
+        var itemVar = ConfigValues.GetString(loop.Config, LoopAction.ItemVariableKey);
+
+        IReadOnlyList<string?> items;
+        if (string.Equals(mode, LoopAction.ModeForEach, StringComparison.OrdinalIgnoreCase))
+        {
+            var collectionVar = ConfigValues.GetString(loop.Config, LoopAction.CollectionVariableKey);
+            var raw = state.Context.Variables.TryGetValue(collectionVar, out var v) ? v : null;
+            items = SplitItems(raw);
+        }
+        else
+        {
+            var count = Math.Max(0, ConfigValues.GetInt(loop.Config, LoopAction.CountKey, 0));
+            var placeholders = new string?[count];
+            items = placeholders;
+        }
+
+        for (var i = 0; i < items.Count; i++)
+        {
+            ct.ThrowIfCancellationRequested();
+
+            if (!string.IsNullOrEmpty(indexVar))
+            {
+                state.Context.Variables[indexVar] = i;
+            }
+
+            if (!string.IsNullOrEmpty(itemVar) && items[i] is not null)
+            {
+                state.Context.Variables[itemVar] = items[i]!;
+            }
+
+            var bodyOutcome = await WalkAsync(state, bodyStart, ct);
+            if (!bodyOutcome.Success)
+            {
+                return bodyOutcome;
+            }
+        }
+
+        return WalkOutcome.Completed();
+    }
+
+    /// <summary>For-each item source: a comma-separated string. Empty/whitespace yields no items;
+    /// each item is trimmed.</summary>
+    private static IReadOnlyList<string?> SplitItems(object? raw)
+    {
+        var text = ConfigValues.AsString(raw);
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return Array.Empty<string?>();
+        }
+
+        return text.Split(',').Select(part => (string?)part.Trim()).ToList();
     }
 
     private async Task<ActionResult> ExecuteWithRetryAsync(

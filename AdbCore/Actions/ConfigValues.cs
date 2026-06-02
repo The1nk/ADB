@@ -49,6 +49,10 @@ public static class ConfigValues
         }
     }
 
+    /// <summary>Reads an int out of a run-variables dictionary, with the same coercion as config.</summary>
+    public static int GetIntVar(IReadOnlyDictionary<string, object> variables, string key, int fallback = 0)
+        => GetInt(variables, key, fallback);
+
     /// <summary>Coerces to bool: real bools, JSON true/false, "true"/"false" strings, or non-zero numbers.</summary>
     public static bool AsBool(object? raw)
     {
