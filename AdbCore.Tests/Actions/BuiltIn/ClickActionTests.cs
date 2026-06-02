@@ -28,6 +28,10 @@ public class ClickActionTests
         public void DoubleClick(IntPtr windowHandle, int clientX, int clientY) { }
 
         public void MoveTo(IntPtr windowHandle, int clientX, int clientY) { }
+
+        public void TypeText(IntPtr windowHandle, string text) { }
+
+        public void KeyPress(IntPtr windowHandle, ushort virtualKey, KeyModifiers modifiers) { }
     }
 
     private sealed class Senders

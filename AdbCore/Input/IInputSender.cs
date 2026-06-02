@@ -16,4 +16,10 @@ public interface IInputSender
 
     /// <summary>Moves the pointer to the given client-relative coordinates of <paramref name="windowHandle"/> (no button press).</summary>
     void MoveTo(IntPtr windowHandle, int clientX, int clientY);
+
+    /// <summary>Types the given text into <paramref name="windowHandle"/> as a sequence of characters.</summary>
+    void TypeText(IntPtr windowHandle, string text);
+
+    /// <summary>Presses <paramref name="virtualKey"/> while holding <paramref name="modifiers"/>, then releases.</summary>
+    void KeyPress(IntPtr windowHandle, ushort virtualKey, KeyModifiers modifiers);
 }
