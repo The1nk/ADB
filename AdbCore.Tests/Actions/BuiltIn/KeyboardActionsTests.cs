@@ -215,4 +215,30 @@ public class KeyboardActionsTests
 
         Assert.Equal(35, senders.SendInput.LastKeyDelayMs);
     }
+
+    private sealed class BlockingSender : IInputSender
+    {
+        public void Click(IntPtr windowHandle, int clientX, int clientY) { }
+        public void RightClick(IntPtr windowHandle, int clientX, int clientY) { }
+        public void DoubleClick(IntPtr windowHandle, int clientX, int clientY) { }
+        public void MoveTo(IntPtr windowHandle, int clientX, int clientY) { }
+        public Task TypeText(IntPtr windowHandle, string text, int keyDelayMs, CancellationToken ct) => Task.Delay(Timeout.Infinite, ct);
+        public Task KeyPress(IntPtr windowHandle, ushort virtualKey, KeyModifiers modifiers, int keyDelayMs, CancellationToken ct) => Task.Delay(Timeout.Infinite, ct);
+    }
+
+    [Fact]
+    public async Task TypeText_HonorsCancellation()
+    {
+        var id = Guid.NewGuid();
+        var blocking = new BlockingSender();
+        var resolver = new InputSenderResolver(blocking, blocking);
+        var action = new BotAction { TargetId = id };
+        action.Config[TypeTextAction.TextKey] = "hello";
+
+        using var cts = new CancellationTokenSource();
+        var task = new TypeTextAction(resolver).ExecuteAsync(Exec(action, WindowContext(id, (IntPtr)5)), cts.Token);
+        cts.Cancel();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => task);
+    }
 }
