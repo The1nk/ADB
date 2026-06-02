@@ -22,6 +22,12 @@ public class ClickActionTests
             LastX = clientX;
             LastY = clientY;
         }
+
+        public void RightClick(IntPtr windowHandle, int clientX, int clientY) { }
+
+        public void DoubleClick(IntPtr windowHandle, int clientX, int clientY) { }
+
+        public void MoveTo(IntPtr windowHandle, int clientX, int clientY) { }
     }
 
     private sealed class Senders
