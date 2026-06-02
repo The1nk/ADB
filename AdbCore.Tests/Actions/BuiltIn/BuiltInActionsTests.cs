@@ -25,11 +25,14 @@ public class BuiltInActionsTests
             Assert.True(execs.TryGet(key, out _));
         }
 
-        // Loop is engine-native: a definition (palette/panel metadata) with no executor.
-        Assert.True(defs.TryGet("control.loop", out _));
-        Assert.False(execs.TryGet("control.loop", out _));
+        // Engine-native nodes: definitions only, no executors.
+        foreach (var key in new[] { "control.loop", "control.runParallel", "control.join" })
+        {
+            Assert.True(defs.TryGet(key, out _));
+            Assert.False(execs.TryGet(key, out _));
+        }
 
-        Assert.Equal(6, defs.Count);
+        Assert.Equal(8, defs.Count);
         Assert.Equal(5, execs.Count);
     }
 

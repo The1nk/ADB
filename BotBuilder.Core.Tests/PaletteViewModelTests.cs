@@ -23,7 +23,7 @@ public class PaletteViewModelTests
         var control = palette.Categories.Single(c => c.Name == "Control Flow");
         var data = palette.Categories.Single(c => c.Name == "Data");
 
-        Assert.Equal(5, control.Items.Count); // Start, End, Delay, Branch, Loop
+        Assert.Equal(7, control.Items.Count); // Start, End, Delay, Branch, Loop, Run Parallel, Join
         Assert.Single(data.Items);
     }
 
@@ -52,7 +52,7 @@ public class PaletteViewModelTests
         var palette = new PaletteViewModel(SeededRegistry()) { SearchText = "log" };
         palette.SearchText = "";
 
-        Assert.Equal(6, palette.Categories.SelectMany(c => c.Items).Count()); // 5 Control Flow + 1 Data
+        Assert.Equal(8, palette.Categories.SelectMany(c => c.Items).Count()); // 7 Control Flow + 1 Data
     }
 
     [Fact]
