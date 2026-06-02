@@ -10,6 +10,7 @@ public static class WindowTargetBinder
 {
     public static void Bind(IReadOnlyDictionary<Guid, ResolvedTarget> targets, IWindowResolver resolver)
     {
+        ArgumentNullException.ThrowIfNull(targets);
         ArgumentNullException.ThrowIfNull(resolver);
 
         foreach (var target in targets.Values)
