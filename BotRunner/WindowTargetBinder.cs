@@ -20,7 +20,17 @@ public static class WindowTargetBinder
                 continue;
             }
 
-            var handle = resolver.Resolve(target.Selector);
+            IntPtr handle;
+            try
+            {
+                handle = resolver.Resolve(target.Selector);
+            }
+            catch (FormatException ex)
+            {
+                // A malformed selector is a CLI usage error (exit 2), not an unexpected crash (exit 1).
+                throw new CommandLineException($"Invalid Window target selector '{target.Selector}': {ex.Message}");
+            }
+
             if (handle == IntPtr.Zero)
             {
                 throw new CommandLineException(

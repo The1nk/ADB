@@ -46,15 +46,21 @@ public sealed class Win32WindowResolver : IWindowResolver
 
     private static IntPtr ResolveProcess(string name)
     {
+        var result = IntPtr.Zero;
         foreach (var process in Process.GetProcessesByName(name))
         {
-            using (process) // release the OS handle held by each Process object
+            using (process) // release the OS handle held by every Process object, including unmatched ones
             {
+                if (result != IntPtr.Zero)
+                {
+                    continue; // already found; keep iterating only to dispose the rest
+                }
+
                 try
                 {
                     if (process.MainWindowHandle != IntPtr.Zero)
                     {
-                        return process.MainWindowHandle;
+                        result = process.MainWindowHandle;
                     }
                 }
                 catch (InvalidOperationException)
@@ -64,7 +70,7 @@ public sealed class Win32WindowResolver : IWindowResolver
             }
         }
 
-        return IntPtr.Zero;
+        return result;
     }
 
     private static IntPtr ResolveTitle(string titleSubstring)

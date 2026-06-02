@@ -16,6 +16,25 @@ public class WindowTargetBinderTests
         public IntPtr Resolve(string selector) { LastSelector = selector; return _result; }
     }
 
+    private sealed class ThrowingWindowResolver : IWindowResolver
+    {
+        public IntPtr Resolve(string selector) => throw new FormatException("bad selector");
+    }
+
+    [Fact]
+    public void Bind_SelectorParseError_ThrowsCommandLineException()
+    {
+        var id = Guid.NewGuid();
+        var targets = new Dictionary<Guid, ResolvedTarget>
+        {
+            [id] = new ResolvedTarget { Type = BotTargetType.Window, Selector = "notepad" },
+        };
+
+        var ex = Assert.Throws<CommandLineException>(
+            () => WindowTargetBinder.Bind(targets, new ThrowingWindowResolver()));
+        Assert.Contains("notepad", ex.Message);
+    }
+
     [Fact]
     public void Bind_SetsHandleOnWindowTargets()
     {

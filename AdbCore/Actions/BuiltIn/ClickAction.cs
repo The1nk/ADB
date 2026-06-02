@@ -4,7 +4,7 @@ using AdbCore.Models;
 
 namespace AdbCore.Actions.BuiltIn;
 
-/// <summary>Posts a left click at client-relative coordinates of the action's Window target, using the
+/// <summary>Performs a left click at client-relative coordinates of the action's Window target, using the
 /// configured input method (SendInput foreground by default, or PostMessage background).</summary>
 public sealed class ClickAction : IActionDefinition, IActionExecutor
 {
