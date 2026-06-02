@@ -99,6 +99,21 @@ public class ClickActionTests
     }
 
     [Fact]
+    public async Task Click_ZeroHandle_Fails()
+    {
+        var targetId = Guid.NewGuid();
+        var ctx = new BotExecutionContext();
+        ctx.Targets[targetId] = new ResolvedTarget { Type = BotTargetType.Window, Selector = "hwnd:0", Handle = IntPtr.Zero };
+        var action = new BotAction { TypeKey = "input.click", TargetId = targetId };
+        var sender = new FakeInputSender();
+
+        var result = await new ClickAction(sender).ExecuteAsync(new ActionExecutionContext(action, ctx, _ => { }), default);
+
+        Assert.False(result.Success);
+        Assert.Equal(0, sender.Calls);
+    }
+
+    [Fact]
     public void Definition_Metadata()
     {
         var def = new ClickAction(new FakeInputSender());
