@@ -1,75 +1,18 @@
-using AdbCore.Execution;
 using AdbCore.Input;
-using AdbCore.Models;
 
 namespace AdbCore.Actions.BuiltIn;
 
-/// <summary>Performs a left click at client-relative coordinates of the action's Window target, using the
-/// configured input method (SendInput foreground by default, or PostMessage background).</summary>
-public sealed class ClickAction : IActionDefinition, IActionExecutor
+/// <summary>Performs a left click at client-relative coordinates of the action's Window target.</summary>
+public sealed class ClickAction : PointerActionBase
 {
-    public const string XKey = "x";
-    public const string YKey = "y";
-    public const string MethodKey = "method";
-    public const string SuccessPort = "onSuccess";
-    public const string FailurePort = "onFailure";
-
-    private readonly InputSenderResolver _senders;
-
-    public ClickAction(InputSenderResolver senders)
+    public ClickAction(InputSenderResolver senders) : base(senders)
     {
-        ArgumentNullException.ThrowIfNull(senders);
-        _senders = senders;
     }
 
-    public string TypeKey => "input.click";
-    public string DisplayName => "Click";
-    public string Category => "Input";
-    public string Description => "Clicks at coordinates within the target window.";
-    public List<PortDefinition> InputPorts { get; } = new() { new PortDefinition { Name = "in", Label = "In" } };
-    public List<PortDefinition> OutputPorts { get; } = new()
-    {
-        new PortDefinition { Name = SuccessPort, Label = "On Success" },
-        new PortDefinition { Name = FailurePort, Label = "On Failure" },
-    };
-    public List<ConfigField> ConfigFields { get; } = new()
-    {
-        new ConfigField { Key = XKey, Label = "X", Type = ConfigFieldType.Number, DefaultValue = 0 },
-        new ConfigField { Key = YKey, Label = "Y", Type = ConfigFieldType.Number, DefaultValue = 0 },
-        new ConfigField
-        {
-            Key = MethodKey,
-            Label = "Input Method",
-            Type = ConfigFieldType.Enum,
-            DefaultValue = InputSenderResolver.SendInputMethod,
-            Options = new() { InputSenderResolver.SendInputMethod, InputSenderResolver.PostMessageMethod },
-        },
-    };
-    public bool SupportsRetry => false;
+    public override string TypeKey => "input.click";
+    public override string DisplayName => "Click";
+    public override string Description => "Clicks at coordinates within the target window.";
 
-    public Task<ActionResult> ExecuteAsync(ActionExecutionContext context, CancellationToken ct)
-    {
-        if (ResolveWindow(context) is not IntPtr hwnd || hwnd == IntPtr.Zero)
-        {
-            return Task.FromResult(ActionResult.Fail("Click requires a resolved Window target (HWND)."));
-        }
-
-        var x = ConfigValues.GetInt(context.Action.Config, XKey);
-        var y = ConfigValues.GetInt(context.Action.Config, YKey);
-        var method = ConfigValues.GetString(context.Action.Config, MethodKey, InputSenderResolver.SendInputMethod);
-        _senders.Resolve(method).Click(hwnd, x, y);
-
-        return Task.FromResult(ActionResult.Ok(SuccessPort));
-    }
-
-    /// <summary>Resolves the action's target HWND: the explicit TargetId, or the sole target if unset.</summary>
-    private static IntPtr? ResolveWindow(ActionExecutionContext context)
-    {
-        var targets = context.Context.Targets;
-        ResolvedTarget? target = context.Action.TargetId is Guid id
-            ? targets.TryGetValue(id, out var t) ? t : null
-            : targets.Count == 1 ? targets.Values.First() : null;
-
-        return target?.Handle as IntPtr?;
-    }
+    protected override void Dispatch(IInputSender sender, IntPtr windowHandle, int x, int y)
+        => sender.Click(windowHandle, x, y);
 }
