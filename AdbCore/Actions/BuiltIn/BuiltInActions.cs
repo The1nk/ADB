@@ -18,6 +18,10 @@ public static class BuiltInActions
 
         // Loop is engine-native: register its definition only (no executor).
         definitions.Register(new LoopAction());
+
+        // Run Parallel and Join are engine-native: register their definitions only (no executors).
+        definitions.Register(new RunParallelAction());
+        definitions.Register(new JoinAction());
     }
 
     private static void Add<T>(T action, ActionRegistry definitions, ActionExecutorRegistry executors)
