@@ -175,4 +175,91 @@ public class LoopExecutionTests
         Assert.True(result.Success);
         Assert.Equal(6, innerCalls); // 2 outer * 3 inner
     }
+
+    [Fact]
+    public async Task Loop_ForEach_IteratesItemsSettingItemVariable()
+    {
+        // seed -> loop(forEach over "items") -> body collects the current item
+        var seed = Node("seed", out var seedId);
+        var loop = Node(LoopAction.LoopTypeKey, out var loopId);
+        loop.Config[LoopAction.ModeKey] = LoopAction.ModeForEach;
+        loop.Config[LoopAction.CollectionVariableKey] = "items";
+        loop.Config[LoopAction.ItemVariableKey] = "item";
+        var body = Node("body", out var bodyId);
+
+        var bot = new Bot { Name = "loop-foreach" };
+        bot.Actions.AddRange(new[] { seed, loop, body });
+        bot.Connections.Add(Edge(seedId, "out", loopId));
+        bot.Connections.Add(Edge(loopId, LoopAction.BodyPort, bodyId));
+
+        var collected = new List<string>();
+        var registry = new ActionExecutorRegistry();
+        registry.Register(new FakeExecutor
+        {
+            TypeKey = "seed",
+            Behavior = c => { c.Context.Variables["items"] = "a, b , c"; return ActionResult.Ok("out"); },
+        });
+        registry.Register(new FakeExecutor
+        {
+            TypeKey = "body",
+            Behavior = c => { collected.Add(ConfigValues.GetString(c.Context.Variables, "item")); return ActionResult.Ok(string.Empty); },
+        });
+
+        var result = await new BotExecutor(registry).RunAsync(bot, new ExecutionOptions(), null, default);
+
+        Assert.True(result.Success);
+        Assert.Equal(new[] { "a", "b", "c" }, collected); // items are trimmed
+    }
+
+    [Fact]
+    public async Task Loop_ForEach_EmptyCollection_RunsNoIterations()
+    {
+        var seed = Node("seed", out var seedId);
+        var loop = Node(LoopAction.LoopTypeKey, out var loopId);
+        loop.Config[LoopAction.ModeKey] = LoopAction.ModeForEach;
+        loop.Config[LoopAction.CollectionVariableKey] = "items";
+        var body = Node("body", out var bodyId);
+        var done = Node("done", out var doneId);
+
+        var bot = new Bot { Name = "loop-foreach-empty" };
+        bot.Actions.AddRange(new[] { seed, loop, body, done });
+        bot.Connections.Add(Edge(seedId, "out", loopId));
+        bot.Connections.Add(Edge(loopId, LoopAction.BodyPort, bodyId));
+        bot.Connections.Add(Edge(loopId, LoopAction.DonePort, doneId));
+
+        var bodyCalls = 0;
+        var doneReached = false;
+        var registry = new ActionExecutorRegistry();
+        registry.Register(new FakeExecutor { TypeKey = "seed", Behavior = c => { c.Context.Variables["items"] = ""; return ActionResult.Ok("out"); } });
+        registry.Register(new FakeExecutor { TypeKey = "body", Behavior = c => { bodyCalls++; return ActionResult.Ok(string.Empty); } });
+        registry.Register(new FakeExecutor { TypeKey = "done", Behavior = c => { doneReached = true; return ActionResult.Ok(string.Empty); } });
+
+        var result = await new BotExecutor(registry).RunAsync(bot, new ExecutionOptions(), null, default);
+
+        Assert.True(result.Success);
+        Assert.Equal(0, bodyCalls);
+        Assert.True(doneReached);
+    }
+
+    [Fact]
+    public async Task Loop_Count_CancelledToken_Throws()
+    {
+        var loop = Node(LoopAction.LoopTypeKey, out var loopId);
+        loop.Config[LoopAction.ModeKey] = LoopAction.ModeCount;
+        loop.Config[LoopAction.CountKey] = 5;
+        var body = Node("body", out var bodyId);
+
+        var bot = new Bot { Name = "loop-cancel" };
+        bot.Actions.AddRange(new[] { loop, body });
+        bot.Connections.Add(Edge(loopId, LoopAction.BodyPort, bodyId));
+
+        using var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        var registry = new ActionExecutorRegistry();
+        registry.Register(new FakeExecutor { TypeKey = "body", Behavior = c => ActionResult.Ok(string.Empty) });
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(
+            () => new BotExecutor(registry).RunAsync(bot, new ExecutionOptions(), null, cts.Token));
+    }
 }
