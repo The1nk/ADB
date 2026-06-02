@@ -124,16 +124,19 @@ public class ParallelExecutionTests
         bot.Connections.Add(Edge(badId, "out", joinId));
         bot.Connections.Add(Edge(joinId, JoinAction.SomeFailedPort, recoverId));
 
+        var badRan = false;
         var recovered = false;
         var registry = new ActionExecutorRegistry();
         registry.Register(new FakeExecutor { TypeKey = "good", Behavior = c => ActionResult.Ok("out") });
-        registry.Register(new FakeExecutor { TypeKey = "bad", Behavior = c => ActionResult.Fail("nope") });
+        registry.Register(new FakeExecutor { TypeKey = "bad", Behavior = c => { badRan = true; return ActionResult.Fail("nope"); } });
         registry.Register(new FakeExecutor { TypeKey = "recover", Behavior = c => { recovered = true; return ActionResult.Ok(string.Empty); } });
 
         var result = await new BotExecutor(registry).RunAsync(bot, new ExecutionOptions(), null, default);
 
         Assert.True(result.Success);   // failure was handled by the wired someFailed path
+        Assert.True(badRan);
         Assert.True(recovered);
+        Assert.Equal(3, result.ActionsExecuted); // good + bad + recover (a failed leaf is still counted)
     }
 
     [Fact]
@@ -168,5 +171,6 @@ public class ParallelExecutionTests
         Assert.True(result.Success);
         Assert.True(okReached);
         Assert.False(failReached);
+        Assert.Equal(3, result.ActionsExecuted); // a + b + okPath; failPath not reached
     }
 }
