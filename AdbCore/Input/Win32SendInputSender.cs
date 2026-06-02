@@ -68,15 +68,22 @@ public sealed class Win32SendInputSender : IInputSender
     public void DoubleClick(IntPtr windowHandle, int clientX, int clientY)
     {
         PositionCursor(windowHandle, clientX, clientY);
+        // Two down/up pairs in one batch; the OS treats simultaneous injection as within the double-click threshold.
         InjectMouse(MOUSEEVENTF_LEFTDOWN, MOUSEEVENTF_LEFTUP, MOUSEEVENTF_LEFTDOWN, MOUSEEVENTF_LEFTUP);
     }
 
+    // A bare move must NOT activate the window — a hover shouldn't steal focus; only the clicks activate.
     public void MoveTo(IntPtr windowHandle, int clientX, int clientY)
-        => PositionCursor(windowHandle, clientX, clientY);
+        => MoveCursor(windowHandle, clientX, clientY);
 
     private static void PositionCursor(IntPtr windowHandle, int clientX, int clientY)
     {
-        SetForegroundWindow(windowHandle);
+        SetForegroundWindow(windowHandle); // activate the target so the injected click lands on it
+        MoveCursor(windowHandle, clientX, clientY);
+    }
+
+    private static void MoveCursor(IntPtr windowHandle, int clientX, int clientY)
+    {
         var point = new POINT { X = clientX, Y = clientY };
         ClientToScreen(windowHandle, ref point);
         SetCursorPos(point.X, point.Y);
