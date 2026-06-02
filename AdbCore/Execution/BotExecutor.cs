@@ -1,10 +1,12 @@
+using AdbCore.Actions;
+using AdbCore.Actions.BuiltIn;
 using AdbCore.Models;
 
 namespace AdbCore.Execution;
 
-/// <summary>Walks a bot's action graph sequentially from its entry point, executing each action
-/// and following the output port returned by its executor. Halts on failure unless an
-/// <c>onFailure</c> port is wired.</summary>
+/// <summary>Walks a bot's action graph from its entry point, executing each leaf action and following
+/// the output port its executor returns. The walk is recursive (<see cref="WalkAsync"/>) so engine-native
+/// control-flow nodes can drive sub-walks. Halts on failure unless an <c>onFailure</c> port is wired.</summary>
 public class BotExecutor
 {
     private const string FailurePort = "onFailure";
@@ -32,10 +34,8 @@ public class BotExecutor
             context.Targets[kvp.Key] = kvp.Value;
         }
 
-        var log = options.Log ?? (_ => { });
-
-        var current = FindEntryPoint(bot);
-        if (current is null)
+        var entry = FindEntryPoint(bot);
+        if (entry is null)
         {
             return new ExecutionResult
             {
@@ -44,26 +44,48 @@ public class BotExecutor
             };
         }
 
-        var executed = 0;
+        var state = new RunState(bot, _executors, context, options.Log ?? (_ => { }), progress);
+        var outcome = await WalkAsync(state, entry, ct);
+
+        return new ExecutionResult
+        {
+            Success = outcome.Success,
+            ErrorMessage = outcome.ErrorMessage,
+            FailedActionId = outcome.FailedActionId,
+            ActionsExecuted = state.ActionsExecuted,
+        };
+    }
+
+    /// <summary>Walks forward from <paramref name="start"/>, following output ports until the path
+    /// dead-ends (no matching connection). Returns the first unhandled failure, or completion.</summary>
+    private async Task<WalkOutcome> WalkAsync(RunState state, BotAction? start, CancellationToken ct)
+    {
+        var current = start;
         while (current is not null)
         {
             ct.ThrowIfCancellationRequested();
 
-            if (!_executors.TryGet(current.TypeKey, out var executor) || executor is null)
+            if (current.TypeKey == LoopAction.LoopTypeKey)
             {
-                return new ExecutionResult
+                var loopOutcome = await ExecuteLoopAsync(state, current, ct);
+                if (!loopOutcome.Success)
                 {
-                    Success = false,
-                    ErrorMessage = $"No executor registered for TypeKey '{current.TypeKey}'.",
-                    FailedActionId = current.Id,
-                    ActionsExecuted = executed,
-                };
+                    return loopOutcome;
+                }
+
+                current = FindNext(state.Bot, current.Id, LoopAction.DonePort);
+                continue;
             }
 
-            var result = await ExecuteWithRetryAsync(executor, current, context, log, ct);
-            executed++;
+            if (!state.Executors.TryGet(current.TypeKey, out var executor) || executor is null)
+            {
+                return WalkOutcome.Failed($"No executor registered for TypeKey '{current.TypeKey}'.", current.Id);
+            }
 
-            progress?.Report(new ExecutionProgress
+            var result = await ExecuteWithRetryAsync(executor, current, state, ct);
+            state.ActionsExecuted++;
+
+            state.Progress?.Report(new ExecutionProgress
             {
                 ActionId = current.Id,
                 ActionLabel = current.Label,
@@ -74,33 +96,89 @@ public class BotExecutor
 
             if (!result.Success)
             {
-                var failureNext = FindNext(bot, current.Id, FailurePort);
+                var failureNext = FindNext(state.Bot, current.Id, FailurePort);
                 if (failureNext is not null)
                 {
                     current = failureNext;
                     continue;
                 }
 
-                return new ExecutionResult
-                {
-                    Success = false,
-                    ErrorMessage = result.ErrorMessage,
-                    FailedActionId = current.Id,
-                    ActionsExecuted = executed,
-                };
+                return WalkOutcome.Failed(result.ErrorMessage, current.Id);
             }
 
-            current = FindNext(bot, current.Id, result.OutputPort);
+            current = FindNext(state.Bot, current.Id, result.OutputPort);
         }
 
-        return new ExecutionResult { Success = true, ActionsExecuted = executed };
+        return WalkOutcome.Completed();
+    }
+
+    /// <summary>Engine-native Loop: re-walks the Body sub-path once per iteration (count or for-each),
+    /// setting the optional index/item variables, then returns so the caller can follow Done.</summary>
+    private async Task<WalkOutcome> ExecuteLoopAsync(RunState state, BotAction loop, CancellationToken ct)
+    {
+        var bodyStart = FindNext(state.Bot, loop.Id, LoopAction.BodyPort);
+        var mode = ConfigValues.GetString(loop.Config, LoopAction.ModeKey, LoopAction.ModeCount);
+        var indexVar = ConfigValues.GetString(loop.Config, LoopAction.IndexVariableKey);
+        var itemVar = ConfigValues.GetString(loop.Config, LoopAction.ItemVariableKey);
+
+        IReadOnlyList<string?> items;
+        if (string.Equals(mode, LoopAction.ModeForEach, StringComparison.OrdinalIgnoreCase))
+        {
+            var collectionVar = ConfigValues.GetString(loop.Config, LoopAction.CollectionVariableKey);
+            var raw = !string.IsNullOrEmpty(collectionVar)
+                && state.Context.Variables.TryGetValue(collectionVar, out var v) ? v : null;
+            items = SplitItems(raw);
+        }
+        else
+        {
+            // Fallback matches LoopAction's "count" ConfigField.DefaultValue (1): a dropped Loop whose
+            // Count was never edited has no "count" key in Config, yet should iterate once, not zero times.
+            var count = Math.Max(0, ConfigValues.GetInt(loop.Config, LoopAction.CountKey, 1));
+            var placeholders = new string?[count];
+            items = placeholders;
+        }
+
+        for (var i = 0; i < items.Count; i++)
+        {
+            ct.ThrowIfCancellationRequested();
+
+            if (!string.IsNullOrEmpty(indexVar))
+            {
+                state.Context.Variables[indexVar] = i;
+            }
+
+            if (!string.IsNullOrEmpty(itemVar) && items[i] is not null)
+            {
+                state.Context.Variables[itemVar] = items[i]!;
+            }
+
+            var bodyOutcome = await WalkAsync(state, bodyStart, ct);
+            if (!bodyOutcome.Success)
+            {
+                return bodyOutcome;
+            }
+        }
+
+        return WalkOutcome.Completed();
+    }
+
+    /// <summary>For-each item source: a comma-separated string. Empty/whitespace yields no items;
+    /// each item is trimmed.</summary>
+    private static IReadOnlyList<string?> SplitItems(object? raw)
+    {
+        var text = ConfigValues.AsString(raw);
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return Array.Empty<string?>();
+        }
+
+        return text.Split(',').Select(part => (string?)part.Trim()).ToList();
     }
 
     private async Task<ActionResult> ExecuteWithRetryAsync(
         IActionExecutor executor,
         BotAction action,
-        BotExecutionContext context,
-        Action<string> log,
+        RunState state,
         CancellationToken ct)
     {
         var attempts = action.Retry?.MaxAttempts ?? 1;
@@ -121,7 +199,7 @@ public class BotExecutor
 
             try
             {
-                var actionContext = new ActionExecutionContext(action, context, log);
+                var actionContext = new ActionExecutionContext(action, state.Context, state.Log);
                 result = await executor.ExecuteAsync(actionContext, ct);
             }
             catch (OperationCanceledException)
@@ -153,5 +231,43 @@ public class BotExecutor
         var edge = bot.Connections.FirstOrDefault(
             c => c.SourceActionId == fromActionId && c.SourcePort == sourcePort);
         return edge is null ? null : bot.Actions.FirstOrDefault(a => a.Id == edge.TargetActionId);
+    }
+
+    /// <summary>Mutable per-run state threaded through the recursive walk.</summary>
+    private sealed class RunState
+    {
+        public RunState(
+            Bot bot,
+            ActionExecutorRegistry executors,
+            BotExecutionContext context,
+            Action<string> log,
+            IProgress<ExecutionProgress>? progress)
+        {
+            Bot = bot;
+            Executors = executors;
+            Context = context;
+            Log = log;
+            Progress = progress;
+        }
+
+        public Bot Bot { get; }
+        public ActionExecutorRegistry Executors { get; }
+        public BotExecutionContext Context { get; }
+        public Action<string> Log { get; }
+        public IProgress<ExecutionProgress>? Progress { get; }
+        public int ActionsExecuted { get; set; }
+    }
+
+    /// <summary>Result of walking a sub-path: completed, or failed at a specific action.</summary>
+    private sealed class WalkOutcome
+    {
+        public bool Success { get; private init; }
+        public string? ErrorMessage { get; private init; }
+        public Guid? FailedActionId { get; private init; }
+
+        public static WalkOutcome Completed() => new() { Success = true };
+
+        public static WalkOutcome Failed(string? errorMessage, Guid failedActionId)
+            => new() { Success = false, ErrorMessage = errorMessage, FailedActionId = failedActionId };
     }
 }
