@@ -21,7 +21,7 @@ public sealed class Win32WindowResolver : IWindowResolver
     [DllImport("user32.dll", CharSet = CharSet.Unicode)]
     private static extern int GetWindowText(IntPtr hWnd, StringBuilder text, int maxCount);
 
-    [DllImport("user32.dll")]
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
     private static extern int GetWindowTextLength(IntPtr hWnd);
 
     public IntPtr Resolve(string selector)
@@ -48,16 +48,19 @@ public sealed class Win32WindowResolver : IWindowResolver
     {
         foreach (var process in Process.GetProcessesByName(name))
         {
-            try
+            using (process) // release the OS handle held by each Process object
             {
-                if (process.MainWindowHandle != IntPtr.Zero)
+                try
                 {
-                    return process.MainWindowHandle;
+                    if (process.MainWindowHandle != IntPtr.Zero)
+                    {
+                        return process.MainWindowHandle;
+                    }
                 }
-            }
-            catch (InvalidOperationException)
-            {
-                // process exited between enumeration and access; ignore
+                catch (InvalidOperationException)
+                {
+                    // process exited between enumeration and access; ignore
+                }
             }
         }
 

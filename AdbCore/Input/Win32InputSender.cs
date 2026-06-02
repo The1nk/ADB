@@ -21,6 +21,8 @@ public sealed class Win32InputSender : IInputSender
         PostMessage(windowHandle, WM_LBUTTONUP, IntPtr.Zero, lParam);
     }
 
+    // Cast through uint so a y >= 32768 does not sign-extend into the high 32 bits of the IntPtr
+    // (matches the Win32 MAKELPARAM macro's unsigned semantics).
     private static IntPtr MakeLParam(int x, int y)
-        => (IntPtr)((y << 16) | (x & 0xFFFF));
+        => (IntPtr)(uint)((y << 16) | (x & 0xFFFF));
 }
