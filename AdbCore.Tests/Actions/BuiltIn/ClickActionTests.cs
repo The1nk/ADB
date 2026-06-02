@@ -24,105 +24,148 @@ public class ClickActionTests
         }
     }
 
-    private static (BotAction action, BotExecutionContext ctx, Guid targetId) Setup(IntPtr handle)
+    private sealed class Senders
     {
-        var targetId = Guid.NewGuid();
-        var ctx = new BotExecutionContext();
-        ctx.Targets[targetId] = new ResolvedTarget { Type = BotTargetType.Window, Selector = "hwnd:1", Handle = handle };
-        var action = new BotAction { TypeKey = "input.click", TargetId = targetId };
-        action.Config[ClickAction.XKey] = 10;
-        action.Config[ClickAction.YKey] = 20;
-        return (action, ctx, targetId);
+        public FakeInputSender SendInput { get; } = new();
+        public FakeInputSender PostMessage { get; } = new();
+        public InputSenderResolver Resolver() => new(SendInput, PostMessage);
     }
 
-    [Fact]
-    public async Task Click_SendsToTargetHwndAtClientCoords_AndFollowsOnSuccess()
+    private static BotAction ClickNode(Guid? targetId, int x = 10, int y = 20, string? method = null)
     {
-        var (action, ctx, _) = Setup((IntPtr)4660);
-        var sender = new FakeInputSender();
+        var action = new BotAction { TypeKey = "input.click", TargetId = targetId };
+        action.Config[ClickAction.XKey] = x;
+        action.Config[ClickAction.YKey] = y;
+        if (method is not null)
+        {
+            action.Config[ClickAction.MethodKey] = method;
+        }
 
-        var result = await new ClickAction(sender).ExecuteAsync(new ActionExecutionContext(action, ctx, _ => { }), default);
+        return action;
+    }
+
+    private static BotExecutionContext WindowContext(Guid targetId, IntPtr handle)
+    {
+        var ctx = new BotExecutionContext();
+        ctx.Targets[targetId] = new ResolvedTarget { Type = BotTargetType.Window, Selector = "hwnd:1", Handle = handle };
+        return ctx;
+    }
+
+    private static ActionExecutionContext Exec(BotAction action, BotExecutionContext ctx)
+        => new(action, ctx, _ => { });
+
+    [Fact]
+    public async Task Click_DefaultMethod_UsesSendInput_AtClientCoords_FollowsOnSuccess()
+    {
+        var id = Guid.NewGuid();
+        var senders = new Senders();
+
+        var result = await new ClickAction(senders.Resolver()).ExecuteAsync(Exec(ClickNode(id), WindowContext(id, (IntPtr)4660)), default);
 
         Assert.True(result.Success);
         Assert.Equal("onSuccess", result.OutputPort);
-        Assert.Equal(1, sender.Calls);
-        Assert.Equal((IntPtr)4660, sender.LastWindow);
-        Assert.Equal(10, sender.LastX);
-        Assert.Equal(20, sender.LastY);
+        Assert.Equal(1, senders.SendInput.Calls);
+        Assert.Equal(0, senders.PostMessage.Calls);
+        Assert.Equal((IntPtr)4660, senders.SendInput.LastWindow);
+        Assert.Equal(10, senders.SendInput.LastX);
+        Assert.Equal(20, senders.SendInput.LastY);
+    }
+
+    [Fact]
+    public async Task Click_PostMessageMethod_UsesPostMessageSender()
+    {
+        var id = Guid.NewGuid();
+        var senders = new Senders();
+
+        var result = await new ClickAction(senders.Resolver()).ExecuteAsync(
+            Exec(ClickNode(id, method: InputSenderResolver.PostMessageMethod), WindowContext(id, (IntPtr)5)), default);
+
+        Assert.True(result.Success);
+        Assert.Equal(1, senders.PostMessage.Calls);
+        Assert.Equal(0, senders.SendInput.Calls);
+        Assert.Equal((IntPtr)5, senders.PostMessage.LastWindow);
+    }
+
+    [Fact]
+    public async Task Click_SendInputMethodExplicit_UsesSendInputSender()
+    {
+        var id = Guid.NewGuid();
+        var senders = new Senders();
+
+        await new ClickAction(senders.Resolver()).ExecuteAsync(
+            Exec(ClickNode(id, method: InputSenderResolver.SendInputMethod), WindowContext(id, (IntPtr)7)), default);
+
+        Assert.Equal(1, senders.SendInput.Calls);
+        Assert.Equal(0, senders.PostMessage.Calls);
     }
 
     [Fact]
     public async Task Click_DefaultsToSingleTargetWhenTargetIdNull()
     {
+        var senders = new Senders();
         var ctx = new BotExecutionContext();
         ctx.Targets[Guid.NewGuid()] = new ResolvedTarget { Type = BotTargetType.Window, Selector = "hwnd:1", Handle = (IntPtr)99 };
-        var action = new BotAction { TypeKey = "input.click", TargetId = null };
-        action.Config[ClickAction.XKey] = 1;
-        action.Config[ClickAction.YKey] = 2;
-        var sender = new FakeInputSender();
 
-        var result = await new ClickAction(sender).ExecuteAsync(new ActionExecutionContext(action, ctx, _ => { }), default);
+        var result = await new ClickAction(senders.Resolver()).ExecuteAsync(Exec(ClickNode(null, x: 1, y: 2), ctx), default);
 
         Assert.True(result.Success);
-        Assert.Equal((IntPtr)99, sender.LastWindow);
+        Assert.Equal((IntPtr)99, senders.SendInput.LastWindow);
     }
 
     [Fact]
     public async Task Click_NoResolvedTarget_FailsWithoutSending()
     {
-        var action = new BotAction { TypeKey = "input.click", TargetId = null };
-        action.Config[ClickAction.XKey] = 1;
-        action.Config[ClickAction.YKey] = 2;
-        var sender = new FakeInputSender();
+        var senders = new Senders();
 
-        var result = await new ClickAction(sender).ExecuteAsync(
-            new ActionExecutionContext(action, new BotExecutionContext(), _ => { }), default);
+        var result = await new ClickAction(senders.Resolver()).ExecuteAsync(
+            Exec(ClickNode(null), new BotExecutionContext()), default);
 
         Assert.False(result.Success);
-        Assert.Equal(0, sender.Calls);
+        Assert.Equal(0, senders.SendInput.Calls);
+        Assert.Equal(0, senders.PostMessage.Calls);
         Assert.Contains("Window target", result.ErrorMessage);
     }
 
     [Fact]
     public async Task Click_TargetWithoutHandle_Fails()
     {
-        var targetId = Guid.NewGuid();
+        var id = Guid.NewGuid();
+        var senders = new Senders();
         var ctx = new BotExecutionContext();
-        ctx.Targets[targetId] = new ResolvedTarget { Type = BotTargetType.Window, Selector = "hwnd:1", Handle = null };
-        var action = new BotAction { TypeKey = "input.click", TargetId = targetId };
-        var sender = new FakeInputSender();
+        ctx.Targets[id] = new ResolvedTarget { Type = BotTargetType.Window, Selector = "hwnd:1", Handle = null };
 
-        var result = await new ClickAction(sender).ExecuteAsync(new ActionExecutionContext(action, ctx, _ => { }), default);
+        var result = await new ClickAction(senders.Resolver()).ExecuteAsync(Exec(ClickNode(id), ctx), default);
 
         Assert.False(result.Success);
-        Assert.Equal(0, sender.Calls);
+        Assert.Equal(0, senders.SendInput.Calls);
+        Assert.Equal(0, senders.PostMessage.Calls);
     }
 
     [Fact]
     public async Task Click_ZeroHandle_Fails()
     {
-        var targetId = Guid.NewGuid();
-        var ctx = new BotExecutionContext();
-        ctx.Targets[targetId] = new ResolvedTarget { Type = BotTargetType.Window, Selector = "hwnd:0", Handle = IntPtr.Zero };
-        var action = new BotAction { TypeKey = "input.click", TargetId = targetId };
-        var sender = new FakeInputSender();
+        var id = Guid.NewGuid();
+        var senders = new Senders();
 
-        var result = await new ClickAction(sender).ExecuteAsync(new ActionExecutionContext(action, ctx, _ => { }), default);
+        var result = await new ClickAction(senders.Resolver()).ExecuteAsync(Exec(ClickNode(id), WindowContext(id, IntPtr.Zero)), default);
 
         Assert.False(result.Success);
-        Assert.Equal(0, sender.Calls);
+        Assert.Equal(0, senders.SendInput.Calls);
+        Assert.Equal(0, senders.PostMessage.Calls);
     }
 
     [Fact]
     public void Definition_Metadata()
     {
-        var def = new ClickAction(new FakeInputSender());
+        var def = new ClickAction(new Senders().Resolver());
 
         Assert.Equal("input.click", def.TypeKey);
         Assert.Equal("Input", def.Category);
         Assert.Equal(new[] { "in" }, def.InputPorts.Select(p => p.Name));
         Assert.Equal(new[] { "onSuccess", "onFailure" }, def.OutputPorts.Select(p => p.Name));
-        Assert.Equal(new[] { ClickAction.XKey, ClickAction.YKey }, def.ConfigFields.Select(f => f.Key));
+        Assert.Equal(new[] { ClickAction.XKey, ClickAction.YKey, ClickAction.MethodKey }, def.ConfigFields.Select(f => f.Key));
+        var method = def.ConfigFields.Single(f => f.Key == ClickAction.MethodKey);
+        Assert.Equal(new[] { "SendInput", "PostMessage" }, method.Options);
         Assert.False(def.SupportsRetry);
     }
 }

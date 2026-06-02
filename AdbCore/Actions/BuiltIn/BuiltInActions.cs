@@ -19,8 +19,8 @@ public static class BuiltInActions
         Add(new SetVariableAction(), definitions, executors);
         Add(new CommentAction(), definitions, executors);
 
-        // Input actions need an IInputSender; the real app uses the Win32 (PostMessage) implementation.
-        Add(new ClickAction(new Win32PostMessageSender()), definitions, executors);
+        // Input actions need an InputSenderResolver; SendInput is the reliable foreground default.
+        Add(new ClickAction(new InputSenderResolver(new Win32SendInputSender(), new Win32PostMessageSender())), definitions, executors);
 
         // Loop is engine-native: register its definition only (no executor).
         definitions.Register(new LoopAction());

@@ -4,20 +4,22 @@ using AdbCore.Models;
 
 namespace AdbCore.Actions.BuiltIn;
 
-/// <summary>Posts a left click at client-relative coordinates of the action's Window target.</summary>
+/// <summary>Posts a left click at client-relative coordinates of the action's Window target, using the
+/// configured input method (SendInput foreground by default, or PostMessage background).</summary>
 public sealed class ClickAction : IActionDefinition, IActionExecutor
 {
     public const string XKey = "x";
     public const string YKey = "y";
+    public const string MethodKey = "method";
     public const string SuccessPort = "onSuccess";
     public const string FailurePort = "onFailure";
 
-    private readonly IInputSender _sender;
+    private readonly InputSenderResolver _senders;
 
-    public ClickAction(IInputSender sender)
+    public ClickAction(InputSenderResolver senders)
     {
-        ArgumentNullException.ThrowIfNull(sender);
-        _sender = sender;
+        ArgumentNullException.ThrowIfNull(senders);
+        _senders = senders;
     }
 
     public string TypeKey => "input.click";
@@ -34,6 +36,14 @@ public sealed class ClickAction : IActionDefinition, IActionExecutor
     {
         new ConfigField { Key = XKey, Label = "X", Type = ConfigFieldType.Number, DefaultValue = 0 },
         new ConfigField { Key = YKey, Label = "Y", Type = ConfigFieldType.Number, DefaultValue = 0 },
+        new ConfigField
+        {
+            Key = MethodKey,
+            Label = "Input Method",
+            Type = ConfigFieldType.Enum,
+            DefaultValue = InputSenderResolver.SendInputMethod,
+            Options = new() { InputSenderResolver.SendInputMethod, InputSenderResolver.PostMessageMethod },
+        },
     };
     public bool SupportsRetry => false;
 
@@ -46,7 +56,8 @@ public sealed class ClickAction : IActionDefinition, IActionExecutor
 
         var x = ConfigValues.GetInt(context.Action.Config, XKey);
         var y = ConfigValues.GetInt(context.Action.Config, YKey);
-        _sender.Click(hwnd, x, y);
+        var method = ConfigValues.GetString(context.Action.Config, MethodKey, InputSenderResolver.SendInputMethod);
+        _senders.Resolve(method).Click(hwnd, x, y);
 
         return Task.FromResult(ActionResult.Ok(SuccessPort));
     }
