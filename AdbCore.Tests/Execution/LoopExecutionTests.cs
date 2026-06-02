@@ -262,4 +262,34 @@ public class LoopExecutionTests
         await Assert.ThrowsAnyAsync<OperationCanceledException>(
             () => new BotExecutor(registry).RunAsync(bot, new ExecutionOptions(), null, cts.Token));
     }
+
+    [Fact]
+    public async Task Loop_ForEach_WhitespaceCollection_RunsNoIterations()
+    {
+        var seed = Node("seed", out var seedId);
+        var loop = Node(LoopAction.LoopTypeKey, out var loopId);
+        loop.Config[LoopAction.ModeKey] = LoopAction.ModeForEach;
+        loop.Config[LoopAction.CollectionVariableKey] = "items";
+        var body = Node("body", out var bodyId);
+        var done = Node("done", out var doneId);
+
+        var bot = new Bot { Name = "loop-foreach-whitespace" };
+        bot.Actions.AddRange(new[] { seed, loop, body, done });
+        bot.Connections.Add(Edge(seedId, "out", loopId));
+        bot.Connections.Add(Edge(loopId, LoopAction.BodyPort, bodyId));
+        bot.Connections.Add(Edge(loopId, LoopAction.DonePort, doneId));
+
+        var bodyCalls = 0;
+        var doneReached = false;
+        var registry = new ActionExecutorRegistry();
+        registry.Register(new FakeExecutor { TypeKey = "seed", Behavior = c => { c.Context.Variables["items"] = "   "; return ActionResult.Ok("out"); } });
+        registry.Register(new FakeExecutor { TypeKey = "body", Behavior = c => { bodyCalls++; return ActionResult.Ok(string.Empty); } });
+        registry.Register(new FakeExecutor { TypeKey = "done", Behavior = c => { doneReached = true; return ActionResult.Ok(string.Empty); } });
+
+        var result = await new BotExecutor(registry).RunAsync(bot, new ExecutionOptions(), null, default);
+
+        Assert.True(result.Success);
+        Assert.Equal(0, bodyCalls);
+        Assert.True(doneReached);
+    }
 }
