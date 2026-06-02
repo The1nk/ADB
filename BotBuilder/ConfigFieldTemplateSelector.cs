@@ -12,6 +12,8 @@ public sealed class ConfigFieldTemplateSelector : DataTemplateSelector
     public DataTemplate? NumberTemplate { get; set; }
     public DataTemplate? BooleanTemplate { get; set; }
     public DataTemplate? EnumTemplate { get; set; }
+    public DataTemplate? FilePathTemplate { get; set; }
+    public DataTemplate? ImagePathTemplate { get; set; }
 
     public override DataTemplate? SelectTemplate(object? item, DependencyObject container)
     {
@@ -26,7 +28,9 @@ public sealed class ConfigFieldTemplateSelector : DataTemplateSelector
             AdbCore.Actions.ConfigFieldType.Number => NumberTemplate,
             AdbCore.Actions.ConfigFieldType.Boolean => BooleanTemplate,
             AdbCore.Actions.ConfigFieldType.Enum => EnumTemplate,
-            _ => StringTemplate, // String + (for now) FilePath/ImagePath fall back to a text box
+            AdbCore.Actions.ConfigFieldType.FilePath => FilePathTemplate,
+            AdbCore.Actions.ConfigFieldType.ImagePath => ImagePathTemplate,
+            _ => StringTemplate,
         };
     }
 }
