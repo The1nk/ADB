@@ -95,11 +95,12 @@ public sealed class Win32SendInputSender : IInputSender
 
     public void TypeText(IntPtr windowHandle, string text)
     {
-        SetForegroundWindow(windowHandle);
         if (string.IsNullOrEmpty(text))
         {
-            return;
+            return; // nothing to type — don't steal focus
         }
+
+        SetForegroundWindow(windowHandle);
 
         var inputs = new List<INPUT>(text.Length * 2);
         foreach (var ch in text)
