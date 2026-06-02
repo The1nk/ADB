@@ -3,6 +3,7 @@ using AdbCore.Actions.BuiltIn;
 using AdbCore.Execution;
 using AdbCore.Models;
 using AdbCore.Serialization;
+using AdbCore.Targets;
 
 namespace BotRunner;
 
@@ -22,6 +23,9 @@ public sealed class RunnerApp
 
         // Throws CommandLineException before any file is opened if a declared target is unmatched.
         var resolvedTargets = TargetResolver.Resolve(bot, args.Targets);
+
+        // Resolve Window target selectors to live HWNDs before execution (Input/Screen need them).
+        WindowTargetBinder.Bind(resolvedTargets, new Win32WindowResolver());
 
         var logPath = args.LogFile ?? Path.ChangeExtension(args.BotPath, ".log");
         using var fileWriter = new StreamWriter(logPath, append: false);

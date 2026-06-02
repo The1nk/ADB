@@ -1,4 +1,5 @@
 using AdbCore.Execution;
+using AdbCore.Input;
 
 namespace AdbCore.Actions.BuiltIn;
 
@@ -17,6 +18,9 @@ public static class BuiltInActions
         Add(new BranchAction(), definitions, executors);
         Add(new SetVariableAction(), definitions, executors);
         Add(new CommentAction(), definitions, executors);
+
+        // Input actions need an InputSenderResolver; SendInput is the reliable foreground default.
+        Add(new ClickAction(new InputSenderResolver(new Win32SendInputSender(), new Win32PostMessageSender())), definitions, executors);
 
         // Loop is engine-native: register its definition only (no executor).
         definitions.Register(new LoopAction());
