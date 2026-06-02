@@ -23,11 +23,11 @@ public abstract class PointerActionBase : InputActionBase
     /// <summary>Dispatches the specific pointer operation (click/right-click/double-click/move) to the sender.</summary>
     protected abstract void Dispatch(IInputSender sender, IntPtr windowHandle, int x, int y);
 
-    protected override ActionResult Perform(IInputSender sender, IntPtr windowHandle, ActionExecutionContext context)
+    protected override Task<ActionResult> PerformAsync(IInputSender sender, IntPtr windowHandle, ActionExecutionContext context, CancellationToken ct)
     {
         var x = ConfigValues.GetInt(context.Action.Config, XKey);
         var y = ConfigValues.GetInt(context.Action.Config, YKey);
         Dispatch(sender, windowHandle, x, y);
-        return ActionResult.Ok(SuccessPort);
+        return Task.FromResult(ActionResult.Ok(SuccessPort));
     }
 }

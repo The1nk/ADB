@@ -21,11 +21,11 @@ public sealed class TypeTextAction : InputActionBase
         new ConfigField { Key = TextKey, Label = "Text", Type = ConfigFieldType.MultilineString },
     ];
 
-    protected override ActionResult Perform(IInputSender sender, IntPtr windowHandle, ActionExecutionContext context)
+    protected override Task<ActionResult> PerformAsync(IInputSender sender, IntPtr windowHandle, ActionExecutionContext context, CancellationToken ct)
     {
         // Empty text is an intentional no-op (consistent with Log / Set Variable); the sender skips it.
         var text = ConfigValues.GetString(context.Action.Config, TextKey);
         sender.TypeText(windowHandle, text);
-        return ActionResult.Ok(SuccessPort);
+        return Task.FromResult(ActionResult.Ok(SuccessPort));
     }
 }

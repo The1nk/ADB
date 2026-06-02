@@ -52,17 +52,17 @@ public abstract class InputActionBase : IActionDefinition, IActionExecutor
     public bool SupportsRetry => false;
 
     /// <summary>Runs the action's operation against the resolved window and chosen sender; returns the result.</summary>
-    protected abstract ActionResult Perform(IInputSender sender, IntPtr windowHandle, ActionExecutionContext context);
+    protected abstract Task<ActionResult> PerformAsync(IInputSender sender, IntPtr windowHandle, ActionExecutionContext context, CancellationToken ct);
 
-    public Task<ActionResult> ExecuteAsync(ActionExecutionContext context, CancellationToken ct)
+    public async Task<ActionResult> ExecuteAsync(ActionExecutionContext context, CancellationToken ct)
     {
         if (ResolveWindow(context) is not IntPtr hwnd || hwnd == IntPtr.Zero)
         {
-            return Task.FromResult(ActionResult.Fail($"{DisplayName} requires a resolved Window target (HWND)."));
+            return ActionResult.Fail($"{DisplayName} requires a resolved Window target (HWND).");
         }
 
         var method = ConfigValues.GetString(context.Action.Config, MethodKey, InputSenderResolver.SendInputMethod);
-        return Task.FromResult(Perform(_senders.Resolve(method), hwnd, context));
+        return await PerformAsync(_senders.Resolve(method), hwnd, context, ct);
     }
 
     /// <summary>Resolves the action's target HWND: the explicit TargetId, or the sole target if unset.</summary>

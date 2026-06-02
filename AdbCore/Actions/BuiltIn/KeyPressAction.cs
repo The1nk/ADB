@@ -29,17 +29,17 @@ public sealed class KeyPressAction : InputActionBase
         new ConfigField { Key = WinKey, Label = "Win", Type = ConfigFieldType.Boolean, DefaultValue = false },
     ];
 
-    protected override ActionResult Perform(IInputSender sender, IntPtr windowHandle, ActionExecutionContext context)
+    protected override Task<ActionResult> PerformAsync(IInputSender sender, IntPtr windowHandle, ActionExecutionContext context, CancellationToken ct)
     {
         var keyName = ConfigValues.GetString(context.Action.Config, KeyKey);
         if (string.IsNullOrWhiteSpace(keyName))
         {
-            return ActionResult.Fail("Key Press: a key is required.");
+            return Task.FromResult(ActionResult.Fail("Key Press: a key is required."));
         }
 
         if (!VirtualKeys.TryResolve(keyName, out var vk))
         {
-            return ActionResult.Fail($"Key Press: unrecognized key '{keyName}'.");
+            return Task.FromResult(ActionResult.Fail($"Key Press: unrecognized key '{keyName}'."));
         }
 
         var modifiers = KeyModifiers.None;
@@ -49,6 +49,6 @@ public sealed class KeyPressAction : InputActionBase
         if (ConfigValues.GetBool(context.Action.Config, WinKey)) modifiers |= KeyModifiers.Win;
 
         sender.KeyPress(windowHandle, vk, modifiers);
-        return ActionResult.Ok(SuccessPort);
+        return Task.FromResult(ActionResult.Ok(SuccessPort));
     }
 }
