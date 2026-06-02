@@ -2,15 +2,17 @@ using System.Runtime.InteropServices;
 
 namespace AdbCore.Input;
 
-/// <summary>Foreground <see cref="IInputSender"/>: brings the target window to the front, moves the
-/// cursor to the window-relative point (converted to screen coordinates), and injects a real OS left
-/// click via SendInput. Reliable across modern apps, but foreground-only — it moves the real cursor
-/// and drives one window at a time.</summary>
+/// <summary>Foreground <see cref="IInputSender"/>: brings the target window to the front, moves the cursor
+/// to the window-relative point (converted to screen coordinates), and injects real OS mouse input via
+/// SendInput. Reliable across modern apps, but foreground-only — it moves the real cursor and drives one
+/// window at a time.</summary>
 public sealed class Win32SendInputSender : IInputSender
 {
     private const uint INPUT_MOUSE = 0;
     private const uint MOUSEEVENTF_LEFTDOWN = 0x0002;
     private const uint MOUSEEVENTF_LEFTUP = 0x0004;
+    private const uint MOUSEEVENTF_RIGHTDOWN = 0x0008;
+    private const uint MOUSEEVENTF_RIGHTUP = 0x0010;
 
     [StructLayout(LayoutKind.Sequential)]
     private struct POINT
@@ -53,17 +55,48 @@ public sealed class Win32SendInputSender : IInputSender
 
     public void Click(IntPtr windowHandle, int clientX, int clientY)
     {
-        SetForegroundWindow(windowHandle);
+        PositionCursor(windowHandle, clientX, clientY);
+        InjectMouse(MOUSEEVENTF_LEFTDOWN, MOUSEEVENTF_LEFTUP);
+    }
 
+    public void RightClick(IntPtr windowHandle, int clientX, int clientY)
+    {
+        PositionCursor(windowHandle, clientX, clientY);
+        InjectMouse(MOUSEEVENTF_RIGHTDOWN, MOUSEEVENTF_RIGHTUP);
+    }
+
+    public void DoubleClick(IntPtr windowHandle, int clientX, int clientY)
+    {
+        PositionCursor(windowHandle, clientX, clientY);
+        // Two down/up pairs in one batch; the OS treats simultaneous injection as within the double-click threshold.
+        InjectMouse(MOUSEEVENTF_LEFTDOWN, MOUSEEVENTF_LEFTUP, MOUSEEVENTF_LEFTDOWN, MOUSEEVENTF_LEFTUP);
+    }
+
+    // A bare move must NOT activate the window — a hover shouldn't steal focus; only the clicks activate.
+    public void MoveTo(IntPtr windowHandle, int clientX, int clientY)
+        => MoveCursor(windowHandle, clientX, clientY);
+
+    private static void PositionCursor(IntPtr windowHandle, int clientX, int clientY)
+    {
+        SetForegroundWindow(windowHandle); // activate the target so the injected click lands on it
+        MoveCursor(windowHandle, clientX, clientY);
+    }
+
+    private static void MoveCursor(IntPtr windowHandle, int clientX, int clientY)
+    {
         var point = new POINT { X = clientX, Y = clientY };
         ClientToScreen(windowHandle, ref point);
         SetCursorPos(point.X, point.Y);
+    }
 
-        var inputs = new[]
+    private static void InjectMouse(params uint[] flags)
+    {
+        var inputs = new INPUT[flags.Length];
+        for (var i = 0; i < flags.Length; i++)
         {
-            new INPUT { type = INPUT_MOUSE, mi = new MOUSEINPUT { dwFlags = MOUSEEVENTF_LEFTDOWN } },
-            new INPUT { type = INPUT_MOUSE, mi = new MOUSEINPUT { dwFlags = MOUSEEVENTF_LEFTUP } },
-        };
+            inputs[i] = new INPUT { type = INPUT_MOUSE, mi = new MOUSEINPUT { dwFlags = flags[i] } };
+        }
+
         SendInput((uint)inputs.Length, inputs, Marshal.SizeOf<INPUT>());
     }
 }
