@@ -58,12 +58,17 @@ public class BotExecutor
 
     /// <summary>Walks forward from <paramref name="start"/>, following output ports until the path
     /// dead-ends (no matching connection). Returns the first unhandled failure, or completion.</summary>
-    private async Task<WalkOutcome> WalkAsync(RunState state, BotAction? start, CancellationToken ct)
+    private async Task<WalkOutcome> WalkAsync(RunState state, BotAction? start, CancellationToken ct, Guid? stopBeforeId = null)
     {
         var current = start;
         while (current is not null)
         {
             ct.ThrowIfCancellationRequested();
+
+            if (stopBeforeId is not null && current.Id == stopBeforeId.Value)
+            {
+                return WalkOutcome.Completed();
+            }
 
             if (current.TypeKey == LoopAction.LoopTypeKey)
             {
@@ -74,6 +79,18 @@ public class BotExecutor
                 }
 
                 current = FindNext(state.Bot, current.Id, LoopAction.DonePort);
+                continue;
+            }
+
+            if (current.TypeKey == RunParallelAction.RunParallelTypeKey)
+            {
+                var (parallelOutcome, joinId, joinPort) = await ExecuteParallelAsync(state, current, ct);
+                if (!parallelOutcome.Success)
+                {
+                    return parallelOutcome;
+                }
+
+                current = joinId is null ? null : FindNext(state.Bot, joinId.Value, joinPort);
                 continue;
             }
 
@@ -173,6 +190,164 @@ public class BotExecutor
         }
 
         return text.Split(',').Select(part => (string?)part.Trim()).ToList();
+    }
+
+    /// <summary>Engine-native Run Parallel: runs each wired branch concurrently as a sub-walk that stops
+    /// at the convergent Join, aggregates the outcomes per <see cref="ParallelErrorStrategy"/>, and reports
+    /// where execution should continue (the Join's allSucceeded/someFailed port), or a halting failure.</summary>
+    private async Task<(WalkOutcome Outcome, Guid? JoinId, string JoinPort)> ExecuteParallelAsync(
+        RunState state, BotAction runParallel, CancellationToken ct)
+    {
+        var strategy = ParseStrategy(
+            ConfigValues.GetString(runParallel.Config, RunParallelAction.OnBranchFailureKey, nameof(ParallelErrorStrategy.HaltAll)));
+        var branchCount = Math.Max(1,
+            ConfigValues.GetInt(runParallel.Config, RunParallelAction.BranchesKey, RunParallelAction.DefaultBranchCount));
+
+        var branchStarts = new List<BotAction>();
+        for (var i = 1; i <= branchCount; i++)
+        {
+            var start = FindNext(state.Bot, runParallel.Id, RunParallelAction.BranchPort(i));
+            if (start is not null)
+            {
+                branchStarts.Add(start);
+            }
+        }
+
+        if (branchStarts.Count == 0)
+        {
+            return (WalkOutcome.Failed("Run Parallel has no wired branch ports.", runParallel.Id), null, string.Empty);
+        }
+
+        var joinId = FindConvergentJoin(state.Bot, branchStarts.Select(b => b.Id).ToList());
+        if (joinId is null)
+        {
+            return (WalkOutcome.Failed("Run Parallel branches must converge on exactly one Join.", runParallel.Id), null, string.Empty);
+        }
+
+        using var linked = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        var outcomes = new WalkOutcome[branchStarts.Count];
+
+        async Task RunBranchAsync(int index)
+        {
+            try
+            {
+                var outcome = await WalkAsync(state, branchStarts[index], linked.Token, joinId.Value);
+                outcomes[index] = outcome;
+                if (!outcome.Success && strategy == ParallelErrorStrategy.HaltAll)
+                {
+                    linked.Cancel();
+                }
+            }
+            catch (OperationCanceledException) when (linked.IsCancellationRequested && !ct.IsCancellationRequested)
+            {
+                // Cancelled because a sibling failed under HaltAll — not a failure of this branch itself.
+                outcomes[index] = WalkOutcome.Completed();
+            }
+        }
+
+        var tasks = Enumerable.Range(0, branchStarts.Count).Select(RunBranchAsync).ToArray();
+        await Task.WhenAll(tasks); // a genuine user cancellation (outer ct) surfaces as OperationCanceledException
+
+        var firstFailure = outcomes.FirstOrDefault(o => o is not null && !o.Success);
+        if (firstFailure is null)
+        {
+            return (WalkOutcome.Completed(), joinId, JoinAction.AllSucceededPort);
+        }
+
+        // A branch failed. If someFailed is wired, route to it (handled) regardless of strategy.
+        if (FindNext(state.Bot, joinId.Value, JoinAction.SomeFailedPort) is not null)
+        {
+            return (WalkOutcome.Completed(), joinId, JoinAction.SomeFailedPort);
+        }
+
+        // Unhandled failure: Continue swallows it; Halt strategies fail the run.
+        if (strategy == ParallelErrorStrategy.Continue)
+        {
+            return (WalkOutcome.Completed(), joinId, JoinAction.SomeFailedPort);
+        }
+
+        return (WalkOutcome.Failed(firstFailure.ErrorMessage, firstFailure.FailedActionId ?? runParallel.Id), null, string.Empty);
+    }
+
+    private static ParallelErrorStrategy ParseStrategy(string value)
+        => Enum.TryParse<ParallelErrorStrategy>(value, ignoreCase: true, out var s) ? s : ParallelErrorStrategy.HaltAll;
+
+    /// <summary>Finds the single Join node all branches converge on, choosing the nearest common Join when
+    /// more than one is reachable from every branch. Returns null if zero, or an ambiguous tie.</summary>
+    private static Guid? FindConvergentJoin(Bot bot, IReadOnlyList<Guid> branchStartIds)
+    {
+        var perBranch = branchStartIds.Select(id => JoinDistances(bot, id)).ToList();
+        if (perBranch.Count == 0)
+        {
+            return null;
+        }
+
+        IEnumerable<Guid> common = perBranch[0].Keys;
+        foreach (var map in perBranch.Skip(1))
+        {
+            common = common.Intersect(map.Keys);
+        }
+
+        var commonJoins = common.ToList();
+        if (commonJoins.Count == 0)
+        {
+            return null;
+        }
+
+        if (commonJoins.Count == 1)
+        {
+            return commonJoins[0];
+        }
+
+        Guid? best = null;
+        var bestScore = int.MaxValue;
+        var tie = false;
+        foreach (var join in commonJoins)
+        {
+            var score = perBranch.Max(map => map[join]);
+            if (score < bestScore)
+            {
+                bestScore = score;
+                best = join;
+                tie = false;
+            }
+            else if (score == bestScore)
+            {
+                tie = true;
+            }
+        }
+
+        return tie ? null : best;
+    }
+
+    /// <summary>BFS forward from <paramref name="startId"/> over all outgoing edges, returning the shortest
+    /// distance to each reachable Join node.</summary>
+    private static Dictionary<Guid, int> JoinDistances(Bot bot, Guid startId)
+    {
+        var distances = new Dictionary<Guid, int>();
+        var visited = new HashSet<Guid> { startId };
+        var queue = new Queue<(Guid Id, int Depth)>();
+        queue.Enqueue((startId, 0));
+
+        while (queue.Count > 0)
+        {
+            var (id, depth) = queue.Dequeue();
+            var node = bot.Actions.FirstOrDefault(a => a.Id == id);
+            if (node is not null && node.TypeKey == JoinAction.JoinTypeKey && !distances.ContainsKey(id))
+            {
+                distances[id] = depth;
+            }
+
+            foreach (var edge in bot.Connections.Where(c => c.SourceActionId == id))
+            {
+                if (visited.Add(edge.TargetActionId))
+                {
+                    queue.Enqueue((edge.TargetActionId, depth + 1));
+                }
+            }
+        }
+
+        return distances;
     }
 
     private async Task<ActionResult> ExecuteWithRetryAsync(
