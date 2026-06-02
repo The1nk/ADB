@@ -100,6 +100,19 @@ public class ClickActionTests
     }
 
     [Fact]
+    public async Task Click_UnknownMethod_FallsBackToSendInput()
+    {
+        var id = Guid.NewGuid();
+        var senders = new Senders();
+
+        await new ClickAction(senders.Resolver()).ExecuteAsync(
+            Exec(ClickNode(id, method: "garbage"), WindowContext(id, (IntPtr)3)), default);
+
+        Assert.Equal(1, senders.SendInput.Calls);
+        Assert.Equal(0, senders.PostMessage.Calls);
+    }
+
+    [Fact]
     public async Task Click_DefaultsToSingleTargetWhenTargetIdNull()
     {
         var senders = new Senders();
