@@ -16,6 +16,7 @@ public sealed class RunLogger
     private readonly TextWriter _stdout;
     private readonly TextWriter _file;
     private readonly LogLevel _minLevel;
+    private readonly object _writeLock = new();
 
     public RunLogger(TextWriter stdout, TextWriter file, LogLevel minLevel)
     {
@@ -61,7 +62,12 @@ public sealed class RunLogger
         entry.Level = level.ToString().ToLowerInvariant();
 
         var line = JsonSerializer.Serialize(entry, Json);
-        _stdout.WriteLine(line);
-        _file.WriteLine(line);
+
+        // Parallel branches can log concurrently; keep each record's stdout+file writes atomic.
+        lock (_writeLock)
+        {
+            _stdout.WriteLine(line);
+            _file.WriteLine(line);
+        }
     }
 }
