@@ -73,6 +73,21 @@ public class KeyboardActionsTests
     }
 
     [Fact]
+    public async Task TypeText_EmptyText_SucceedsAsNoOp()
+    {
+        // Empty text is an intentional no-op (like Log / Set Variable) — the run continues successfully.
+        var id = Guid.NewGuid();
+        var senders = new Senders();
+        var action = new BotAction { TargetId = id };
+        action.Config[TypeTextAction.TextKey] = "";
+
+        var result = await new TypeTextAction(senders.Resolver()).ExecuteAsync(Exec(action, WindowContext(id, (IntPtr)4)), default);
+
+        Assert.True(result.Success);
+        Assert.Equal("", senders.SendInput.LastText);
+    }
+
+    [Fact]
     public async Task KeyPress_ResolvesKeyAndModifiers()
     {
         var id = Guid.NewGuid();
@@ -117,6 +132,20 @@ public class KeyboardActionsTests
         Assert.False(result.Success);
         Assert.Equal(0, senders.SendInput.Calls);
         Assert.Contains("NotAKey", result.ErrorMessage);
+    }
+
+    [Fact]
+    public async Task KeyPress_BlankKey_FailsWithRequiredMessage()
+    {
+        var id = Guid.NewGuid();
+        var senders = new Senders();
+        var action = new BotAction { TargetId = id }; // no key configured
+
+        var result = await new KeyPressAction(senders.Resolver()).ExecuteAsync(Exec(action, WindowContext(id, (IntPtr)10)), default);
+
+        Assert.False(result.Success);
+        Assert.Equal(0, senders.SendInput.Calls);
+        Assert.Contains("required", result.ErrorMessage);
     }
 
     [Theory]

@@ -32,6 +32,11 @@ public sealed class KeyPressAction : InputActionBase
     protected override ActionResult Perform(IInputSender sender, IntPtr windowHandle, ActionExecutionContext context)
     {
         var keyName = ConfigValues.GetString(context.Action.Config, KeyKey);
+        if (string.IsNullOrWhiteSpace(keyName))
+        {
+            return ActionResult.Fail("Key Press: a key is required.");
+        }
+
         if (!VirtualKeys.TryResolve(keyName, out var vk))
         {
             return ActionResult.Fail($"Key Press: unrecognized key '{keyName}'.");

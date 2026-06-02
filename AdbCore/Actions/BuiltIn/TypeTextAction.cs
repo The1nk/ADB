@@ -23,6 +23,7 @@ public sealed class TypeTextAction : InputActionBase
 
     protected override ActionResult Perform(IInputSender sender, IntPtr windowHandle, ActionExecutionContext context)
     {
+        // Empty text is an intentional no-op (consistent with Log / Set Variable); the sender skips it.
         var text = ConfigValues.GetString(context.Action.Config, TextKey);
         sender.TypeText(windowHandle, text);
         return ActionResult.Ok(SuccessPort);
