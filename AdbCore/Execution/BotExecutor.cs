@@ -260,7 +260,10 @@ public class BotExecutor
             return (WalkOutcome.Completed(), joinId, JoinAction.SomeFailedPort);
         }
 
-        // Unhandled failure: Continue swallows it; Halt strategies fail the run.
+        // Unhandled failure (someFailed unwired). The route is still someFailed, never allSucceeded —
+        // routing a run with a failed branch to allSucceeded would be untruthful. The strategy only
+        // decides what an *unhandled* failure means: Continue treats it as a warning and lets the run
+        // proceed (the someFailed route simply dead-ends), while the Halt strategies fail the run.
         if (strategy == ParallelErrorStrategy.Continue)
         {
             return (WalkOutcome.Completed(), joinId, JoinAction.SomeFailedPort);
