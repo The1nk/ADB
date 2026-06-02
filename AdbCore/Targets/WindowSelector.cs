@@ -16,6 +16,8 @@ public readonly record struct WindowSelector(WindowSelectorKind Kind, string Val
     /// prefix, a missing colon, or an empty value.</summary>
     public static WindowSelector Parse(string selector)
     {
+        ArgumentNullException.ThrowIfNull(selector);
+
         var colon = selector.IndexOf(':');
         if (colon <= 0 || colon == selector.Length - 1)
         {

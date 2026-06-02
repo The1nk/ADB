@@ -44,4 +44,12 @@ public class WindowSelectorTests
     [Fact]
     public void Parse_EmptyValue_Throws()
         => Assert.Throws<FormatException>(() => WindowSelector.Parse("process:"));
+
+    [Fact]
+    public void Parse_LeadingColon_Throws()
+        => Assert.Throws<FormatException>(() => WindowSelector.Parse(":Notepad"));
+
+    [Fact]
+    public void Parse_Null_ThrowsArgumentNullException()
+        => Assert.Throws<ArgumentNullException>(() => WindowSelector.Parse(null!));
 }
