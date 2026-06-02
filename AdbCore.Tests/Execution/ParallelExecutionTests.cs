@@ -276,4 +276,81 @@ public class ParallelExecutionTests
         Assert.True(result.Success);    // Continue: failure is a warning, run proceeds
         Assert.True(gated.Completed);
     }
+
+    [Fact]
+    public async Task Parallel_NoWiredBranches_Fails()
+    {
+        var rp = RunParallel(out var rpId);
+        var bot = new Bot { Name = "par-no-branches" };
+        bot.Actions.Add(rp); // RunParallel is the entry point, nothing wired to its branch ports
+
+        var result = await new BotExecutor(new ActionExecutorRegistry()).RunAsync(bot, new ExecutionOptions(), null, default);
+
+        Assert.False(result.Success);
+        Assert.Contains("no wired branch", result.ErrorMessage);
+    }
+
+    [Fact]
+    public async Task Parallel_BranchesDoNotConvergeOnJoin_Fails()
+    {
+        // branch1 -> a (dead-ends, no Join) ; branch2 -> b (dead-ends, no Join)
+        var rp = RunParallel(out var rpId);
+        var a = Node("a", out var aId);
+        var b = Node("b", out var bId);
+
+        var bot = new Bot { Name = "par-no-join" };
+        bot.Actions.AddRange(new[] { rp, a, b });
+        bot.Connections.Add(Edge(rpId, RunParallelAction.BranchPort(1), aId));
+        bot.Connections.Add(Edge(rpId, RunParallelAction.BranchPort(2), bId));
+
+        var registry = new ActionExecutorRegistry();
+        registry.Register(new FakeExecutor { TypeKey = "a", Behavior = c => ActionResult.Ok("out") });
+        registry.Register(new FakeExecutor { TypeKey = "b", Behavior = c => ActionResult.Ok("out") });
+
+        var result = await new BotExecutor(registry).RunAsync(bot, new ExecutionOptions(), null, default);
+
+        Assert.False(result.Success);
+        Assert.Contains("converge on exactly one Join", result.ErrorMessage);
+    }
+
+    [Fact]
+    public async Task Parallel_NestedParallelInsideBranch_RunsAllLeaves()
+    {
+        // outer branch1 -> innerRP (branchA -> la -> innerJoin ; branchB -> lb -> innerJoin) ; innerJoin allSucceeded -> outerJoin
+        // outer branch2 -> o2 -> outerJoin ; outerJoin allSucceeded -> done
+        var outer = RunParallel(out var outerId);
+        var inner = RunParallel(out var innerId);
+        var la = Node("la", out var laId);
+        var lb = Node("lb", out var lbId);
+        var innerJoin = Node(JoinAction.JoinTypeKey, out var innerJoinId);
+        var o2 = Node("o2", out var o2Id);
+        var outerJoin = Node(JoinAction.JoinTypeKey, out var outerJoinId);
+        var done = Node("done", out var doneId);
+
+        var bot = new Bot { Name = "par-nested" };
+        bot.Actions.AddRange(new[] { outer, inner, la, lb, innerJoin, o2, outerJoin, done });
+        bot.Connections.Add(Edge(outerId, RunParallelAction.BranchPort(1), innerId));
+        bot.Connections.Add(Edge(outerId, RunParallelAction.BranchPort(2), o2Id));
+        bot.Connections.Add(Edge(innerId, RunParallelAction.BranchPort(1), laId));
+        bot.Connections.Add(Edge(innerId, RunParallelAction.BranchPort(2), lbId));
+        bot.Connections.Add(Edge(laId, "out", innerJoinId));
+        bot.Connections.Add(Edge(lbId, "out", innerJoinId));
+        bot.Connections.Add(Edge(innerJoinId, JoinAction.AllSucceededPort, outerJoinId));
+        bot.Connections.Add(Edge(o2Id, "out", outerJoinId));
+        bot.Connections.Add(Edge(outerJoinId, JoinAction.AllSucceededPort, doneId));
+
+        var ran = new System.Collections.Concurrent.ConcurrentBag<string>();
+        var doneReached = false;
+        var registry = new ActionExecutorRegistry();
+        registry.Register(new FakeExecutor { TypeKey = "la", Behavior = c => { ran.Add("la"); return ActionResult.Ok("out"); } });
+        registry.Register(new FakeExecutor { TypeKey = "lb", Behavior = c => { ran.Add("lb"); return ActionResult.Ok("out"); } });
+        registry.Register(new FakeExecutor { TypeKey = "o2", Behavior = c => { ran.Add("o2"); return ActionResult.Ok("out"); } });
+        registry.Register(new FakeExecutor { TypeKey = "done", Behavior = c => { doneReached = true; return ActionResult.Ok(string.Empty); } });
+
+        var result = await new BotExecutor(registry).RunAsync(bot, new ExecutionOptions(), null, default);
+
+        Assert.True(result.Success);
+        Assert.True(doneReached);
+        Assert.Equal(new[] { "la", "lb", "o2" }, ran.OrderBy(x => x).ToArray());
+    }
 }
