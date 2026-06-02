@@ -16,7 +16,8 @@ public class ParallelDefinitionsTests
         Assert.Equal(new[] { "branch1", "branch2" }, def.OutputPorts.Select(p => p.Name));
         Assert.False(def.SupportsRetry);
 
-        Assert.Contains(def.ConfigFields, f => f.Key == RunParallelAction.BranchesKey);
+        var branches = def.ConfigFields.Single(f => f.Key == RunParallelAction.BranchesKey);
+        Assert.Equal(RunParallelAction.DefaultBranchCount, (int)branches.DefaultValue!);
         var strategy = def.ConfigFields.Single(f => f.Key == RunParallelAction.OnBranchFailureKey);
         Assert.Equal(new[] { "HaltAll", "WaitThenHalt", "Continue" }, strategy.Options);
     }

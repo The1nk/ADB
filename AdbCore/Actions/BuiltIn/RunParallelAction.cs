@@ -10,8 +10,9 @@ public sealed class RunParallelAction : IActionDefinition
     public const string RunParallelTypeKey = "control.runParallel";
     public const string BranchesKey = "branches";
     public const string OnBranchFailureKey = "onBranchFailure";
-    public const string BranchPortPrefix = "branch";
     public const int DefaultBranchCount = 2;
+
+    private const string BranchPortPrefix = "branch";
 
     /// <summary>The output port name for the 1-based branch index, e.g. <c>branch1</c>.</summary>
     public static string BranchPort(int oneBasedIndex) => $"{BranchPortPrefix}{oneBasedIndex}";
