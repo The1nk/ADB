@@ -24,6 +24,7 @@ public class BuiltInActionsTests
             "control.start", "control.end", "data.log", "control.delay", "control.branch",
             "data.setVariable", "data.comment",
             "input.click", "input.rightClick", "input.doubleClick", "input.mouseMove",
+            "input.typeText", "input.keyPress",
         })
         {
             Assert.True(defs.TryGet(key, out _));
@@ -37,8 +38,8 @@ public class BuiltInActionsTests
             Assert.False(execs.TryGet(key, out _));
         }
 
-        Assert.Equal(14, defs.Count);
-        Assert.Equal(11, execs.Count);
+        Assert.Equal(16, defs.Count);
+        Assert.Equal(13, execs.Count);
     }
 
     [Fact]
