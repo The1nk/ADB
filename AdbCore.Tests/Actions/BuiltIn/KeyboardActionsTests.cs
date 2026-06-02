@@ -121,6 +121,19 @@ public class KeyboardActionsTests
     }
 
     [Fact]
+    public async Task KeyPress_DefaultKeyDelay_Is20()
+    {
+        var id = Guid.NewGuid();
+        var senders = new Senders();
+        var action = new BotAction { TargetId = id };
+        action.Config[KeyPressAction.KeyKey] = "Enter";
+
+        await new KeyPressAction(senders.Resolver()).ExecuteAsync(Exec(action, WindowContext(id, (IntPtr)8)), default);
+
+        Assert.Equal(KeyboardActionBase.DefaultKeyDelayMs, senders.SendInput.LastKeyDelayMs);
+    }
+
+    [Fact]
     public async Task KeyPress_UnknownKey_FailsWithoutSending()
     {
         var id = Guid.NewGuid();
