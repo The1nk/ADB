@@ -19,8 +19,12 @@ public static class BuiltInActions
         Add(new SetVariableAction(), definitions, executors);
         Add(new CommentAction(), definitions, executors);
 
-        // Input actions need an InputSenderResolver; SendInput is the reliable foreground default.
-        Add(new ClickAction(new InputSenderResolver(new Win32SendInputSender(), new Win32PostMessageSender())), definitions, executors);
+        // Input actions share one resolver: SendInput (foreground, default) + PostMessage (background, opt-in per node).
+        var inputSenders = new InputSenderResolver(new Win32SendInputSender(), new Win32PostMessageSender());
+        Add(new ClickAction(inputSenders), definitions, executors);
+        Add(new RightClickAction(inputSenders), definitions, executors);
+        Add(new DoubleClickAction(inputSenders), definitions, executors);
+        Add(new MouseMoveAction(inputSenders), definitions, executors);
 
         // Loop is engine-native: register its definition only (no executor).
         definitions.Register(new LoopAction());

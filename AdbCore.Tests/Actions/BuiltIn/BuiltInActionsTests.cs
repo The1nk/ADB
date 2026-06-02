@@ -19,7 +19,12 @@ public class BuiltInActionsTests
 
         BuiltInActions.Register(defs, execs);
 
-        foreach (var key in new[] { "control.start", "control.end", "data.log", "control.delay", "control.branch", "data.setVariable", "data.comment", "input.click" })
+        foreach (var key in new[]
+        {
+            "control.start", "control.end", "data.log", "control.delay", "control.branch",
+            "data.setVariable", "data.comment",
+            "input.click", "input.rightClick", "input.doubleClick", "input.mouseMove",
+        })
         {
             Assert.True(defs.TryGet(key, out _));
             Assert.True(execs.TryGet(key, out _));
@@ -32,8 +37,8 @@ public class BuiltInActionsTests
             Assert.False(execs.TryGet(key, out _));
         }
 
-        Assert.Equal(11, defs.Count);
-        Assert.Equal(8, execs.Count);
+        Assert.Equal(14, defs.Count);
+        Assert.Equal(11, execs.Count);
     }
 
     [Fact]
