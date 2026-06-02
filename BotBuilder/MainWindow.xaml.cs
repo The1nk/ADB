@@ -7,6 +7,7 @@ using AdbCore.Execution;
 using BotBuilder.Core;
 using BotBuilder.Core.Connections;
 using BotBuilder.Core.Palette;
+using BotBuilder.Core.Properties;
 using Microsoft.Win32;
 
 namespace BotBuilder;
@@ -252,6 +253,27 @@ public partial class MainWindow : Window
 
     private static PaletteItem? PaletteItemFrom(object sender)
         => (sender as FrameworkElement)?.DataContext as PaletteItem;
+
+    private void BrowseField_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not FrameworkElement { DataContext: ConfigFieldViewModel field })
+        {
+            return;
+        }
+
+        var isImage = field.Type == AdbCore.Actions.ConfigFieldType.ImagePath;
+        var dialog = new OpenFileDialog
+        {
+            Filter = isImage
+                ? "Image files|*.png;*.jpg;*.jpeg;*.bmp;*.gif|All files (*.*)|*.*"
+                : "All files (*.*)|*.*",
+            CheckFileExists = false,
+        };
+        if (dialog.ShowDialog(this) == true)
+        {
+            field.Value = dialog.FileName;
+        }
+    }
 
     private void Viewport_MouseWheel(object sender, MouseWheelEventArgs e)
     {

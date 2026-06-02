@@ -8,6 +8,7 @@
     <Window.Resources>
         <local:CategoryColorToBrushConverter x:Key="CategoryBrush" />
         <BooleanToVisibilityConverter x:Key="BoolToVis" />
+        <local:PathToImageConverter x:Key="PathToImage" />
 
         <DataTemplate x:Key="FieldString">
             <StackPanel Margin="0,4">
@@ -37,13 +38,40 @@
                 <ComboBox ItemsSource="{Binding Options}" SelectedItem="{Binding Value}" />
             </StackPanel>
         </DataTemplate>
+        <DataTemplate x:Key="FieldFilePath">
+            <StackPanel Margin="0,4">
+                <TextBlock Text="{Binding Label}" FontSize="11" Foreground="#666" />
+                <DockPanel>
+                    <Button DockPanel.Dock="Right" Content="Browse..." Margin="4,0,0,0" Padding="6,0"
+                            Click="BrowseField_Click" />
+                    <TextBox Text="{Binding Value, UpdateSourceTrigger=PropertyChanged}" />
+                </DockPanel>
+            </StackPanel>
+        </DataTemplate>
+        <DataTemplate x:Key="FieldImagePath">
+            <StackPanel Margin="0,4">
+                <TextBlock Text="{Binding Label}" FontSize="11" Foreground="#666" />
+                <DockPanel>
+                    <Button DockPanel.Dock="Right" Content="Browse..." Margin="4,0,0,0" Padding="6,0"
+                            Click="BrowseField_Click" />
+                    <TextBox Text="{Binding Value, UpdateSourceTrigger=PropertyChanged}" />
+                </DockPanel>
+                <Border BorderBrush="#DDD" BorderThickness="1" Margin="0,4,0,0" Background="White"
+                        HorizontalAlignment="Left">
+                    <Image Source="{Binding Value, Converter={StaticResource PathToImage}}"
+                           MaxHeight="120" MaxWidth="220" Stretch="Uniform" Margin="2" />
+                </Border>
+            </StackPanel>
+        </DataTemplate>
 
         <local:ConfigFieldTemplateSelector x:Key="FieldSelector"
             StringTemplate="{StaticResource FieldString}"
             MultilineTemplate="{StaticResource FieldMultiline}"
             NumberTemplate="{StaticResource FieldNumber}"
             BooleanTemplate="{StaticResource FieldBoolean}"
-            EnumTemplate="{StaticResource FieldEnum}" />
+            EnumTemplate="{StaticResource FieldEnum}"
+            FilePathTemplate="{StaticResource FieldFilePath}"
+            ImagePathTemplate="{StaticResource FieldImagePath}" />
     </Window.Resources>
     <DockPanel>
         <Menu DockPanel.Dock="Top">
