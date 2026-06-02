@@ -17,9 +17,11 @@ public interface IInputSender
     /// <summary>Moves the pointer to the given client-relative coordinates of <paramref name="windowHandle"/> (no button press).</summary>
     void MoveTo(IntPtr windowHandle, int clientX, int clientY);
 
-    /// <summary>Types the given text into <paramref name="windowHandle"/> as a sequence of characters.</summary>
-    void TypeText(IntPtr windowHandle, string text);
+    /// <summary>Types the given text into <paramref name="windowHandle"/>, pausing <paramref name="keyDelayMs"/>
+    /// ms after each synthetic key event so fast targets don't drop or auto-repeat keys.</summary>
+    Task TypeText(IntPtr windowHandle, string text, int keyDelayMs, CancellationToken ct);
 
-    /// <summary>Presses <paramref name="virtualKey"/> while holding <paramref name="modifiers"/>, then releases.</summary>
-    void KeyPress(IntPtr windowHandle, ushort virtualKey, KeyModifiers modifiers);
+    /// <summary>Presses <paramref name="virtualKey"/> while holding <paramref name="modifiers"/>, then releases,
+    /// pausing <paramref name="keyDelayMs"/> ms after each synthetic key event.</summary>
+    Task KeyPress(IntPtr windowHandle, ushort virtualKey, KeyModifiers modifiers, int keyDelayMs, CancellationToken ct);
 }

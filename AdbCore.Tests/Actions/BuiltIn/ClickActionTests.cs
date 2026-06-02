@@ -29,9 +29,9 @@ public class ClickActionTests
 
         public void MoveTo(IntPtr windowHandle, int clientX, int clientY) { }
 
-        public void TypeText(IntPtr windowHandle, string text) { }
+        public Task TypeText(IntPtr windowHandle, string text, int keyDelayMs, CancellationToken ct) => Task.CompletedTask;
 
-        public void KeyPress(IntPtr windowHandle, ushort virtualKey, KeyModifiers modifiers) { }
+        public Task KeyPress(IntPtr windowHandle, ushort virtualKey, KeyModifiers modifiers, int keyDelayMs, CancellationToken ct) => Task.CompletedTask;
     }
 
     private sealed class Senders

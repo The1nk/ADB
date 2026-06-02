@@ -93,7 +93,7 @@ public sealed class Win32SendInputSender : IInputSender
     public void MoveTo(IntPtr windowHandle, int clientX, int clientY)
         => MoveCursor(windowHandle, clientX, clientY);
 
-    public void TypeText(IntPtr windowHandle, string text)
+    public async Task TypeText(IntPtr windowHandle, string text, int keyDelayMs, CancellationToken ct)
     {
         if (string.IsNullOrEmpty(text))
         {
@@ -102,36 +102,40 @@ public sealed class Win32SendInputSender : IInputSender
 
         SetForegroundWindow(windowHandle);
 
-        var inputs = new List<INPUT>(text.Length * 2);
+        // Send each key event in its own SendInput call and pace between them. Batching every
+        // down/up into one call floods the target's input queue, dropping KEYUPs and triggering
+        // OS auto-repeat (the source of the garbled, repeated-character output).
         foreach (var ch in text)
         {
-            inputs.Add(Key(0, ch, KEYEVENTF_UNICODE));
-            inputs.Add(Key(0, ch, KEYEVENTF_UNICODE | KEYEVENTF_KEYUP));
+            Send(Key(0, ch, KEYEVENTF_UNICODE));
+            await PaceAsync(keyDelayMs, ct);
+            Send(Key(0, ch, KEYEVENTF_UNICODE | KEYEVENTF_KEYUP));
+            await PaceAsync(keyDelayMs, ct);
         }
-
-        Send(inputs.ToArray());
     }
 
-    public void KeyPress(IntPtr windowHandle, ushort virtualKey, KeyModifiers modifiers)
+    public async Task KeyPress(IntPtr windowHandle, ushort virtualKey, KeyModifiers modifiers, int keyDelayMs, CancellationToken ct)
     {
         SetForegroundWindow(windowHandle);
 
-        var inputs = new List<INPUT>();
-        if (modifiers.HasFlag(KeyModifiers.Control)) inputs.Add(Key(VK_CONTROL, 0, 0));
-        if (modifiers.HasFlag(KeyModifiers.Alt)) inputs.Add(Key(VK_MENU, 0, 0));
-        if (modifiers.HasFlag(KeyModifiers.Shift)) inputs.Add(Key(VK_SHIFT, 0, 0));
-        if (modifiers.HasFlag(KeyModifiers.Win)) inputs.Add(Key(VK_LWIN, 0, 0));
+        if (modifiers.HasFlag(KeyModifiers.Control)) { Send(Key(VK_CONTROL, 0, 0)); await PaceAsync(keyDelayMs, ct); }
+        if (modifiers.HasFlag(KeyModifiers.Alt)) { Send(Key(VK_MENU, 0, 0)); await PaceAsync(keyDelayMs, ct); }
+        if (modifiers.HasFlag(KeyModifiers.Shift)) { Send(Key(VK_SHIFT, 0, 0)); await PaceAsync(keyDelayMs, ct); }
+        if (modifiers.HasFlag(KeyModifiers.Win)) { Send(Key(VK_LWIN, 0, 0)); await PaceAsync(keyDelayMs, ct); }
 
-        inputs.Add(Key(virtualKey, 0, 0));
-        inputs.Add(Key(virtualKey, 0, KEYEVENTF_KEYUP));
+        Send(Key(virtualKey, 0, 0));
+        await PaceAsync(keyDelayMs, ct);
+        Send(Key(virtualKey, 0, KEYEVENTF_KEYUP));
+        await PaceAsync(keyDelayMs, ct);
 
-        if (modifiers.HasFlag(KeyModifiers.Win)) inputs.Add(Key(VK_LWIN, 0, KEYEVENTF_KEYUP));
-        if (modifiers.HasFlag(KeyModifiers.Shift)) inputs.Add(Key(VK_SHIFT, 0, KEYEVENTF_KEYUP));
-        if (modifiers.HasFlag(KeyModifiers.Alt)) inputs.Add(Key(VK_MENU, 0, KEYEVENTF_KEYUP));
-        if (modifiers.HasFlag(KeyModifiers.Control)) inputs.Add(Key(VK_CONTROL, 0, KEYEVENTF_KEYUP));
-
-        Send(inputs.ToArray());
+        if (modifiers.HasFlag(KeyModifiers.Win)) { Send(Key(VK_LWIN, 0, KEYEVENTF_KEYUP)); await PaceAsync(keyDelayMs, ct); }
+        if (modifiers.HasFlag(KeyModifiers.Shift)) { Send(Key(VK_SHIFT, 0, KEYEVENTF_KEYUP)); await PaceAsync(keyDelayMs, ct); }
+        if (modifiers.HasFlag(KeyModifiers.Alt)) { Send(Key(VK_MENU, 0, KEYEVENTF_KEYUP)); await PaceAsync(keyDelayMs, ct); }
+        if (modifiers.HasFlag(KeyModifiers.Control)) { Send(Key(VK_CONTROL, 0, KEYEVENTF_KEYUP)); await PaceAsync(keyDelayMs, ct); }
     }
+
+    private static Task PaceAsync(int delayMs, CancellationToken ct)
+        => delayMs > 0 ? Task.Delay(delayMs, ct) : Task.CompletedTask;
 
     private static INPUT Mouse(uint flags)
         => new() { type = INPUT_MOUSE, mi = new MOUSEINPUT { dwFlags = flags } };

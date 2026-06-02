@@ -53,7 +53,7 @@ public sealed class Win32PostMessageSender : IInputSender
     public void MoveTo(IntPtr windowHandle, int clientX, int clientY)
         => PostMessage(windowHandle, WM_MOUSEMOVE, IntPtr.Zero, MakeLParam(clientX, clientY));
 
-    public void TypeText(IntPtr windowHandle, string text)
+    public async Task TypeText(IntPtr windowHandle, string text, int keyDelayMs, CancellationToken ct)
     {
         if (string.IsNullOrEmpty(text))
         {
@@ -63,24 +63,30 @@ public sealed class Win32PostMessageSender : IInputSender
         foreach (var ch in text)
         {
             PostMessage(windowHandle, WM_CHAR, (IntPtr)ch, IntPtr.Zero);
+            await PaceAsync(keyDelayMs, ct);
         }
     }
 
-    public void KeyPress(IntPtr windowHandle, ushort virtualKey, KeyModifiers modifiers)
+    public async Task KeyPress(IntPtr windowHandle, ushort virtualKey, KeyModifiers modifiers, int keyDelayMs, CancellationToken ct)
     {
-        if (modifiers.HasFlag(KeyModifiers.Control)) PostMessage(windowHandle, WM_KEYDOWN, (IntPtr)VK_CONTROL, IntPtr.Zero);
-        if (modifiers.HasFlag(KeyModifiers.Alt)) PostMessage(windowHandle, WM_KEYDOWN, (IntPtr)VK_MENU, IntPtr.Zero);
-        if (modifiers.HasFlag(KeyModifiers.Shift)) PostMessage(windowHandle, WM_KEYDOWN, (IntPtr)VK_SHIFT, IntPtr.Zero);
-        if (modifiers.HasFlag(KeyModifiers.Win)) PostMessage(windowHandle, WM_KEYDOWN, (IntPtr)VK_LWIN, IntPtr.Zero);
+        if (modifiers.HasFlag(KeyModifiers.Control)) { PostMessage(windowHandle, WM_KEYDOWN, (IntPtr)VK_CONTROL, IntPtr.Zero); await PaceAsync(keyDelayMs, ct); }
+        if (modifiers.HasFlag(KeyModifiers.Alt)) { PostMessage(windowHandle, WM_KEYDOWN, (IntPtr)VK_MENU, IntPtr.Zero); await PaceAsync(keyDelayMs, ct); }
+        if (modifiers.HasFlag(KeyModifiers.Shift)) { PostMessage(windowHandle, WM_KEYDOWN, (IntPtr)VK_SHIFT, IntPtr.Zero); await PaceAsync(keyDelayMs, ct); }
+        if (modifiers.HasFlag(KeyModifiers.Win)) { PostMessage(windowHandle, WM_KEYDOWN, (IntPtr)VK_LWIN, IntPtr.Zero); await PaceAsync(keyDelayMs, ct); }
 
         PostMessage(windowHandle, WM_KEYDOWN, (IntPtr)virtualKey, IntPtr.Zero);
+        await PaceAsync(keyDelayMs, ct);
         PostMessage(windowHandle, WM_KEYUP, (IntPtr)virtualKey, IntPtr.Zero);
+        await PaceAsync(keyDelayMs, ct);
 
-        if (modifiers.HasFlag(KeyModifiers.Win)) PostMessage(windowHandle, WM_KEYUP, (IntPtr)VK_LWIN, IntPtr.Zero);
-        if (modifiers.HasFlag(KeyModifiers.Shift)) PostMessage(windowHandle, WM_KEYUP, (IntPtr)VK_SHIFT, IntPtr.Zero);
-        if (modifiers.HasFlag(KeyModifiers.Alt)) PostMessage(windowHandle, WM_KEYUP, (IntPtr)VK_MENU, IntPtr.Zero);
-        if (modifiers.HasFlag(KeyModifiers.Control)) PostMessage(windowHandle, WM_KEYUP, (IntPtr)VK_CONTROL, IntPtr.Zero);
+        if (modifiers.HasFlag(KeyModifiers.Win)) { PostMessage(windowHandle, WM_KEYUP, (IntPtr)VK_LWIN, IntPtr.Zero); await PaceAsync(keyDelayMs, ct); }
+        if (modifiers.HasFlag(KeyModifiers.Shift)) { PostMessage(windowHandle, WM_KEYUP, (IntPtr)VK_SHIFT, IntPtr.Zero); await PaceAsync(keyDelayMs, ct); }
+        if (modifiers.HasFlag(KeyModifiers.Alt)) { PostMessage(windowHandle, WM_KEYUP, (IntPtr)VK_MENU, IntPtr.Zero); await PaceAsync(keyDelayMs, ct); }
+        if (modifiers.HasFlag(KeyModifiers.Control)) { PostMessage(windowHandle, WM_KEYUP, (IntPtr)VK_CONTROL, IntPtr.Zero); await PaceAsync(keyDelayMs, ct); }
     }
+
+    private static Task PaceAsync(int delayMs, CancellationToken ct)
+        => delayMs > 0 ? Task.Delay(delayMs, ct) : Task.CompletedTask;
 
     // Cast through uint so a y >= 32768 does not sign-extend into the high 32 bits of the IntPtr
     // (matches the Win32 MAKELPARAM macro's unsigned semantics).

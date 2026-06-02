@@ -171,7 +171,48 @@ public class KeyboardActionsTests
         var def = new KeyPressAction(new Senders().Resolver());
 
         Assert.Equal(
-            new[] { KeyPressAction.KeyKey, KeyPressAction.CtrlKey, KeyPressAction.AltKey, KeyPressAction.ShiftKey, KeyPressAction.WinKey, InputActionBase.MethodKey },
+            new[] { KeyPressAction.KeyKey, KeyPressAction.CtrlKey, KeyPressAction.AltKey, KeyPressAction.ShiftKey, KeyPressAction.WinKey, KeyboardActionBase.KeyDelayKey, InputActionBase.MethodKey },
             def.ConfigFields.Select(f => f.Key));
+    }
+
+    [Fact]
+    public async Task TypeText_DefaultKeyDelay_Is20()
+    {
+        var id = Guid.NewGuid();
+        var senders = new Senders();
+        var action = new BotAction { TargetId = id };
+        action.Config[TypeTextAction.TextKey] = "hi";
+
+        await new TypeTextAction(senders.Resolver()).ExecuteAsync(Exec(action, WindowContext(id, (IntPtr)5)), default);
+
+        Assert.Equal(KeyboardActionBase.DefaultKeyDelayMs, senders.SendInput.LastKeyDelayMs);
+    }
+
+    [Fact]
+    public async Task TypeText_KeyDelayOverride_IsPassedToSender()
+    {
+        var id = Guid.NewGuid();
+        var senders = new Senders();
+        var action = new BotAction { TargetId = id };
+        action.Config[TypeTextAction.TextKey] = "hi";
+        action.Config[KeyboardActionBase.KeyDelayKey] = 50;
+
+        await new TypeTextAction(senders.Resolver()).ExecuteAsync(Exec(action, WindowContext(id, (IntPtr)5)), default);
+
+        Assert.Equal(50, senders.SendInput.LastKeyDelayMs);
+    }
+
+    [Fact]
+    public async Task KeyPress_KeyDelayOverride_IsPassedToSender()
+    {
+        var id = Guid.NewGuid();
+        var senders = new Senders();
+        var action = new BotAction { TargetId = id };
+        action.Config[KeyPressAction.KeyKey] = "Enter";
+        action.Config[KeyboardActionBase.KeyDelayKey] = 35;
+
+        await new KeyPressAction(senders.Resolver()).ExecuteAsync(Exec(action, WindowContext(id, (IntPtr)8)), default);
+
+        Assert.Equal(35, senders.SendInput.LastKeyDelayMs);
     }
 }

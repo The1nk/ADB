@@ -4,7 +4,7 @@ using AdbCore.Input;
 namespace AdbCore.Actions.BuiltIn;
 
 /// <summary>Types a configured string into the target window.</summary>
-public sealed class TypeTextAction : InputActionBase
+public sealed class TypeTextAction : KeyboardActionBase
 {
     public const string TextKey = "text";
 
@@ -16,16 +16,16 @@ public sealed class TypeTextAction : InputActionBase
     public override string DisplayName => "Type Text";
     public override string Description => "Types text into the target window.";
 
-    protected override IEnumerable<ConfigField> ActionConfigFields =>
+    protected override IEnumerable<ConfigField> KeyboardConfigFields =>
     [
         new ConfigField { Key = TextKey, Label = "Text", Type = ConfigFieldType.MultilineString },
     ];
 
-    protected override Task<ActionResult> PerformAsync(IInputSender sender, IntPtr windowHandle, ActionExecutionContext context, CancellationToken ct)
+    protected override async Task<ActionResult> PerformAsync(IInputSender sender, IntPtr windowHandle, ActionExecutionContext context, CancellationToken ct)
     {
         // Empty text is an intentional no-op (consistent with Log / Set Variable); the sender skips it.
         var text = ConfigValues.GetString(context.Action.Config, TextKey);
-        sender.TypeText(windowHandle, text);
-        return Task.FromResult(ActionResult.Ok(SuccessPort));
+        await sender.TypeText(windowHandle, text, KeyDelayMs(context), ct);
+        return ActionResult.Ok(SuccessPort);
     }
 }
