@@ -16,14 +16,20 @@ public static class DocumentMapper
 
         foreach (var node in editor.Nodes)
         {
-            bot.Actions.Add(new BotAction
+            var action = new BotAction
             {
                 Id = node.Id,
                 TypeKey = node.TypeKey,
                 Label = node.Label,
-                CanvasPosition = new Position { X = node.X, Y = node.Y },
                 TargetId = node.TargetId,
-            });
+                CanvasPosition = new Position { X = node.X, Y = node.Y },
+                Config = new Dictionary<string, object>(node.Config),
+            };
+            if (node.RetryMaxAttempts > 1)
+            {
+                action.Retry = new RetryPolicy { MaxAttempts = node.RetryMaxAttempts, DelayMs = node.RetryDelayMs };
+            }
+            bot.Actions.Add(action);
         }
 
         foreach (var c in editor.Connections)
@@ -112,6 +118,9 @@ public static class DocumentMapper
         }
 
         node.TargetId = action.TargetId;
+        foreach (var kv in action.Config) { node.Config[kv.Key] = kv.Value; }
+        node.RetryMaxAttempts = action.Retry?.MaxAttempts ?? 1;
+        node.RetryDelayMs = action.Retry?.DelayMs ?? 0;
         return node;
     }
 }
