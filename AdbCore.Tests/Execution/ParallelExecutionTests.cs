@@ -353,4 +353,60 @@ public class ParallelExecutionTests
         Assert.True(doneReached);
         Assert.Equal(new[] { "la", "lb", "o2" }, ran.OrderBy(x => x).ToArray());
     }
+
+    [Fact]
+    public async Task Parallel_HaltAll_WiredSomeFailed_RoutesToRecoveryNotHalt()
+    {
+        // HaltAll, but someFailed IS wired: routing to someFailed wins over the halt (handled).
+        var rp = RunParallel(out var rpId, ParallelErrorStrategy.HaltAll);
+        var good = Node("good", out var goodId);
+        var bad = Node("bad", out var badId);
+        var join = Node(JoinAction.JoinTypeKey, out var joinId);
+        var recover = Node("recover", out var recoverId);
+
+        var bot = new Bot { Name = "par-haltall-recover" };
+        bot.Actions.AddRange(new[] { rp, good, bad, join, recover });
+        bot.Connections.Add(Edge(rpId, RunParallelAction.BranchPort(1), goodId));
+        bot.Connections.Add(Edge(rpId, RunParallelAction.BranchPort(2), badId));
+        bot.Connections.Add(Edge(goodId, "out", joinId));
+        bot.Connections.Add(Edge(badId, "out", joinId));
+        bot.Connections.Add(Edge(joinId, JoinAction.SomeFailedPort, recoverId));
+
+        var recovered = false;
+        var registry = new ActionExecutorRegistry();
+        registry.Register(new FakeExecutor { TypeKey = "good", Behavior = c => ActionResult.Ok("out") });
+        registry.Register(new FakeExecutor { TypeKey = "bad", Behavior = c => ActionResult.Fail("boom") });
+        registry.Register(new FakeExecutor { TypeKey = "recover", Behavior = c => { recovered = true; return ActionResult.Ok(string.Empty); } });
+
+        var result = await new BotExecutor(registry).RunAsync(bot, new ExecutionOptions(), null, default);
+
+        Assert.True(result.Success);   // wired someFailed handles it, overriding HaltAll's halt
+        Assert.True(recovered);
+    }
+
+    [Fact(Timeout = 5000)]
+    public async Task Parallel_OuterCancellation_DuringBranch_Propagates()
+    {
+        // A genuine user cancellation (outer ct) during a parallel branch must surface as
+        // OperationCanceledException, NOT be swallowed by the sibling-halt catch filter.
+        var rp = RunParallel(out var rpId, ParallelErrorStrategy.WaitThenHalt);
+        var blocker = Node("blocker", out var blockerId);
+        var join = Node(JoinAction.JoinTypeKey, out var joinId);
+
+        var bot = new Bot { Name = "par-user-cancel" };
+        bot.Actions.AddRange(new[] { rp, blocker, join });
+        bot.Connections.Add(Edge(rpId, RunParallelAction.BranchPort(1), blockerId));
+        bot.Connections.Add(Edge(blockerId, "out", joinId));
+
+        var gated = new GatedExecutor { TypeKey = "blocker" }; // released only by cancellation
+        var registry = new ActionExecutorRegistry();
+        registry.Register(gated);
+
+        using var cts = new CancellationTokenSource();
+        var runTask = new BotExecutor(registry).RunAsync(bot, new ExecutionOptions(), null, cts.Token);
+        cts.Cancel();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => runTask);
+        Assert.False(gated.Completed);
+    }
 }
