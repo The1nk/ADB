@@ -21,6 +21,10 @@ public static class ConfigValues
     public static bool GetBool(IReadOnlyDictionary<string, object> config, string key, bool fallback = false)
         => config.TryGetValue(key, out var raw) ? AsBool(raw) : fallback;
 
+    /// <summary>Reads an int out of a run-variables dictionary, with the same coercion as config.</summary>
+    public static int GetIntVar(IReadOnlyDictionary<string, object> variables, string key, int fallback = 0)
+        => GetInt(variables, key, fallback);
+
     /// <summary>Coerces any config/variable value to its string form.</summary>
     public static string AsString(object? raw) => raw switch
     {
@@ -48,10 +52,6 @@ public static class ConfigValues
             default: value = 0; return false;
         }
     }
-
-    /// <summary>Reads an int out of a run-variables dictionary, with the same coercion as config.</summary>
-    public static int GetIntVar(IReadOnlyDictionary<string, object> variables, string key, int fallback = 0)
-        => GetInt(variables, key, fallback);
 
     /// <summary>Coerces to bool: real bools, JSON true/false, "true"/"false" strings, or non-zero numbers.</summary>
     public static bool AsBool(object? raw)
