@@ -34,7 +34,8 @@ public class VirtualKeysTests
     [Theory]
     [InlineData("")]
     [InlineData("AB")]
-    [InlineData("F13")]
+    [InlineData("F0")]      // below the F1..F12 range
+    [InlineData("F13")]     // above the range
     [InlineData("NotAKey")]
     public void TryResolve_Unknown_ReturnsFalse(string name)
     {
