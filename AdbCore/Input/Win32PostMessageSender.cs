@@ -2,10 +2,10 @@ using System.Runtime.InteropServices;
 
 namespace AdbCore.Input;
 
-/// <summary>Win32 implementation of <see cref="IInputSender"/> using PostMessage so a window need not be
+/// <summary>PostMessage implementation of <see cref="IInputSender"/> using PostMessage so a window need not be
 /// foreground. Coordinates are client-relative and packed into the message lParam. Note: some apps and
 /// most games ignore synthesized messages — for those, a foreground SendInput sender would be needed.</summary>
-public sealed class Win32InputSender : IInputSender
+public sealed class Win32PostMessageSender : IInputSender
 {
     private const uint WM_LBUTTONDOWN = 0x0201;
     private const uint WM_LBUTTONUP = 0x0202;

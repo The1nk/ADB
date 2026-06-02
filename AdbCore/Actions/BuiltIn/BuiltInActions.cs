@@ -20,7 +20,7 @@ public static class BuiltInActions
         Add(new CommentAction(), definitions, executors);
 
         // Input actions need an IInputSender; the real app uses the Win32 (PostMessage) implementation.
-        Add(new ClickAction(new Win32InputSender()), definitions, executors);
+        Add(new ClickAction(new Win32PostMessageSender()), definitions, executors);
 
         // Loop is engine-native: register its definition only (no executor).
         definitions.Register(new LoopAction());
