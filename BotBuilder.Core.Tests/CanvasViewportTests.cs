@@ -71,4 +71,56 @@ public class CanvasViewportTests
 
         Assert.Equal(CanvasViewport.MinScale, v.Scale, 6);
     }
+
+    [Fact]
+    public void ScreenToWorld_Identity_ReturnsSamePoint()
+    {
+        var v = new CanvasViewport();
+
+        var (x, y) = v.ScreenToWorld(100, 50);
+
+        Assert.Equal(100, x, 6);
+        Assert.Equal(50, y, 6);
+    }
+
+    [Fact]
+    public void ScreenToWorld_WithPan_SubtractsOffset()
+    {
+        var v = new CanvasViewport();
+        v.Pan(30, -20);
+
+        var (x, y) = v.ScreenToWorld(100, 50);
+
+        Assert.Equal(70, x, 6);
+        Assert.Equal(70, y, 6);
+    }
+
+    [Fact]
+    public void ScreenToWorld_WithZoom_DividesByScale()
+    {
+        var v = new CanvasViewport();
+        v.ZoomAt(0, 0, 2.0); // Scale = 2, Offset stays 0
+
+        var (x, y) = v.ScreenToWorld(100, 50);
+
+        Assert.Equal(50, x, 6);
+        Assert.Equal(25, y, 6);
+    }
+
+    [Fact]
+    public void ScreenToWorld_IsInverseOfWorldToScreenTransform()
+    {
+        var v = new CanvasViewport();
+        v.Pan(40, 15);
+        v.ZoomAt(200, 120, 1.5);
+
+        const double worldX = 333, worldY = -77;
+        var screenX = worldX * v.Scale + v.OffsetX;
+        var screenY = worldY * v.Scale + v.OffsetY;
+
+        var (x, y) = v.ScreenToWorld(screenX, screenY);
+
+        Assert.Equal(worldX, x, 6);
+        Assert.Equal(worldY, y, 6);
+    }
 }
