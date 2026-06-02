@@ -19,13 +19,18 @@ public class BuiltInActionsTests
 
         BuiltInActions.Register(defs, execs);
 
-        foreach (var key in new[] { "control.start", "control.end", "data.log" })
+        foreach (var key in new[] { "control.start", "control.end", "data.log", "control.delay", "control.branch" })
         {
             Assert.True(defs.TryGet(key, out _));
             Assert.True(execs.TryGet(key, out _));
         }
-        Assert.Equal(3, defs.Count);
-        Assert.Equal(3, execs.Count);
+
+        // Loop is engine-native: a definition (palette/panel metadata) with no executor.
+        Assert.True(defs.TryGet("control.loop", out _));
+        Assert.False(execs.TryGet("control.loop", out _));
+
+        Assert.Equal(6, defs.Count);
+        Assert.Equal(5, execs.Count);
     }
 
     [Fact]

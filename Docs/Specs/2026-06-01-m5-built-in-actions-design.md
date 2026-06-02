@@ -1,6 +1,6 @@
 # M5 — Built-in Actions: Design
 
-**Status:** Approved (scoping complete; pending spec review)
+**Status:** Approved — M5a1 (engine v2 + Branch/Loop/Delay) implemented
 **Date:** 2026-06-01
 **Milestone:** M5 — Built-in Actions (`Docs/Design/V1.md` §4.3, §9)
 
