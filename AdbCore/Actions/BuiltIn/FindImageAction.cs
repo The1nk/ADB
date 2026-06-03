@@ -1,4 +1,3 @@
-using System.Globalization;
 using AdbCore.Execution;
 using AdbCore.Screen;
 
@@ -9,18 +8,15 @@ namespace AdbCore.Actions.BuiltIn;
 /// "Not found" is a failed result so the engine can retry (per RetryPolicy) and route onFailure.</summary>
 public sealed class FindImageAction : ScreenActionBase
 {
-    public const string TemplatePathKey = "templatePath";
-    public const string ConfidenceKey = "confidence";
-    public const string ResultVarKey = "resultVar";
-    public const double DefaultConfidence = 0.8;
-    public const string DefaultResultVar = "match";
-
+    private readonly ITemplateMatcher _matcher;
     private readonly IRandomSource _random;
 
     public FindImageAction(IWindowCapture capture, ITemplateMatcher matcher, IRandomSource random)
-        : base(capture, matcher)
+        : base(capture)
     {
+        ArgumentNullException.ThrowIfNull(matcher);
         ArgumentNullException.ThrowIfNull(random);
+        _matcher = matcher;
         _random = random;
     }
 
@@ -36,9 +32,9 @@ public sealed class FindImageAction : ScreenActionBase
 
     protected override IEnumerable<ConfigField> ActionConfigFields =>
     [
-        new ConfigField { Key = TemplatePathKey, Label = "Template Image", Type = ConfigFieldType.ImagePath },
-        new ConfigField { Key = ConfidenceKey, Label = "Confidence", Type = ConfigFieldType.Number, DefaultValue = DefaultConfidence },
-        new ConfigField { Key = ResultVarKey, Label = "Result Variable", Type = ConfigFieldType.String, DefaultValue = DefaultResultVar },
+        TemplatePathField(),
+        ConfidenceField(),
+        ResultVarField(),
     ];
 
     public override Task<ActionResult> ExecuteAsync(ActionExecutionContext context, CancellationToken ct)
@@ -63,28 +59,12 @@ public sealed class FindImageAction : ScreenActionBase
             prefix = DefaultResultVar;
         }
 
-        if (CaptureAndMatch(context, hwnd, templatePath, confidence) is not MatchResult m)
+        if (CaptureAndMatch(context, hwnd, _matcher, templatePath, confidence) is not MatchResult m)
         {
             return Task.FromResult(ActionResult.Fail("Find Image: no match at or above the configured confidence."));
         }
 
-        var left = m.X;
-        var top = m.Y;
-        var right = m.X + m.Width;
-        var bottom = m.Y + m.Height;
-        var vars = context.Context.Variables;
-        vars[$"{prefix}Left"] = Str(left);
-        vars[$"{prefix}Top"] = Str(top);
-        vars[$"{prefix}Right"] = Str(right);
-        vars[$"{prefix}Bottom"] = Str(bottom);
-        vars[$"{prefix}CenterX"] = Str(m.X + m.Width / 2);
-        vars[$"{prefix}CenterY"] = Str(m.Y + m.Height / 2);
-        vars[$"{prefix}RandX"] = Str(_random.Next(left, right));
-        vars[$"{prefix}RandY"] = Str(_random.Next(top, bottom));
-        vars[$"{prefix}Confidence"] = m.Score.ToString(CultureInfo.InvariantCulture);
-
+        WriteMatchVariables(context, m, prefix, _random);
         return Task.FromResult(ActionResult.Ok(SuccessPort));
     }
-
-    private static string Str(int v) => v.ToString(CultureInfo.InvariantCulture);
 }
