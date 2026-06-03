@@ -34,3 +34,28 @@ public static class PortCenteringTransform
 {
     public static readonly System.Windows.Media.TranslateTransform Instance = new(-5, -5);
 }
+
+/// <summary>[IsSelected (bool), RunState (NodeRunState)] -> node-card border brush. Run outcome wins over
+/// selection: Failed = red, Succeeded = green, else the selection colour (blue selected / grey not).</summary>
+public sealed class NodeBorderConverter : System.Windows.Data.IMultiValueConverter
+{
+    public static readonly NodeBorderConverter Instance = new();
+
+    public object Convert(object[] values, Type targetType, object? parameter, CultureInfo culture)
+    {
+        var selected = values.Length > 0 && values[0] is true;
+        var run = values.Length > 1 && values[1] is BotBuilder.Core.NodeRunState s
+            ? s
+            : BotBuilder.Core.NodeRunState.None;
+
+        return run switch
+        {
+            BotBuilder.Core.NodeRunState.Failed => new SolidColorBrush(Color.FromRgb(0xD6, 0x29, 0x29)),
+            BotBuilder.Core.NodeRunState.Succeeded => new SolidColorBrush(Color.FromRgb(0x29, 0xA0, 0x4A)),
+            _ => new SolidColorBrush(selected ? Color.FromRgb(0x29, 0x6F, 0xD6) : Color.FromRgb(0xDD, 0xDD, 0xDD)),
+        };
+    }
+
+    public object[] ConvertBack(object value, Type[] targetTypes, object? parameter, CultureInfo culture)
+        => throw new NotSupportedException();
+}

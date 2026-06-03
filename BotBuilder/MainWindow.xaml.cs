@@ -17,6 +17,8 @@ public partial class MainWindow : Window
     private const string BotFilter = "Bot files (*.bot)|*.bot|All files (*.*)|*.*";
 
     private readonly BotEditorViewModel _editor;
+    private readonly BotBuilder.Core.Integration.RunStatusTracker _runStatus = new();
+    private System.Collections.Generic.Dictionary<System.Guid, BotBuilder.Core.NodeViewModel> _runNodeById = new();
 
     private NodeViewModel? _draggingNode;
     private Point _dragStartPointerOnCanvas;
@@ -436,8 +438,50 @@ public partial class MainWindow : Window
 
         // 4. Spawn + stream into the log panel.
         var args = BotBuilder.Core.Integration.RunCommandBuilder.BuildArgs(botPath, dialog.Selectors);
+        var session = RunSession.Start(exe, args);
+        BeginRunStatus(session);
         LogPanel.Visibility = Visibility.Visible;
-        LogPanel.Attach(RunSession.Start(exe, args));
+        LogPanel.Attach(session);
+    }
+
+    private void BeginRunStatus(RunSession session)
+    {
+        _editor.ResetRunStates();
+        _runNodeById = _editor.Nodes.ToDictionary(n => n.Id);
+        _runStatus.Reset();
+        RunStatusText.Text = "Run: starting…";
+
+        session.EntryReceived += OnRunStatusEntry;
+        session.Exited += OnRunStatusExited;
+    }
+
+    private void OnRunStatusEntry(object? sender, BotBuilder.Core.Integration.RunLogEntry entry)
+    {
+        var changedId = _runStatus.Apply(entry);
+        if (changedId is System.Guid id && _runNodeById.TryGetValue(id, out var node))
+        {
+            node.RunState = _runStatus.NodeStates[id];
+        }
+
+        RunStatusText.Text = _runStatus.Status switch
+        {
+            BotBuilder.Core.Integration.RunStatus.Running => "Run: running…",
+            BotBuilder.Core.Integration.RunStatus.Succeeded => "Run: succeeded",
+            BotBuilder.Core.Integration.RunStatus.Failed => "Run: failed",
+            _ => string.Empty,
+        };
+    }
+
+    private void OnRunStatusExited(object? sender, int code)
+    {
+        // If no run-end line set a final status (stopped, or crashed before emitting any output), reflect
+        // the exit here. When run-end already set Succeeded/Failed, leave that text in place.
+        var finalized = _runStatus.Status is BotBuilder.Core.Integration.RunStatus.Succeeded
+            or BotBuilder.Core.Integration.RunStatus.Failed;
+        if (!finalized)
+        {
+            RunStatusText.Text = code == 0 ? "Run: finished" : $"Run: stopped (exit {code})";
+        }
     }
 
     private static string? ResolveRunner()

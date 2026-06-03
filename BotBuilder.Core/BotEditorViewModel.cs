@@ -103,6 +103,15 @@ public partial class BotEditorViewModel : ObservableObject
         AfterEdit();
     }
 
+    /// <summary>Clears every node's Test Run highlight (called when a run starts).</summary>
+    public void ResetRunStates()
+    {
+        foreach (var node in Nodes)
+        {
+            node.RunState = NodeRunState.None;
+        }
+    }
+
     public void DeleteSelection()
     {
         if (SelectedConnection is { } connection)

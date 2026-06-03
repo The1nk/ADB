@@ -14,6 +14,7 @@ public partial class NodeViewModel : ObservableObject
     [ObservableProperty] private Guid? _targetId;
     [ObservableProperty] private int _retryMaxAttempts = 1;
     [ObservableProperty] private int _retryDelayMs;
+    [ObservableProperty] private NodeRunState _runState;
 
     public NodeViewModel(
         Guid id,
