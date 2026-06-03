@@ -127,6 +127,7 @@
         <StatusBar DockPanel.Dock="Bottom">
             <StatusBarItem><TextBlock Text="{Binding BotName}" /></StatusBarItem>
             <StatusBarItem><TextBlock Text="{Binding Nodes.Count, StringFormat='Nodes: {0}'}" /></StatusBarItem>
+            <StatusBarItem><TextBlock x:Name="RunStatusText" Foreground="#555" /></StatusBarItem>
         </StatusBar>
 
         <Grid>
