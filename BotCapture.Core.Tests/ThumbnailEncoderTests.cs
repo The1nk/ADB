@@ -29,4 +29,16 @@ public class ThumbnailEncoderTests
         Assert.Equal(30, decoded.Width);
         Assert.Equal(20, decoded.Height);
     }
+
+    [Fact]
+    public void ToPng_DownscalesPortrait_LongSideIsHeight()
+    {
+        using var src = new Bitmap(100, 200);
+
+        var bytes = ThumbnailEncoder.ToPng(src, 50);
+
+        using var decoded = new Bitmap(new MemoryStream(bytes));
+        Assert.Equal(25, decoded.Width);
+        Assert.Equal(50, decoded.Height);
+    }
 }

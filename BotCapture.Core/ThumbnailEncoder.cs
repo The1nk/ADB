@@ -20,6 +20,7 @@ public static class ThumbnailEncoder
         using var thumb = new Bitmap(width, height);
         using (var g = Graphics.FromImage(thumb))
         {
+            g.PixelOffsetMode = PixelOffsetMode.HighQuality;
             g.InterpolationMode = InterpolationMode.HighQualityBicubic;
             g.DrawImage(source, 0, 0, width, height);
         }
