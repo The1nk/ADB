@@ -1,5 +1,6 @@
 using AdbCore.Execution;
 using AdbCore.Input;
+using AdbCore.Screen;
 
 namespace AdbCore.Actions.BuiltIn;
 
@@ -27,6 +28,12 @@ public static class BuiltInActions
         Add(new MouseMoveAction(inputSenders), definitions, executors);
         Add(new TypeTextAction(inputSenders), definitions, executors);
         Add(new KeyPressAction(inputSenders), definitions, executors);
+
+        // Screen actions share one capture + matcher + RNG (OpenCvSharp/Win32 adapters; foreground-bound).
+        var windowCapture = new Win32WindowCapture();
+        var templateMatcher = new OpenCvSharpTemplateMatcher();
+        var randomSource = new SystemRandomSource();
+        Add(new FindImageAction(windowCapture, templateMatcher, randomSource), definitions, executors);
 
         // Loop is engine-native: register its definition only (no executor).
         definitions.Register(new LoopAction());
