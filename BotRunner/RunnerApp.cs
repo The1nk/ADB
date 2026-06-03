@@ -27,6 +27,9 @@ public sealed class RunnerApp
         // Resolve Window target selectors to live HWNDs before execution (Input/Screen need them).
         WindowTargetBinder.Bind(resolvedTargets, new Win32WindowResolver());
 
+        // Resolve Android target selectors to bound IAndroidDevice handles before execution.
+        AndroidTargetBinder.Bind(resolvedTargets);
+
         var logPath = args.LogFile ?? Path.ChangeExtension(args.BotPath, ".log");
         using var fileWriter = new StreamWriter(logPath, append: false);
         var logger = new RunLogger(stdout, fileWriter, args.LogLevel);
