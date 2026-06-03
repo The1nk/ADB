@@ -292,6 +292,11 @@ public partial class MainWindow : Window
         if (dialog.ShowDialog(this) == true)
         {
             field.Value = dialog.FileName;
+            if (isImage && ConfidenceFieldOrNull() is { } confField
+                && BotBuilder.Core.Integration.ConfidenceSidecarReader.Read(dialog.FileName) is double conf)
+            {
+                confField.Value = conf;
+            }
         }
     }
 
@@ -483,6 +488,61 @@ public partial class MainWindow : Window
             RunStatusText.Text = code == 0 ? "Run: finished" : $"Run: stopped (exit {code})";
         }
     }
+
+    private void CaptureField_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not FrameworkElement { DataContext: ConfigFieldViewModel field })
+        {
+            return;
+        }
+
+        var exe = ResolveCapture();
+        if (exe is null)
+        {
+            MessageBox.Show(
+                "BotCapture couldn't be found. Try reinstalling ADB, and check whether your antivirus quarantined it.",
+                "Capture", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        // Output path: the field's current value, or a Save dialog if it's empty.
+        var outputPath = field.Value as string;
+        if (string.IsNullOrWhiteSpace(outputPath))
+        {
+            var dialog = new SaveFileDialog { Filter = "PNG image|*.png", DefaultExt = ".png", AddExtension = true };
+            if (dialog.ShowDialog(this) != true)
+            {
+                return;
+            }
+            outputPath = dialog.FileName;
+        }
+
+        // Capture the sibling confidence field now (the selection may change while BotCapture is open).
+        var confidenceField = ConfidenceFieldOrNull();
+
+        CaptureLauncher.Launch(exe, outputPath, saved =>
+        {
+            if (!saved)
+            {
+                return; // cancelled — leave the field unchanged
+            }
+
+            field.Value = outputPath;
+            if (confidenceField is not null && BotBuilder.Core.Integration.ConfidenceSidecarReader.Read(outputPath) is double c)
+            {
+                confidenceField.Value = c;
+            }
+        });
+    }
+
+    private static string? ResolveCapture()
+        => BotBuilder.Core.Integration.ExeLocator.Locate(
+            BotBuilder.Core.Integration.ExeLocator.Candidates(System.AppContext.BaseDirectory, "BotCapture.exe"),
+            System.IO.File.Exists);
+
+    /// <summary>The selected action's "confidence" config field, or null when it has none.</summary>
+    private ConfigFieldViewModel? ConfidenceFieldOrNull()
+        => _editor.Properties.Fields.FirstOrDefault(f => f.Key == "confidence");
 
     private static string? ResolveRunner()
         => BotBuilder.Core.Integration.ExeLocator.Locate(
