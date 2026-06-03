@@ -54,7 +54,7 @@ public partial class WindowPickerViewModel : ObservableObject
 
         try
         {
-            _capturedImage?.Dispose();
+            CapturedImage?.Dispose();
             CapturedImage = _capture.Capture(SelectedWindow.Info.Handle, ScreenCaptureMethod.Auto);
             StatusMessage = null;
             return true;
