@@ -50,14 +50,21 @@ public partial class PreviewConfirmView : UserControl
         else if (o.Matched && o.Location is { } loc)
         {
             MatchStatus.Foreground = Brushes.Green;
-            MatchStatus.Text = $"✅ Match — {o.Score:F2} @ ({loc.X},{loc.Y})";
+            MatchStatus.Text = $"✅ Match — {FormatScore(o.Score.GetValueOrDefault())} @ ({loc.X},{loc.Y})";
         }
         else
         {
             MatchStatus.Foreground = Brushes.DarkRed;
-            MatchStatus.Text = $"🔴 No match — best {o.Score:F2}, threshold {Vm.Confidence:F2}";
+            MatchStatus.Text =
+                $"🔴 No match — best {FormatScore(o.Score.GetValueOrDefault())}, threshold {Vm.Confidence:F3}";
         }
     }
+
+    // Template-match score (CCOEFF_NORMED) is rarely exactly 1.0, so a near-perfect match lands just under
+    // the threshold. Truncate toward zero to 3 decimals so a sub-threshold score is shown honestly (e.g.
+    // 0.9985 -> "0.998") instead of being rounded UP to look like it meets the threshold (e.g. "1.00").
+    private static string FormatScore(double score) =>
+        (Math.Truncate(score * 1000) / 1000).ToString("0.000");
 
     private void OnSave(object sender, RoutedEventArgs e)
     {
