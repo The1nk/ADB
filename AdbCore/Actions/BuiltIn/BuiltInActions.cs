@@ -43,6 +43,9 @@ public static class BuiltInActions
         Add(new TapAction(), definitions, executors);
         Add(new SwipeAction(), definitions, executors);
         Add(new PressBackAction(), definitions, executors);
+        Add(new LaunchAppAction(), definitions, executors);
+        Add(new InstallApkAction(), definitions, executors);
+        Add(new AndroidScreenshotAction(), definitions, executors);
 
         // Loop is engine-native: register its definition only (no executor).
         definitions.Register(new LoopAction());
