@@ -1,3 +1,4 @@
+using AdbCore.Actions.BuiltIn.Android;
 using AdbCore.Execution;
 using AdbCore.Input;
 using AdbCore.Screen;
@@ -37,6 +38,11 @@ public static class BuiltInActions
         Add(new WaitForImageAction(windowCapture, templateMatcher, randomSource), definitions, executors);
         Add(new AssertImageAbsentAction(windowCapture, templateMatcher), definitions, executors);
         Add(new ScreenshotAction(windowCapture), definitions, executors);
+
+        // Android (handle-based — the bound IAndroidDevice is the ResolvedTarget handle; no injection).
+        Add(new TapAction(), definitions, executors);
+        Add(new SwipeAction(), definitions, executors);
+        Add(new PressBackAction(), definitions, executors);
 
         // Loop is engine-native: register its definition only (no executor).
         definitions.Register(new LoopAction());
