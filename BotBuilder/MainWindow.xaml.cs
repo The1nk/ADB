@@ -403,7 +403,13 @@ public partial class MainWindow : Window
         // 1. Serialize the current editor state to a temp .bot so the run never depends on a saved file.
         var dir = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "adb-testrun");
         System.IO.Directory.CreateDirectory(dir);
-        var botPath = System.IO.Path.Combine(dir, $"{_editor.BotName}.bot");
+        // BotName is free-form, so strip any characters that aren't valid in a filename (fall back to "bot").
+        var safeName = string.Concat(_editor.BotName.Split(System.IO.Path.GetInvalidFileNameChars()));
+        if (string.IsNullOrWhiteSpace(safeName))
+        {
+            safeName = "bot";
+        }
+        var botPath = System.IO.Path.Combine(dir, $"{safeName}.bot");
         _editor.Save(botPath);
 
         // 2. Locate BotRunner.exe.
