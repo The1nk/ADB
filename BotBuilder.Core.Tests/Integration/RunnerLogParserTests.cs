@@ -47,6 +47,22 @@ public class RunnerLogParserTests
         Assert.Equal("hello", e.Display);
     }
 
+    [Fact]
+    public void Parse_RunEndSuccess()
+    {
+        var e = RunnerLogParser.Parse("""{"event":"run-end","success":true,"actionsExecuted":5}""");
+        Assert.Equal(RunLogKind.RunEnd, e.Kind);
+        Assert.Equal("■ run succeeded", e.Display);
+    }
+
+    [Fact]
+    public void Parse_Action_NoLabel_FallsBackToActionId()
+    {
+        var e = RunnerLogParser.Parse("""{"event":"action","actionId":"a3","success":true}""");
+        Assert.Equal(RunLogKind.Action, e.Kind);
+        Assert.Equal("✓ a3", e.Display);
+    }
+
     [Theory]
     [InlineData("")]
     [InlineData("   ")]
