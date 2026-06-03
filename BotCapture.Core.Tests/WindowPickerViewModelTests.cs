@@ -55,7 +55,7 @@ public class WindowPickerViewModelTests
     }
 
     [Fact]
-    public void CaptureSelected_UsesSelectedHandleAndPrintWindow_SetsCapturedImage()
+    public void CaptureSelected_UsesSelectedHandleAndAutoMethod_SetsCapturedImage()
     {
         var vm = Make(out _, out var capture);
         vm.SelectedWindow = new WindowRow(new WindowInfo((IntPtr)42, "Game", "game"), null);
