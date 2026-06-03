@@ -31,8 +31,9 @@
                             <TextBlock Grid.Column="0" Text="{Binding FileName}" VerticalAlignment="Center" />
                             <TextBlock Grid.Column="1" Text="{Binding Confidence, StringFormat=F2}" Width="48"
                                        VerticalAlignment="Center" />
-                            <TextBlock Grid.Column="2" Width="28" VerticalAlignment="Center" FontSize="14"
-                                       Text="{Binding LastRetestMatched, Converter={StaticResource Retest}}" />
+                            <Ellipse Grid.Column="2" Width="14" Height="14" Margin="7,0" VerticalAlignment="Center"
+                                     Stroke="Gray" StrokeThickness="0.5"
+                                     Fill="{Binding LastRetestMatched, Converter={StaticResource Retest}}" />
                             <Button Grid.Column="3" Content="Re-test" Click="OnRetest" Tag="{Binding}" Margin="4,0,0,0" />
                             <Button Grid.Column="4" Content="🗑" Click="OnDelete" Tag="{Binding}" Margin="4,0,0,0" />
                         </Grid>
