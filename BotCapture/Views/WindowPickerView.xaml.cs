@@ -13,7 +13,11 @@ public partial class WindowPickerView : UserControl
 
     private WindowPickerViewModel? Vm => DataContext as WindowPickerViewModel;
 
-    private void OnRefresh(object sender, RoutedEventArgs e) => Vm?.Refresh();
+    private void OnRefresh(object sender, RoutedEventArgs e)
+    {
+        Vm?.Refresh();
+        CapturedPreview.Source = null;
+    }
 
     private void OnCapture(object sender, RoutedEventArgs e)
     {

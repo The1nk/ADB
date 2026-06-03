@@ -31,10 +31,13 @@ public partial class WindowPickerViewModel : ObservableObject
     /// capture succeeds. Handed off to the region-select stage (M6b).</summary>
     [ObservableProperty] private Bitmap? _capturedImage;
 
-    /// <summary>Re-enumerate visible windows and rebuild rows (capturing a thumbnail per row).</summary>
+    /// <summary>Re-enumerate visible windows and rebuild rows (capturing a thumbnail per row).
+    /// Clears any prior capture so the picker doesn't show a stale preview after a refresh.</summary>
     public void Refresh()
     {
         StatusMessage = null;
+        CapturedImage?.Dispose();
+        CapturedImage = null;
         Windows.Clear();
         foreach (var info in _enumerator.Enumerate())
         {
@@ -43,7 +46,8 @@ public partial class WindowPickerViewModel : ObservableObject
     }
 
     /// <summary>Capture the selected window's client area into <see cref="CapturedImage"/>.
-    /// Returns false (with a <see cref="StatusMessage"/>) on no selection or capture failure.</summary>
+    /// Returns false (with a <see cref="StatusMessage"/>) on no selection or capture failure;
+    /// a failed capture leaves any prior <see cref="CapturedImage"/> untouched.</summary>
     public bool CaptureSelected()
     {
         if (SelectedWindow is null)
@@ -54,14 +58,14 @@ public partial class WindowPickerViewModel : ObservableObject
 
         try
         {
+            var captured = _capture.Capture(SelectedWindow.Info.Handle, ScreenCaptureMethod.Auto);
             CapturedImage?.Dispose();
-            CapturedImage = _capture.Capture(SelectedWindow.Info.Handle, ScreenCaptureMethod.Auto);
+            CapturedImage = captured;
             StatusMessage = null;
             return true;
         }
         catch (Exception ex)
         {
-            CapturedImage = null;
             StatusMessage = $"Couldn't capture that window: {ex.Message}";
             return false;
         }
