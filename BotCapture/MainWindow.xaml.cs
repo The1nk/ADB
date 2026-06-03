@@ -23,11 +23,12 @@ public partial class MainWindow : Window
     private RegionSelectionViewModel? _regionVm;
     private PreviewConfirmViewModel? _confirmVm;
     private SessionRow? _editingRow;          // non-null while re-editing an existing row
-    private readonly string? _outputPath = null;     // null in standalone; Task 5 sets it for integrated mode
+    private readonly string? _outputPath;     // null in standalone; set for integrated mode
 
-    public MainWindow()
+    public MainWindow(string? outputPath = null)
     {
         InitializeComponent();
+        _outputPath = outputPath;
 
         _pickerVm = new WindowPickerViewModel(new Win32WindowEnumerator(), _capture);
         _pickerView = new WindowPickerView { DataContext = _pickerVm };
@@ -41,7 +42,17 @@ public partial class MainWindow : Window
         _sessionView.ReEditRequested += (_, row) => StartReEdit(row);
         _sessionView.BrowseFolderRequested += (_, _) => BrowseFolder();
 
-        ShowSession();
+        if (_outputPath is not null)
+        {
+            // Integrated: fail-by-default until a save succeeds, then jump straight into the capture flow.
+            Environment.ExitCode = 1;
+            _pickerVm.Refresh();
+            SetContent(_pickerView);
+        }
+        else
+        {
+            ShowSession();
+        }
     }
 
     private void SetContent(UIElement view)
@@ -107,8 +118,13 @@ public partial class MainWindow : Window
     private void ShowConfirm(System.Drawing.Bitmap crop, IntPtr sourceHandle, string? fileName, double? confidence)
     {
         _confirmVm?.Dispose();
-        _confirmVm = new PreviewConfirmViewModel(
-            crop, sourceHandle, _capture, _matcher, new CaptureSaver(_sessionVm.SaveFolder));
+
+        var saveFolder = _outputPath is not null ? Path.GetDirectoryName(_outputPath)! : _sessionVm.SaveFolder;
+        _confirmVm = new PreviewConfirmViewModel(crop, sourceHandle, _capture, _matcher, new CaptureSaver(saveFolder));
+        if (_outputPath is not null)
+        {
+            _confirmVm.FileName = Path.GetFileName(_outputPath); // integrated: write exactly the requested file
+        }
         if (fileName is not null)
         {
             _confirmVm.FileName = fileName;
@@ -125,7 +141,7 @@ public partial class MainWindow : Window
             DisposeConfirm();
             if (_regionVm is not null)
             {
-                SetContent(BuildRegionView(_regionVm)); // re-edit has no region VM -> guarded below
+                SetContent(BuildRegionView(_regionVm));
             }
             else
             {
@@ -138,6 +154,13 @@ public partial class MainWindow : Window
 
     private void OnConfirmSaved(object? sender, string fileName)
     {
+        if (_outputPath is not null)
+        {
+            Environment.ExitCode = 0;       // integrated single-shot: saved successfully
+            Application.Current.Shutdown();
+            return;
+        }
+
         var path = Path.Combine(_sessionVm.SaveFolder, fileName);
         var confidence = _confirmVm!.Confidence;
 
