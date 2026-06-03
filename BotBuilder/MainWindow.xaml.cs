@@ -474,8 +474,11 @@ public partial class MainWindow : Window
 
     private void OnRunStatusExited(object? sender, int code)
     {
-        // If the run was stopped/crashed without a run-end line, reflect that.
-        if (_runStatus.Status == BotBuilder.Core.Integration.RunStatus.Running)
+        // If no run-end line set a final status (stopped, or crashed before emitting any output), reflect
+        // the exit here. When run-end already set Succeeded/Failed, leave that text in place.
+        var finalized = _runStatus.Status is BotBuilder.Core.Integration.RunStatus.Succeeded
+            or BotBuilder.Core.Integration.RunStatus.Failed;
+        if (!finalized)
         {
             RunStatusText.Text = code == 0 ? "Run: finished" : $"Run: stopped (exit {code})";
         }
