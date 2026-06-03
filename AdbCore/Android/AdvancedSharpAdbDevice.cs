@@ -55,6 +55,14 @@ public sealed class AdvancedSharpAdbDevice : IAndroidDevice
         bool hasAlpha = hdr.Alpha.Length > 0;
         int aOff = hasAlpha ? (int)hdr.Alpha.Offset / 8 : -1;
 
+        // Guard against a short/corrupt frame so a bad capture is a clear error, not an opaque
+        // IndexOutOfRangeException deep in the pixel loop below.
+        if (raw.Length < (long)width * height * bytesPerPixel)
+        {
+            throw new InvalidOperationException(
+                $"ADB framebuffer is smaller than {width}x{height}@{bpp}bpp ({raw.Length} bytes); the capture was incomplete.");
+        }
+
         // Build a 32-bpp ARGB Bitmap from the raw framebuffer bytes.
         using var bitmap = new Bitmap(width, height, PixelFormat.Format32bppArgb);
         var bmpData = bitmap.LockBits(
