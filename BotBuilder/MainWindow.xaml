@@ -26,7 +26,10 @@
         <DataTemplate x:Key="FieldNumber">
             <StackPanel Margin="0,4">
                 <TextBlock Text="{Binding Label}" FontSize="11" Foreground="#666" />
-                <TextBox Text="{Binding Value, UpdateSourceTrigger=PropertyChanged}" />
+                <!-- Commit on focus-loss, NOT per keystroke: a numeric field also accepts a ${var}
+                     expression, and per-keystroke coercion would turn each partial keystroke into 0
+                     before the whole ${...} token is typed. On blur the full value is coerced once. -->
+                <TextBox Text="{Binding Value, UpdateSourceTrigger=LostFocus}" />
             </StackPanel>
         </DataTemplate>
         <DataTemplate x:Key="FieldBoolean">
