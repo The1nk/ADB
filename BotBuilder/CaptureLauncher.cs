@@ -27,6 +27,15 @@ public static class CaptureLauncher
             }, null);
         };
 
-        process.Start();
+        try
+        {
+            process.Start();
+        }
+        catch (Exception)
+        {
+            // Couldn't launch (e.g. blocked/corrupt exe) — report no-save and don't leak the Process.
+            process.Dispose();
+            sync.Post(_ => onCompleted(false), null);
+        }
     }
 }
