@@ -34,4 +34,10 @@ public partial class CanvasViewport : ObservableObject
         OffsetX = anchorX - worldX * newScale;
         OffsetY = anchorY - worldY * newScale;
     }
+
+    /// <summary>Converts a screen-space point to world space — the inverse of
+    /// <c>screen = world * Scale + Offset</c>. Use it to place content at a screen location
+    /// (e.g. dropping a node at the center of the visible viewport) regardless of pan/zoom.</summary>
+    public (double X, double Y) ScreenToWorld(double screenX, double screenY)
+        => ((screenX - OffsetX) / Scale, (screenY - OffsetY) / Scale);
 }
