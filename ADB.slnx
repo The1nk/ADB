@@ -4,6 +4,9 @@
   <Project Path="BotBuilder.Core.Tests/BotBuilder.Core.Tests.csproj" />
   <Project Path="BotBuilder.Core/BotBuilder.Core.csproj" />
   <Project Path="BotBuilder/BotBuilder.csproj" />
+  <Project Path="BotCapture.Core.Tests/BotCapture.Core.Tests.csproj" />
+  <Project Path="BotCapture.Core/BotCapture.Core.csproj" />
+  <Project Path="BotCapture/BotCapture.csproj" />
   <Project Path="BotRunner.Tests/BotRunner.Tests.csproj" />
   <Project Path="BotRunner/BotRunner.csproj" />
 </Solution>
