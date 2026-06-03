@@ -36,6 +36,8 @@ public partial class MainWindow : Window
 
         _sessionVm = new SessionViewModel(_capture, _matcher, DefaultFolder());
         _sessionView = new SessionView { DataContext = _sessionVm };
+        // Session events are only reachable in standalone mode (integrated mode never shows the session
+        // panel). If re-edit is ever wired into integrated mode, revisit the FileName ordering in ShowConfirm.
         _sessionView.NewCaptureRequested += (_, _) => StartNewCapture();
         _sessionView.RetestRequested += (_, row) => _sessionVm.Retest(row);
         _sessionView.DeleteRequested += (_, row) => _sessionVm.Remove(row);
