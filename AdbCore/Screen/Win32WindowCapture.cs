@@ -18,6 +18,7 @@ public sealed class Win32WindowCapture : IWindowCapture
     private struct POINT { public int X, Y; }
 
     [DllImport("user32.dll")] private static extern bool GetClientRect(IntPtr hWnd, out RECT lpRect);
+    [DllImport("user32.dll")] private static extern bool GetWindowRect(IntPtr hWnd, out RECT lpRect);
     [DllImport("user32.dll")] private static extern bool ClientToScreen(IntPtr hWnd, ref POINT lpPoint);
     [DllImport("user32.dll")] private static extern IntPtr GetDC(IntPtr hWnd);
     [DllImport("user32.dll")] private static extern int ReleaseDC(IntPtr hWnd, IntPtr hDC);
@@ -26,17 +27,23 @@ public sealed class Win32WindowCapture : IWindowCapture
 
     public Bitmap Capture(IntPtr windowHandle, ScreenCaptureMethod method)
     {
-        GetClientRect(windowHandle, out var rc);
-        var width = Math.Max(1, rc.Right - rc.Left);
-        var height = Math.Max(1, rc.Bottom - rc.Top);
+        GetClientRect(windowHandle, out var client);
+        var clientWidth = Math.Max(1, client.Right - client.Left);
+        var clientHeight = Math.Max(1, client.Bottom - client.Top);
 
         if (method == ScreenCaptureMethod.BitBlt)
         {
-            return CaptureViaScreenBitBlt(windowHandle, width, height);
+            return CaptureViaScreenBitBlt(windowHandle, clientWidth, clientHeight);
         }
 
-        var bmp = new Bitmap(width, height, PixelFormat.Format32bppArgb);
-        using (var g = Graphics.FromImage(bmp))
+        // PrintWindow(PW_RENDERFULLCONTENT) renders the WHOLE window (incl. title bar/borders) from its
+        // top-left, so capture at window size then crop to the client area.
+        GetWindowRect(windowHandle, out var win);
+        var winWidth = Math.Max(1, win.Right - win.Left);
+        var winHeight = Math.Max(1, win.Bottom - win.Top);
+
+        var full = new Bitmap(winWidth, winHeight, PixelFormat.Format32bppArgb);
+        using (var g = Graphics.FromImage(full))
         {
             var hdc = g.GetHdc();
             try
@@ -49,13 +56,24 @@ public sealed class Win32WindowCapture : IWindowCapture
             }
         }
 
-        if (IsBlank(bmp))
+        if (IsBlank(full))
         {
-            bmp.Dispose();
-            return CaptureViaScreenBitBlt(windowHandle, width, height);
+            full.Dispose();
+            return CaptureViaScreenBitBlt(windowHandle, clientWidth, clientHeight);
         }
 
-        return bmp;
+        // Crop the client area out of the full-window capture (offset = client origin - window origin, in screen px).
+        var clientOrigin = new POINT { X = 0, Y = 0 };
+        ClientToScreen(windowHandle, ref clientOrigin);
+        var offsetX = Math.Clamp(clientOrigin.X - win.Left, 0, winWidth - 1);
+        var offsetY = Math.Clamp(clientOrigin.Y - win.Top, 0, winHeight - 1);
+        var cropWidth = Math.Min(clientWidth, winWidth - offsetX);
+        var cropHeight = Math.Min(clientHeight, winHeight - offsetY);
+
+        using (full)
+        {
+            return full.Clone(new Rectangle(offsetX, offsetY, cropWidth, cropHeight), full.PixelFormat);
+        }
     }
 
     private static Bitmap CaptureViaScreenBitBlt(IntPtr windowHandle, int width, int height)
