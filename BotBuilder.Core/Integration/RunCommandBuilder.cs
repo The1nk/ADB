@@ -22,7 +22,7 @@ public static class RunCommandBuilder
     public static string BuildDisplayCommand(
         string exeName, string botPath, IReadOnlyList<(string Name, string Selector)> targets)
     {
-        var sb = new StringBuilder(exeName);
+        var sb = new StringBuilder(Quote(exeName));
         sb.Append(" --bot ").Append(Quote(botPath));
         foreach (var (name, selector) in targets)
         {
