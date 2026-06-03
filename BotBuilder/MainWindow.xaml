@@ -89,6 +89,9 @@
                 <Separator />
                 <MenuItem Header="_Delete" Click="Delete_Click" InputGestureText="Del" />
             </MenuItem>
+            <MenuItem Header="_Run">
+                <MenuItem Header="_Test Run..." Click="TestRun_Click" InputGestureText="F5" />
+            </MenuItem>
         </Menu>
 
         <Border DockPanel.Dock="Top" Background="#EEE" Padding="6" BorderBrush="#CCC" BorderThickness="0,0,0,1">
@@ -120,6 +123,7 @@
             </StackPanel>
         </Border>
 
+        <local:LogPanelView x:Name="LogPanel" DockPanel.Dock="Bottom" Height="180" Visibility="Collapsed" />
         <StatusBar DockPanel.Dock="Bottom">
             <StatusBarItem><TextBlock Text="{Binding BotName}" /></StatusBarItem>
             <StatusBarItem><TextBlock Text="{Binding Nodes.Count, StringFormat='Nodes: {0}'}" /></StatusBarItem>
