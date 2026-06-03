@@ -24,4 +24,18 @@ public class BotAction
 
     [JsonPropertyName("position")]
     public Position CanvasPosition { get; set; } = new();
+
+    /// <summary>Returns a shallow copy of this action with <paramref name="config"/> in place of
+    /// <see cref="Config"/> — used to execute an action against an interpolated config without
+    /// mutating the stored node.</summary>
+    public BotAction CloneWithConfig(Dictionary<string, object> config) => new()
+    {
+        Id = Id,
+        TypeKey = TypeKey,
+        Label = Label,
+        TargetId = TargetId,
+        Config = config,
+        Retry = Retry,
+        CanvasPosition = CanvasPosition,
+    };
 }
