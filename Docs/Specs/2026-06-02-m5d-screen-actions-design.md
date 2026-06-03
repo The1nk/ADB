@@ -25,7 +25,7 @@ The four Screen actions (from the M5 spec):
 
 ## 2. Locked Decisions
 
-1. **Packages:** `OpenCvSharp4` + `OpenCvSharp4.runtime.win` (explicit native runtime; first NuGet dep in `AdbCore`). First plan step proves it builds and the native libs load on `net10.0-windows`.
+1. **Packages:** `OpenCvSharp4` + `OpenCvSharp4.runtime.win` (native runtime) + `OpenCvSharp4.Extensions` (`Bitmap`↔`Mat`) + `System.Drawing.Common` (the capture→match image type is `System.Drawing.Bitmap`, so `ScreenActionBase` can crop for ROI in headless-testable managed code while only the thin adapters touch Win32/OpenCvSharp). First NuGet deps in `AdbCore`; first plan step proves they build and the native libs load on `net10.0-windows`.
 2. **Match algorithm:** OpenCvSharp `MatchTemplate` with `TM_CCOEFF_NORMED` (clean 0–1 score), single best match (`MinMaxLoc`).
 3. **Capture:** `Auto` = PrintWindow(`PW_RENDERFULLCONTENT`) with automatic BitBlt fallback on a blank frame; `BitBlt` = forced screen-region capture. Per-node **Capture Method** enum field (mirrors the Input "method" field).
 4. **Find Image output variables** (client-relative integer pixels; default prefix `match`): `matchLeft/matchTop/matchRight/matchBottom` (region edges = x1/y1/x2/y2), `matchCenterX/matchCenterY` (center), `matchRandX/matchRandY` (uniform-random point inside the region — for human-like click jitter), `matchConfidence` (the actual score, as a string).
@@ -85,7 +85,7 @@ Shared base for the Screen leaf actions (`IActionDefinition` + `IActionExecutor`
 
 **Execution:**
 1. Resolve HWND (base). Read `templatePath`, `confidence`, `resultVar` (all already interpolated by the engine).
-2. `CaptureAndMatch`. If `null` (no match ≥ confidence) → return `ActionResult.Ok("onFailure")`, write nothing.
+2. `CaptureAndMatch`. If `null` (no match ≥ confidence) → return `ActionResult.Fail(...)`, writing nothing. A failed result is how the engine both **retries** (up to the action's `RetryPolicy` — so Find Image with retry keeps trying until the image appears) and, once attempts are exhausted, routes the **`onFailure`** port (`BotExecutor.cs:114-123`); this matches how Input actions signal failure. With no RetryPolicy set, it's a one-shot found/not-found branch.
 3. On match, compute (client-relative ints) and write to `context.Context.Variables` under the `resultVar` prefix:
    - `{p}Left=X`, `{p}Top=Y`, `{p}Right=X+W`, `{p}Bottom=Y+H`
    - `{p}CenterX=X+W/2`, `{p}CenterY=Y+H/2`
