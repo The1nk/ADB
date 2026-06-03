@@ -57,6 +57,8 @@
                 <DockPanel>
                     <Button DockPanel.Dock="Right" Content="Browse..." Margin="4,0,0,0" Padding="6,0"
                             Click="BrowseField_Click" />
+                    <Button DockPanel.Dock="Right" Content="Capture" Margin="4,0,0,0" Padding="6,0"
+                            Click="CaptureField_Click" />
                     <TextBox Text="{Binding Value, UpdateSourceTrigger=PropertyChanged}" />
                 </DockPanel>
                 <Border BorderBrush="#DDD" BorderThickness="1" Margin="0,4,0,0" Background="White"
