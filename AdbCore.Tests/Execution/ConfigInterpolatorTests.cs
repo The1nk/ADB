@@ -1,3 +1,4 @@
+using System.Text.Json;
 using AdbCore.Execution;
 using AdbCore.Models;
 using Xunit;
@@ -58,5 +59,27 @@ public class ConfigInterpolatorTests
         Assert.Equal("input.click", resolved.TypeKey);
         Assert.Equal("Click", resolved.Label);
         Assert.Equal(id, resolved.TargetId);
+    }
+
+    [Fact]
+    public void Resolve_JsonElementStringValue_IsInterpolated()
+    {
+        var action = new BotAction { TypeKey = "data.log", Config = { ["message"] = JsonDocument.Parse("\"hi ${name}\"").RootElement } };
+
+        var resolved = ConfigInterpolator.Resolve(action, Vars(("name", "bob")));
+
+        Assert.Equal("hi bob", resolved.Config["message"]);
+    }
+
+    [Fact]
+    public void Resolve_JsonElementNonString_PassesThroughUnchanged()
+    {
+        var number = JsonDocument.Parse("42").RootElement;
+        var action = new BotAction { TypeKey = "x", Config = { ["n"] = number, ["m"] = "${v}" } };
+
+        var resolved = ConfigInterpolator.Resolve(action, Vars(("v", "9")));
+
+        Assert.Equal("9", resolved.Config["m"]);              // string token resolved
+        Assert.IsType<JsonElement>(resolved.Config["n"]);      // non-string JSON untouched
     }
 }
