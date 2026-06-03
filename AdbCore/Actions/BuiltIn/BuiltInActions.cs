@@ -25,6 +25,8 @@ public static class BuiltInActions
         Add(new RightClickAction(inputSenders), definitions, executors);
         Add(new DoubleClickAction(inputSenders), definitions, executors);
         Add(new MouseMoveAction(inputSenders), definitions, executors);
+        Add(new TypeTextAction(inputSenders), definitions, executors);
+        Add(new KeyPressAction(inputSenders), definitions, executors);
 
         // Loop is engine-native: register its definition only (no executor).
         definitions.Register(new LoopAction());

@@ -28,6 +28,10 @@ public class ClickActionTests
         public void DoubleClick(IntPtr windowHandle, int clientX, int clientY) { }
 
         public void MoveTo(IntPtr windowHandle, int clientX, int clientY) { }
+
+        public Task TypeText(IntPtr windowHandle, string text, int keyDelayMs, CancellationToken ct) => Task.CompletedTask;
+
+        public Task KeyPress(IntPtr windowHandle, ushort virtualKey, KeyModifiers modifiers, int keyDelayMs, CancellationToken ct) => Task.CompletedTask;
     }
 
     private sealed class Senders

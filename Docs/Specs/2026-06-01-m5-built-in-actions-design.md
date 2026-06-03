@@ -1,6 +1,6 @@
 # M5 — Built-in Actions: Design
 
-**Status:** Approved — M5a1 + M5a2 + M5b + M5c1 + M5c2a (engine + Data + Input click/mouse) implemented
+**Status:** Approved — M5a1 + M5a2 + M5b + M5c (engine + Data + full Input) implemented
 **Date:** 2026-06-01
 **Milestone:** M5 — Built-in Actions (`Docs/Design/V1.md` §4.3, §9)
 

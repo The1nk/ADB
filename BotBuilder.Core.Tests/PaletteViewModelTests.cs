@@ -27,7 +27,7 @@ public class PaletteViewModelTests
         Assert.Equal(3, data.Items.Count); // Log, Set Variable, Comment
 
         var input = palette.Categories.Single(c => c.Name == "Input");
-        Assert.Equal(4, input.Items.Count); // Click, Right Click, Double Click, Mouse Move
+        Assert.Equal(6, input.Items.Count); // Click, Right Click, Double Click, Mouse Move, Type Text, Key Press
     }
 
     [Fact]
@@ -55,7 +55,7 @@ public class PaletteViewModelTests
         var palette = new PaletteViewModel(SeededRegistry()) { SearchText = "log" };
         palette.SearchText = "";
 
-        Assert.Equal(14, palette.Categories.SelectMany(c => c.Items).Count()); // 7 Control Flow + 3 Data + 4 Input
+        Assert.Equal(16, palette.Categories.SelectMany(c => c.Items).Count()); // 7 Control Flow + 3 Data + 6 Input
     }
 
     [Fact]
