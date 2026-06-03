@@ -45,6 +45,9 @@ public partial class WindowPickerView : UserControl
     {
         if (Vm?.HasCapture == true)
         {
+            // The capture is being handed off to region select; drop the in-place preview so returning
+            // to the picker doesn't show a stale screenshot (the capture is gone and the button disabled).
+            CapturedPreview.Source = null;
             CaptureAccepted?.Invoke(this, EventArgs.Empty);
         }
     }
