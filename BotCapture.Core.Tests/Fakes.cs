@@ -24,3 +24,19 @@ internal sealed class FakeWindowCapture : IWindowCapture
         return Behavior is not null ? Behavior(windowHandle) : new Bitmap(8, 8);
     }
 }
+
+internal sealed class FakeTemplateMatcher : AdbCore.Screen.ITemplateMatcher
+{
+    public AdbCore.Screen.MatchResult? Next;
+    public Exception? Throw;
+    public string? LastTemplatePath;
+    public double LastMinConfidence;
+
+    public AdbCore.Screen.MatchResult? Match(System.Drawing.Bitmap haystack, string templatePath, double minConfidence)
+    {
+        LastTemplatePath = templatePath;
+        LastMinConfidence = minConfidence;
+        if (Throw is not null) throw Throw;
+        return Next;
+    }
+}
