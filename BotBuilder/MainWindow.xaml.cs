@@ -177,6 +177,12 @@ public partial class MainWindow : Window
 
     private void Window_KeyDown(object sender, KeyEventArgs e)
     {
+        if (e.Key == System.Windows.Input.Key.F5)
+        {
+            TestRun_Click(this, new RoutedEventArgs());
+            e.Handled = true;
+            return;
+        }
         if (e.Key == Key.Delete)
         {
             _editor.DeleteSelection();
@@ -391,4 +397,45 @@ public partial class MainWindow : Window
         MarqueeRect.Width = Math.Abs(b.X - a.X);
         MarqueeRect.Height = Math.Abs(b.Y - a.Y);
     }
+
+    private void TestRun_Click(object sender, RoutedEventArgs e)
+    {
+        // 1. Serialize the current editor state to a temp .bot so the run never depends on a saved file.
+        var dir = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "adb-testrun");
+        System.IO.Directory.CreateDirectory(dir);
+        var botPath = System.IO.Path.Combine(dir, $"{_editor.BotName}.bot");
+        _editor.Save(botPath);
+
+        // 2. Locate BotRunner.exe.
+        var exe = ResolveRunner();
+        if (exe is null)
+        {
+            MessageBox.Show(
+                "BotRunner couldn't be found. Try reinstalling ADB, and check whether your antivirus quarantined it.",
+                "Test Run", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        // 3. Target picker.
+        var targets = _editor.TargetBar.Targets
+            .Select(t => (t.Name, t.Type, t.Selector))
+            .ToList();
+        var pickerVm = new BotBuilder.Core.Integration.TargetPickerViewModel(
+            System.IO.Path.GetFileName(exe), botPath, targets);
+        var dialog = new TargetPickerDialog(pickerVm, new AdbCore.Targets.Win32WindowEnumerator()) { Owner = this };
+        if (dialog.ShowDialog() != true)
+        {
+            return;
+        }
+
+        // 4. Spawn + stream into the log panel.
+        var args = BotBuilder.Core.Integration.RunCommandBuilder.BuildArgs(botPath, dialog.Selectors);
+        LogPanel.Visibility = Visibility.Visible;
+        LogPanel.Attach(RunSession.Start(exe, args));
+    }
+
+    private static string? ResolveRunner()
+        => BotBuilder.Core.Integration.ExeLocator.Locate(
+            BotBuilder.Core.Integration.ExeLocator.Candidates(System.AppContext.BaseDirectory, "BotRunner.exe"),
+            System.IO.File.Exists);
 }
