@@ -106,6 +106,18 @@ public partial class MainWindow : Window
         }
     }
 
+    // Clicking anywhere on the canvas moves keyboard focus off any active properties textbox. This both
+    // commits a pending LostFocus-bound edit (e.g. a numeric field) BEFORE the selection changes — it
+    // tunnels ahead of the node's click handler — and frees the Delete key, which a focused TextBox would
+    // otherwise swallow before it reaches Window_KeyDown.
+    private void ViewportHost_PreviewMouseDown(object sender, MouseButtonEventArgs e)
+    {
+        if (!ViewportHost.IsKeyboardFocusWithin)
+        {
+            ViewportHost.Focus();
+        }
+    }
+
     private void Node_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
         if (sender is FrameworkElement { DataContext: NodeViewModel node })
@@ -227,16 +239,13 @@ public partial class MainWindow : Window
             return;
         }
 
+        // Dropping anywhere on a node connects the dragged output to that node's input port; the editor's
+        // ConnectionValidator no-ops invalid drops (self, duplicate, occupied source port, cycle). A drop on
+        // empty canvas resolves to no node and does nothing.
         var hit = System.Windows.Media.VisualTreeHelper.HitTest(NodeHost, dropPosition)?.VisualHit;
-        while (hit is not null)
+        if (hit is { } h && NodeOf(h) is { } targetNode && targetNode.InputPorts.FirstOrDefault() is { } targetPort)
         {
-            if (hit is FrameworkElement { DataContext: PortViewModel { Direction: PortDirection.In } targetPort } portElement
-                && NodeOf(portElement) is { } targetNode)
-            {
-                _editor.Connect(source, sourcePort, targetNode, targetPort);
-                return;
-            }
-            hit = System.Windows.Media.VisualTreeHelper.GetParent(hit);
+            _editor.Connect(source, sourcePort, targetNode, targetPort);
         }
     }
 
