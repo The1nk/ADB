@@ -55,7 +55,7 @@ public class PaletteViewModelTests
         var palette = new PaletteViewModel(SeededRegistry()) { SearchText = "log" };
         palette.SearchText = "";
 
-        Assert.Equal(16, palette.Categories.SelectMany(c => c.Items).Count()); // 7 Control Flow + 3 Data + 6 Input
+        Assert.Equal(17, palette.Categories.SelectMany(c => c.Items).Count()); // 7 Control Flow + 3 Data + 6 Input + 1 Screen
     }
 
     [Fact]

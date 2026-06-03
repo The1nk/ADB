@@ -78,4 +78,46 @@ public class ConfigFieldViewModelTests
 
         Assert.Equal(1, changed);
     }
+
+    [Fact]
+    public void Number_SetExpression_PreservesStringInConfig()
+    {
+        var node = Node();
+        var f = Field(node, ConfigFieldType.Number);
+
+        f.Value = "${matchRandX}";
+
+        Assert.Equal("${matchRandX}", Assert.IsType<string>(node.Config["k"]));
+    }
+
+    [Fact]
+    public void Number_GetExpression_ReturnsStringNotZero()
+    {
+        var node = Node();
+        node.Config["k"] = "${matchRandX}";
+        var f = Field(node, ConfigFieldType.Number);
+
+        Assert.Equal("${matchRandX}", f.Value);
+    }
+
+    [Fact]
+    public void Number_ExpressionFromJsonElement_Preserved()
+    {
+        var node = Node();
+        node.Config["k"] = JsonDocument.Parse("\"${matchCenterX}\"").RootElement;
+        var f = Field(node, ConfigFieldType.Number);
+
+        Assert.Equal("${matchCenterX}", f.Value);
+    }
+
+    [Fact]
+    public void Number_LiteralString_StillStoresDouble()
+    {
+        var node = Node();
+        var f = Field(node, ConfigFieldType.Number);
+
+        f.Value = "120";
+
+        Assert.Equal(120d, Assert.IsType<double>(node.Config["k"]));
+    }
 }

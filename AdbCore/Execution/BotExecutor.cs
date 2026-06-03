@@ -368,6 +368,10 @@ public class BotExecutor
         var delayMs = action.Retry?.DelayMs ?? 0;
         var result = ActionResult.Fail("Action did not execute.");
 
+        // Resolve ${var} tokens in config against the current run variables, once per execution
+        // (variables are stable across this action's retry attempts). Retry policy is read from the original.
+        var resolvedAction = ConfigInterpolator.Resolve(action, state.Context.Variables);
+
         for (var attempt = 0; attempt < attempts; attempt++)
         {
             if (attempt > 0 && delayMs > 0)
@@ -377,7 +381,7 @@ public class BotExecutor
 
             try
             {
-                var actionContext = new ActionExecutionContext(action, state.Context, state.Log);
+                var actionContext = new ActionExecutionContext(resolvedAction, state.Context, state.Log);
                 result = await executor.ExecuteAsync(actionContext, ct);
             }
             catch (OperationCanceledException)

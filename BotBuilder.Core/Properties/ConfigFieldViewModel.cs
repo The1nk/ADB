@@ -38,11 +38,15 @@ public partial class ConfigFieldViewModel : ObservableObject
 
     private object? Normalize(object? raw)
     {
+        if (Type == ConfigFieldType.Number)
+        {
+            return NormalizeNumber(raw);
+        }
+
         if (raw is JsonElement json)
         {
             return Type switch
             {
-                ConfigFieldType.Number => json.ValueKind == JsonValueKind.Number ? json.GetDouble() : 0d,
                 ConfigFieldType.Boolean => json.ValueKind is JsonValueKind.True or JsonValueKind.False && json.GetBoolean(),
                 _ => json.ValueKind == JsonValueKind.String ? json.GetString() ?? string.Empty : json.ToString(),
             };
@@ -50,7 +54,6 @@ public partial class ConfigFieldViewModel : ObservableObject
 
         return Type switch
         {
-            ConfigFieldType.Number => raw is double d ? d : double.TryParse(raw?.ToString(), out var n) ? n : 0d,
             ConfigFieldType.Boolean => raw is bool b ? b : bool.TryParse(raw?.ToString(), out var bb) && bb,
             _ => raw?.ToString() ?? string.Empty,
         };
@@ -60,9 +63,47 @@ public partial class ConfigFieldViewModel : ObservableObject
     {
         return Type switch
         {
-            ConfigFieldType.Number => input is double d ? d : double.TryParse(input?.ToString(), out var n) ? n : 0d,
+            ConfigFieldType.Number => CoerceNumber(input),
             ConfigFieldType.Boolean => input is bool b ? b : bool.TryParse(input?.ToString(), out var bb) && bb,
             _ => input?.ToString() ?? string.Empty,
         };
     }
+
+    // A Number field normally holds a double, but it also accepts a ${var} expression (the engine resolves
+    // it to a number at run time). Such expressions are preserved as strings so they survive editing and
+    // save/reload instead of being coerced to 0.
+    private static object NormalizeNumber(object? raw)
+    {
+        if (raw is JsonElement json)
+        {
+            if (json.ValueKind == JsonValueKind.Number)
+            {
+                return json.GetDouble();
+            }
+
+            var s = json.ValueKind == JsonValueKind.String ? json.GetString() ?? string.Empty : json.ToString();
+            return IsExpression(s) ? s : double.TryParse(s, out var n) ? n : 0d;
+        }
+
+        if (raw is double d)
+        {
+            return d;
+        }
+
+        var text = raw?.ToString() ?? string.Empty;
+        return IsExpression(text) ? text : double.TryParse(text, out var num) ? num : 0d;
+    }
+
+    private static object CoerceNumber(object? input)
+    {
+        if (input is double d)
+        {
+            return d;
+        }
+
+        var text = input?.ToString() ?? string.Empty;
+        return IsExpression(text) ? text : double.TryParse(text, out var n) ? n : 0d;
+    }
+
+    private static bool IsExpression(string value) => value.Contains("${", StringComparison.Ordinal);
 }
