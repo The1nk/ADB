@@ -83,7 +83,7 @@ own window is excluded by the caller if needed (its title is known).
 ### Flow
 1. App launches → `WindowPickerViewModel` calls `IWindowEnumerator.Enumerate()`.
 2. Each `WindowInfo` becomes a row: process name + title + a thumbnail captured **once** via
-   `IWindowCapture.Capture(handle, ScreenCaptureMethod.PrintWindow)`, downscaled for display.
+   `IWindowCapture.Capture(handle, ScreenCaptureMethod.Auto)` (PrintWindow + BitBlt fallback), downscaled for display.
 3. A **Refresh** button re-enumerates and re-captures thumbnails. (Continuously-live thumbnails are
    explicitly out of scope — capture-on-load + manual refresh is sufficient.)
 4. Selecting a row and confirming captures the window's full client area and stores the bitmap on the
