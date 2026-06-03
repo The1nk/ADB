@@ -22,7 +22,13 @@ public partial class WindowPickerView : UserControl
             return;
         }
 
-        if (Vm.CaptureSelected() && Vm.CapturedImage is not null)
+        if (!Vm.CaptureSelected())
+        {
+            CapturedPreview.Source = null; // clear stale image so the error status isn't paired with an old capture
+            return;
+        }
+
+        if (Vm.CapturedImage is not null)
         {
             CapturedPreview.Source = BitmapInterop.ToImageSource(Vm.CapturedImage);
         }
