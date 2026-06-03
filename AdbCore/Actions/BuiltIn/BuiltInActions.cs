@@ -34,6 +34,9 @@ public static class BuiltInActions
         var templateMatcher = new OpenCvSharpTemplateMatcher();
         var randomSource = new SystemRandomSource();
         Add(new FindImageAction(windowCapture, templateMatcher, randomSource), definitions, executors);
+        Add(new WaitForImageAction(windowCapture, templateMatcher, randomSource), definitions, executors);
+        Add(new AssertImageAbsentAction(windowCapture, templateMatcher), definitions, executors);
+        Add(new ScreenshotAction(windowCapture), definitions, executors);
 
         // Loop is engine-native: register its definition only (no executor).
         definitions.Register(new LoopAction());
