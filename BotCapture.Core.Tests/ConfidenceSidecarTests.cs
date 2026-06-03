@@ -1,4 +1,3 @@
-using System.IO;
 using BotCapture.Core;
 
 namespace BotCapture.Core.Tests;

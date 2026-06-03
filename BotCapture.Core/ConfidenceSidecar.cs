@@ -4,8 +4,7 @@ using System.Text.Json.Serialization;
 namespace BotCapture.Core;
 
 /// <summary>Reads/writes the <c>&lt;image&gt;.png.meta.json</c> sidecar that stores a template's chosen
-/// confidence threshold. Writes are best-effort; reads never throw — a missing or corrupt sidecar
-/// yields the supplied fallback.</summary>
+/// confidence threshold. Reads never throw — a missing or corrupt sidecar yields the supplied fallback.</summary>
 public static class ConfidenceSidecar
 {
     private const string Suffix = ".meta.json";
