@@ -135,6 +135,7 @@
             <DockPanel Grid.Column="0" Background="#F7F7F7">
                 <TextBox DockPanel.Dock="Top" Margin="6"
                          Text="{Binding Palette.SearchText, UpdateSourceTrigger=PropertyChanged}" />
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
                 <ItemsControl ItemsSource="{Binding Palette.Categories}" Margin="6,0">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
@@ -156,10 +157,12 @@
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
+                </ScrollViewer>
             </DockPanel>
 
             <Border Grid.Column="1" x:Name="ViewportHost" Background="#FAFAFA" BorderBrush="#CCC" BorderThickness="1,0,1,0"
-                    ClipToBounds="True" AllowDrop="True" Drop="Canvas_Drop"
+                    ClipToBounds="True" AllowDrop="True" Drop="Canvas_Drop" Focusable="True" FocusVisualStyle="{x:Null}"
+                    PreviewMouseDown="ViewportHost_PreviewMouseDown"
                     MouseWheel="Viewport_MouseWheel" MouseDown="Viewport_MouseDown" MouseLeftButtonDown="Canvas_MarqueeStart">
                 <Grid x:Name="CanvasRoot">
                     <Grid.RenderTransform>
