@@ -10,8 +10,10 @@ namespace AdbCore.Tests.Actions.BuiltIn;
 
 public class ScreenActionBaseTests
 {
-    private sealed class TestScreenAction(IWindowCapture capture, ITemplateMatcher matcher) : ScreenActionBase(capture, matcher)
+    private sealed class TestScreenAction(IWindowCapture capture, ITemplateMatcher matcher) : ScreenActionBase(capture)
     {
+        private readonly ITemplateMatcher _matcher = matcher;
+
         public override string TypeKey => "screen.test";
         public override string DisplayName => "Test Screen";
         public override string Description => "";
@@ -20,7 +22,7 @@ public class ScreenActionBaseTests
         public override Task<ActionResult> ExecuteAsync(ActionExecutionContext context, CancellationToken ct) => Task.FromResult(ActionResult.Ok(SuccessPort));
 
         public MatchResult? CallCaptureAndMatch(ActionExecutionContext ctx, IntPtr hwnd, string template, double confidence)
-            => CaptureAndMatch(ctx, hwnd, template, confidence);
+            => CaptureAndMatch(ctx, hwnd, _matcher, template, confidence);
     }
 
     private static ActionExecutionContext Exec(BotAction action) => new(action, new BotExecutionContext(), _ => { });
