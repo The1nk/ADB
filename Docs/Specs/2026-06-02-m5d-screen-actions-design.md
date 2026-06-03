@@ -76,7 +76,7 @@ Shared base for the Screen leaf actions (`IActionDefinition` + `IActionExecutor`
 - Contributes the shared **Capture Method** enum field (`captureMethod`, default `Auto`) **and the four optional ROI fields** (`regionX`/`regionY`/`regionWidth`/`regionHeight`, Number, default `0`), shown after each action's own fields (mirrors `InputActionBase`'s Method field ordering/caching).
 - `Category => "Screen"`, ports `in → onSuccess / onFailure`.
 - Provides a `protected MatchResult? CaptureAndMatch(context, hwnd, templatePath, confidence)` helper: capture the client area via the chosen method; if `regionWidth > 0 && regionHeight > 0`, crop the bitmap to the clamped ROI rect and match within the crop, then **add `(regionX, regionY)` back onto the result's `X,Y`** so the returned `MatchResult` is in full-window client coordinates; otherwise match the whole client area. Reused by Find Image / Wait / Assert Absent.
-- Provides a `protected (int X, int Y, int W, int H)? ResolveRegion(context, clientWidth, clientHeight)` helper (reads + clamps the ROI fields; `null` when no ROI) so Screenshot can reuse the same region logic for cropping its saved image.
+- Provides a `protected Rectangle? ResolveRegion(context, clientWidth, clientHeight)` helper (reads + clamps the ROI fields; `null` when no ROI) plus a `CaptureRegion(context, hwnd, out offsetX, out offsetY)` that captures + crops, so Screenshot reuses the same region logic for cropping its saved image.
 - `SupportsRetry => true` (Screenshot overrides to `false`).
 
 ### 3.5 Find Image (`screen.findImage`) — M5d1
