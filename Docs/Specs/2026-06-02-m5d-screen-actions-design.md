@@ -31,8 +31,9 @@ The four Screen actions (from the M5 spec):
 4. **Find Image output variables** (client-relative integer pixels; default prefix `match`): `matchLeft/matchTop/matchRight/matchBottom` (region edges = x1/y1/x2/y2), `matchCenterX/matchCenterY` (center), `matchRandX/matchRandY` (uniform-random point inside the region — for human-like click jitter), `matchConfidence` (the actual score, as a string).
 5. **Consumption:** general `${variableName}` interpolation in config values, applied centrally before leaf dispatch. Folded into M5d1 so the find→random-click flow is demoable.
 6. **Confidence default:** `0.8` (pre-fills from a `.meta.json` sidecar when present — read side already shipped in M4b).
-7. **Screenshot format:** PNG (M5d2).
-8. **Out of scope:** writing the `.meta.json` sidecar + the live "test match" UI (both **M6 BotCapture**); Android/Browser actions (**M7**).
+7. **Screenshot format:** PNG (M5d2), with optional **region capture** (same ROI fields as the match actions).
+8. **Region of interest (ROI):** optional `regionX`/`regionY`/`regionWidth`/`regionHeight` Number fields on `ScreenActionBase` (so every Screen action gets them, opt-in). When `regionWidth > 0` **and** `regionHeight > 0`, the captured client bitmap is **cropped** to that rect (clamped to the window) before matching — the performance win, since matching dominates and scales with haystack area. Match coordinates are always offset back into **full-window client space**, so all outputs are identical whether or not an ROI was used. ROI fields accept `${var}` (e.g. scope a search to a previously-found region). Default `0` → full client area (today's behavior, zero overhead).
+9. **Out of scope:** writing the `.meta.json` sidecar + the live "test match" UI (both **M6 BotCapture**); Android/Browser actions (**M7**).
 
 ## 3. Architecture
 
@@ -72,14 +73,15 @@ Shared base for the Screen leaf actions (`IActionDefinition` + `IActionExecutor`
 
 - Holds injected `IWindowCapture` + `ITemplateMatcher`.
 - Resolves the target **HWND** from `ResolvedTarget.Handle` exactly like `InputActionBase` (explicit `TargetId`, or the sole target if unset); fails with a clear message when no Window/HWND is resolved.
-- Contributes the shared **Capture Method** enum config field (`captureMethod`, default `Auto`), shown after each action's own fields (mirrors `InputActionBase`'s Method field ordering/caching).
+- Contributes the shared **Capture Method** enum field (`captureMethod`, default `Auto`) **and the four optional ROI fields** (`regionX`/`regionY`/`regionWidth`/`regionHeight`, Number, default `0`), shown after each action's own fields (mirrors `InputActionBase`'s Method field ordering/caching).
 - `Category => "Screen"`, ports `in → onSuccess / onFailure`.
-- Provides a `protected MatchResult? CaptureAndMatch(context, hwnd, templatePath, confidence)` helper (capture via chosen method → match), reused by Find Image / Wait / Assert Absent.
+- Provides a `protected MatchResult? CaptureAndMatch(context, hwnd, templatePath, confidence)` helper: capture the client area via the chosen method; if `regionWidth > 0 && regionHeight > 0`, crop the bitmap to the clamped ROI rect and match within the crop, then **add `(regionX, regionY)` back onto the result's `X,Y`** so the returned `MatchResult` is in full-window client coordinates; otherwise match the whole client area. Reused by Find Image / Wait / Assert Absent.
+- Provides a `protected (int X, int Y, int W, int H)? ResolveRegion(context, clientWidth, clientHeight)` helper (reads + clamps the ROI fields; `null` when no ROI) so Screenshot can reuse the same region logic for cropping its saved image.
 - `SupportsRetry => true` (Screenshot overrides to `false`).
 
 ### 3.5 Find Image (`screen.findImage`) — M5d1
 
-**Config fields:** `templatePath` (ImagePath), `confidence` (Number, default `0.8`), `resultVar` (String, default `match`), `captureMethod` (from base). Retry: yes. Ports: `in → onSuccess / onFailure`.
+**Config fields:** `templatePath` (ImagePath), `confidence` (Number, default `0.8`), `resultVar` (String, default `match`), plus `captureMethod` + the four ROI fields (from base). Retry: yes. Ports: `in → onSuccess / onFailure`.
 
 **Execution:**
 1. Resolve HWND (base). Read `templatePath`, `confidence`, `resultVar` (all already interpolated by the engine).
@@ -101,6 +103,7 @@ Per the M5 spec's interface-isolation principle: logic behind interfaces is test
 
 - **ConfigInterpolator:** literal passthrough; single/multiple tokens; unknown→empty; non-string values untouched; no-`${` fast path returns same instance; `BotExecutor` resolves before dispatch (an integration test: a variable feeds a fake executor's config).
 - **Find Image:** with a fake `IWindowCapture` (returns a stub bitmap) + fake `ITemplateMatcher` (returns a fixed `MatchResult` or `null`) + deterministic `IRandomSource`: assert the exact variables written (Left/Top/Right/Bottom/Center/Rand/Confidence), onSuccess vs onFailure routing, no-target failure, retry interplay (matcher returns null N-1 times then a hit), and that Rand falls within bounds.
+- **ROI:** with an ROI set, the fake matcher receives a **cropped** haystack (assert crop dimensions) and the resulting match coordinates are **offset back** into full-window space (a match at crop-local `(5,5)` with `regionX/Y=(100,40)` yields `matchLeft≈105/ matchTop≈45`); an out-of-bounds ROI is clamped; `regionWidth=0` ⇒ no crop (whole client passed through).
 - **MatchResult math:** center/edge derivation.
 
 ### Manual Verification Checklist (M5d1, user)
@@ -108,6 +111,7 @@ Per the M5 spec's interface-isolation principle: logic behind interfaces is test
 2. Confidence threshold behaves (raising it past the real score flips success→failure).
 3. **End-to-end masking flow:** Find Image → Click at `X=${matchRandX}, Y=${matchRandY}` clicks inside the matched region, and repeated runs land on different points within it.
 4. `Auto` capture works for a normal app; `BitBlt` override works for a foreground GPU/DirectX window.
+5. **ROI:** setting an ROI around the expected location still finds the image and is noticeably faster on a large/maximized window; the returned `matchCenterX/Y` are unchanged vs. a full-window search (proving the offset-back is correct); an ROI that excludes the image yields `onFailure`.
 
 ## 5. Out of Scope (later milestones)
 - Writing the `.meta.json` confidence sidecar + live "test match" preview — **M6 BotCapture**.
