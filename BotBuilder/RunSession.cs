@@ -7,7 +7,7 @@ namespace BotBuilder;
 
 /// <summary>Owns a running BotRunner process: pumps its stdout lines (parsed into <see cref="RunLogEntry"/>)
 /// and its exit code back to the caller on the captured UI <see cref="SynchronizationContext"/>.</summary>
-public sealed class RunSession
+public sealed class RunSession : IDisposable
 {
     private readonly Process _process;
     private readonly SynchronizationContext _sync;
@@ -74,4 +74,8 @@ public sealed class RunSession
     }
 
     private void Post(Action action) => _sync.Post(_ => action(), null);
+
+    /// <summary>Releases the underlying process handle. Call after the run has ended (or after
+    /// <see cref="Stop"/>); the consumer disposes a finished session when starting the next run.</summary>
+    public void Dispose() => _process.Dispose();
 }
