@@ -94,4 +94,39 @@ public class WindowPickerViewModelTests
         Assert.Null(vm.CapturedImage);
         Assert.False(string.IsNullOrEmpty(vm.StatusMessage));
     }
+
+    [Fact]
+    public void HasCapture_FalseUntilCapture_TrueAfter()
+    {
+        var vm = Make(out _, out _);
+        Assert.False(vm.HasCapture);
+
+        vm.SelectedWindow = new WindowRow(new WindowInfo((IntPtr)1, "A", "a"), null);
+        vm.CaptureSelected();
+
+        Assert.True(vm.HasCapture);
+    }
+
+    [Fact]
+    public void TakeCapturedImage_TransfersOwnership_ClearsWithoutDisposing()
+    {
+        var vm = Make(out _, out _);
+        vm.SelectedWindow = new WindowRow(new WindowInfo((IntPtr)1, "A", "a"), null);
+        vm.CaptureSelected();
+
+        var taken = vm.TakeCapturedImage();
+
+        Assert.NotNull(taken);
+        Assert.Null(vm.CapturedImage);
+        Assert.False(vm.HasCapture);
+        Assert.Equal(8, taken!.Width); // FakeWindowCapture returns an 8x8 bitmap; still usable (not disposed)
+        taken.Dispose();
+    }
+
+    [Fact]
+    public void TakeCapturedImage_NoCapture_ReturnsNull()
+    {
+        var vm = Make(out _, out _);
+        Assert.Null(vm.TakeCapturedImage());
+    }
 }

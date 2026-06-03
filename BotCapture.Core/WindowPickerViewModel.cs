@@ -31,6 +31,11 @@ public partial class WindowPickerViewModel : ObservableObject
     /// capture succeeds. Handed off to the region-select stage (M6b).</summary>
     [ObservableProperty] private Bitmap? _capturedImage;
 
+    /// <summary>Whether a capture is available to advance with.</summary>
+    public bool HasCapture => CapturedImage is not null;
+
+    partial void OnCapturedImageChanged(System.Drawing.Bitmap? value) => OnPropertyChanged(nameof(HasCapture));
+
     /// <summary>Re-enumerate visible windows and rebuild rows (capturing a thumbnail per row).
     /// Clears any prior capture so the picker doesn't show a stale preview after a refresh.</summary>
     public void Refresh()
@@ -69,6 +74,15 @@ public partial class WindowPickerViewModel : ObservableObject
             StatusMessage = $"Couldn't capture that window: {ex.Message}";
             return false;
         }
+    }
+
+    /// <summary>Hands the current capture to the next step, transferring ownership: returns the bitmap and
+    /// clears the field WITHOUT disposing it (the caller now owns and disposes it).</summary>
+    public System.Drawing.Bitmap? TakeCapturedImage()
+    {
+        var image = CapturedImage;
+        CapturedImage = null; // relinquish without dispose; ownership moves to the caller
+        return image;
     }
 
     private byte[]? TryCaptureThumbnail(IntPtr handle)
