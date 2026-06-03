@@ -1,6 +1,7 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Media;
 using BotCapture.Core;
 
 namespace BotCapture.Views;
@@ -40,9 +41,29 @@ public partial class SessionView : UserControl
 
     private void OnRowDoubleClick(object sender, MouseButtonEventArgs e)
     {
+        // The ListBox-level double-click also bubbles from the Re-test/delete buttons; ignore those so a
+        // double-click on a row action doesn't also fire a re-edit.
+        if (OriginatesFromButton(e.OriginalSource as DependencyObject))
+        {
+            return;
+        }
+
         if (RowList.SelectedItem is SessionRow row)
         {
             ReEditRequested?.Invoke(this, row);
         }
+    }
+
+    private static bool OriginatesFromButton(DependencyObject? source)
+    {
+        for (var node = source; node is not null; node = VisualTreeHelper.GetParent(node))
+        {
+            if (node is Button)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 }
