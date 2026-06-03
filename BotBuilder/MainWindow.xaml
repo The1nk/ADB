@@ -206,9 +206,14 @@
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
                                 <Border Width="160" MinHeight="70" CornerRadius="6" Background="White"
-                                        BorderBrush="{Binding IsSelected, Converter={x:Static local:SelectionBorderConverter.Instance}}"
                                         BorderThickness="2"
                                         MouseLeftButtonDown="Node_MouseLeftButtonDown">
+                                    <Border.BorderBrush>
+                                        <MultiBinding Converter="{x:Static local:NodeBorderConverter.Instance}">
+                                            <Binding Path="IsSelected" />
+                                            <Binding Path="RunState" />
+                                        </MultiBinding>
+                                    </Border.BorderBrush>
                                     <Grid>
                                         <StackPanel>
                                             <Border Background="{Binding CategoryColor, Converter={StaticResource CategoryBrush}}"
