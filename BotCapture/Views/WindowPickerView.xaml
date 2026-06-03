@@ -9,6 +9,8 @@
         <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,8">
             <Button Content="Refresh" Click="OnRefresh" Width="90" />
             <Button Content="Capture Selected" Click="OnCapture" Width="140" Margin="8,0,0,0" />
+            <Button Content="Use This Capture →" Click="OnUseCapture" Width="150" Margin="8,0,0,0"
+                    IsEnabled="{Binding HasCapture}" />
             <TextBlock Text="{Binding StatusMessage}" Foreground="DarkRed" Margin="12,4,0,0" />
         </StackPanel>
         <Grid>

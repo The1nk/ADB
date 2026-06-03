@@ -37,4 +37,15 @@ public partial class WindowPickerView : UserControl
             CapturedPreview.Source = BitmapInterop.ToImageSource(Vm.CapturedImage);
         }
     }
+
+    /// <summary>Raised when the user accepts the current capture to proceed to region selection.</summary>
+    public event EventHandler? CaptureAccepted;
+
+    private void OnUseCapture(object sender, RoutedEventArgs e)
+    {
+        if (Vm?.HasCapture == true)
+        {
+            CaptureAccepted?.Invoke(this, EventArgs.Empty);
+        }
+    }
 }
