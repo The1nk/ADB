@@ -18,6 +18,7 @@ public partial class MainWindow : Window
 
     private readonly BotEditorViewModel _editor;
     private readonly BotBuilder.Core.Integration.RunStatusTracker _runStatus = new();
+    private readonly FrameCapturer _frameCapturer = new();
     private System.Collections.Generic.Dictionary<System.Guid, BotBuilder.Core.NodeViewModel> _runNodeById = new();
 
     private NodeViewModel? _draggingNode;
@@ -488,6 +489,77 @@ public partial class MainWindow : Window
             RunStatusText.Text = code == 0 ? "Run: finished" : $"Run: stopped (exit {code})";
         }
     }
+
+    private void PickCoordinates_Click(object sender, RoutedEventArgs e)
+    {
+        var node = _editor.Properties.Node;
+        if (node is null)
+        {
+            return;
+        }
+
+        var points = BotBuilder.Core.Picker.CoordinateFieldMap.ForTypeKey(node.TypeKey);
+        if (points.Count == 0)
+        {
+            return;
+        }
+
+        // Resolve the action's bound target: explicit TargetId, else the first configured target.
+        var targets = _editor.TargetBar.Targets;
+        var target = node.TargetId is System.Guid id
+            ? targets.FirstOrDefault(t => t.Id == id)
+            : targets.FirstOrDefault();
+        if (target is null)
+        {
+            MessageBox.Show(
+                "Add a target (Window or Android device) first, then pick coordinates against it.",
+                "Pick coordinates", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        var frame = _frameCapturer.TryCapture(target.Type, target.Selector, out var error);
+        if (frame is null)
+        {
+            MessageBox.Show(error ?? "Couldn't capture the target.",
+                "Pick coordinates", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        bool confirmed;
+        System.Collections.Generic.IReadOnlyList<(string XKey, string YKey, int X, int Y)> results;
+        try
+        {
+            var vm = new BotBuilder.Core.Picker.CoordinatePickerViewModel(points);
+            var dialog = new CoordinatePickerDialog(vm, frame) { Owner = this };
+            confirmed = dialog.ShowDialog() == true;
+            results = dialog.Results;
+        }
+        finally
+        {
+            frame.Dispose();
+        }
+
+        if (!confirmed)
+        {
+            return;
+        }
+
+        foreach (var (xKey, yKey, x, y) in results)
+        {
+            if (FieldByKey(xKey) is { } fx)
+            {
+                fx.Value = (double)x;
+            }
+            if (FieldByKey(yKey) is { } fy)
+            {
+                fy.Value = (double)y;
+            }
+        }
+    }
+
+    /// <summary>The selected action's config field with the given key, or null.</summary>
+    private ConfigFieldViewModel? FieldByKey(string key) =>
+        _editor.Properties.Fields.FirstOrDefault(f => f.Key == key);
 
     private void CaptureField_Click(object sender, RoutedEventArgs e)
     {

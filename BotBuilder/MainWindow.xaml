@@ -310,6 +310,10 @@
                             <ItemsControl ItemsSource="{Binding Fields}"
                                           ItemTemplateSelector="{StaticResource FieldSelector}" />
 
+                            <Button Content="Pick coordinates…" Margin="0,8,0,0" Padding="6,3" HorizontalAlignment="Left"
+                                    Click="PickCoordinates_Click"
+                                    Visibility="{Binding SupportsCoordinatePicking, Converter={StaticResource BoolToVis}}" />
+
                             <Border BorderBrush="#DDD" BorderThickness="0,1,0,0" Margin="0,10,0,0" Padding="0,8,0,0"
                                     Visibility="{Binding SupportsRetry, Converter={StaticResource BoolToVis}}">
                                 <StackPanel>
