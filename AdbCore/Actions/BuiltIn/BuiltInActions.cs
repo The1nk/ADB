@@ -1,4 +1,5 @@
 using AdbCore.Actions.BuiltIn.Android;
+using AdbCore.Actions.BuiltIn.Browser;
 using AdbCore.Execution;
 using AdbCore.Input;
 using AdbCore.Screen;
@@ -46,6 +47,13 @@ public static class BuiltInActions
         Add(new LaunchAppAction(), definitions, executors);
         Add(new InstallApkAction(), definitions, executors);
         Add(new AndroidScreenshotAction(), definitions, executors);
+
+        // Browser (handle-based — the bound IBrowserPage is the ResolvedTarget handle; no injection).
+        Add(new OpenUrlAction(), definitions, executors);
+        Add(new BrowserClickAction(), definitions, executors);
+        Add(new BrowserTypeAction(), definitions, executors);
+        Add(new WaitForSelectorAction(), definitions, executors);
+        Add(new GetTextAction(), definitions, executors);
 
         // Loop is engine-native: register its definition only (no executor).
         definitions.Register(new LoopAction());

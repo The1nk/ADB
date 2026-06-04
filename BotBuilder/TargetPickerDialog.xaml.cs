@@ -80,6 +80,22 @@ public partial class TargetPickerDialog : Window
         }
     }
 
+    private void OnBrowserComboLoaded(object sender, RoutedEventArgs e)
+    {
+        if (sender is ComboBox combo)
+        {
+            combo.ItemsSource = AdbCore.Browser.BrowserSelector.Engines;
+        }
+    }
+
+    private void OnBrowserChosen(object sender, SelectionChangedEventArgs e)
+    {
+        if (sender is ComboBox { SelectedItem: string engine, Tag: TargetSelectionRow row })
+        {
+            row.Selector = $"browser:{engine}";
+        }
+    }
+
     private void OnCopy(object sender, RoutedEventArgs e) => Clipboard.SetText(CommandText.Text);
 
     private void OnRun(object sender, RoutedEventArgs e)
