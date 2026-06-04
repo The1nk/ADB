@@ -1,0 +1,19 @@
+<Window x:Class="BotBuilder.CoordinatePickerDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Pick coordinates" Height="700" Width="900"
+        WindowStartupLocation="CenterOwner" Background="#222">
+    <DockPanel>
+        <Border DockPanel.Dock="Top" Background="#333" Padding="10,6">
+            <DockPanel>
+                <Button DockPanel.Dock="Right" Content="Cancel" Padding="12,2" Click="OnCancel" />
+                <TextBlock x:Name="PromptText" Foreground="White" FontSize="14" VerticalAlignment="Center" />
+            </DockPanel>
+        </Border>
+        <Grid x:Name="ImageHost" ClipToBounds="True">
+            <Image x:Name="FrameImage" Stretch="Uniform"
+                   MouseLeftButtonDown="OnImageClick" Cursor="Cross" />
+            <Canvas x:Name="MarkerCanvas" IsHitTestVisible="False" />
+        </Grid>
+    </DockPanel>
+</Window>
