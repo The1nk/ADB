@@ -44,6 +44,9 @@
                                       Visibility="{Binding IsAndroid, Converter={StaticResource BoolToVis}}"
                                       Tag="{Binding}" Loaded="OnAndroidComboLoaded" SelectionChanged="OnAndroidChosen"
                                       DisplayMemberPath="Display" />
+                            <ComboBox Width="180" Margin="8,0,0,0" VerticalAlignment="Center"
+                                      Visibility="{Binding IsBrowser, Converter={StaticResource BoolToVis}}"
+                                      Tag="{Binding}" Loaded="OnBrowserComboLoaded" SelectionChanged="OnBrowserChosen" />
                         </StackPanel>
                     </Grid>
                 </DataTemplate>
