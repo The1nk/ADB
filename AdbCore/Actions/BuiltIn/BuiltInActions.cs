@@ -40,6 +40,13 @@ public static class BuiltInActions
         Add(new AssertImageAbsentAction(windowCapture, templateMatcher), definitions, executors);
         Add(new ScreenshotAction(windowCapture), definitions, executors);
 
+        // Screen OCR (Tesseract; reuses the window capture + RNG. The engine is internally locked for concurrency.)
+        var ocrEngine = new AdbCore.Ocr.TesseractOcrEngine();
+        Add(new ReadTextAction(windowCapture, ocrEngine), definitions, executors);
+        Add(new FindTextAction(windowCapture, ocrEngine, randomSource), definitions, executors);
+        Add(new WaitForTextAction(windowCapture, ocrEngine, randomSource), definitions, executors);
+        Add(new AssertTextAbsentAction(windowCapture, ocrEngine), definitions, executors);
+
         // Android (handle-based — the bound IAndroidDevice is the ResolvedTarget handle; no injection).
         Add(new TapAction(), definitions, executors);
         Add(new SwipeAction(), definitions, executors);
