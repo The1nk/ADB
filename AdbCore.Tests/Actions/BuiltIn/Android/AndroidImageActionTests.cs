@@ -147,4 +147,40 @@ public class AndroidImageActionTests
         Assert.Equal("Wait for Image (Android)", def.DisplayName);
         Assert.Contains(def.ConfigFields, f => f.Key == AndroidWaitForImageAction.TimeoutMsKey);
     }
+
+    private static AndroidAssertImageAbsentAction Absent(MatchResult? result)
+        => new(new FakeTemplateMatcher(result));
+
+    [Fact]
+    public async Task Absent_TemplateMissing_Succeeds()
+    {
+        var action = new BotAction { Config = { [TemplateMatchCore.TemplatePathKey] = "btn.png" } };
+        var (ctx, _) = WithDevice(action);
+
+        var result = await Absent(null).ExecuteAsync(ctx, default);
+
+        Assert.True(result.Success);
+        Assert.Equal("onSuccess", result.OutputPort);
+    }
+
+    [Fact]
+    public async Task Absent_TemplatePresent_Fails()
+    {
+        var action = new BotAction { Config = { [TemplateMatchCore.TemplatePathKey] = "btn.png" } };
+        var (ctx, _) = WithDevice(action);
+
+        var result = await Absent(new MatchResult(0, 0, 4, 4, 0.95)).ExecuteAsync(ctx, default);
+
+        Assert.False(result.Success);
+        Assert.Contains("present", result.ErrorMessage);
+    }
+
+    [Fact]
+    public void Absent_Definition_Metadata()
+    {
+        var def = Absent(null);
+        Assert.Equal("android.assertImageAbsent", def.TypeKey);
+        Assert.Equal("Assert Image Absent (Android)", def.DisplayName);
+        Assert.DoesNotContain(def.ConfigFields, f => f.Key == TemplateMatchCore.ResultVarKey);
+    }
 }
