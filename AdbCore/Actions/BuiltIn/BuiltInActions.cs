@@ -48,6 +48,11 @@ public static class BuiltInActions
         Add(new InstallApkAction(), definitions, executors);
         Add(new AndroidScreenshotAction(), definitions, executors);
 
+        // Android image matching (handle-based device + injected matcher/RNG; mirrors Screen via TemplateMatchCore).
+        Add(new AndroidFindImageAction(templateMatcher, randomSource), definitions, executors);
+        Add(new AndroidWaitForImageAction(templateMatcher, randomSource), definitions, executors);
+        Add(new AndroidAssertImageAbsentAction(templateMatcher), definitions, executors);
+
         // Browser (handle-based — the bound IBrowserPage is the ResolvedTarget handle; no injection).
         Add(new OpenUrlAction(), definitions, executors);
         Add(new BrowserClickAction(), definitions, executors);
