@@ -100,4 +100,51 @@ public class AndroidImageActionTests
         Assert.Contains(def.ConfigFields, f => f.Key == TemplateMatchCore.RegionWidthKey);
         Assert.DoesNotContain(def.ConfigFields, f => f.Key == ScreenActionBase.CaptureMethodKey);
     }
+
+    private static AndroidWaitForImageAction Wait(MatchResult? result, int rand = 0)
+        => new(new FakeTemplateMatcher(result), new FixedRandomSource(rand));
+
+    [Fact]
+    public async Task Wait_ImagePresent_Succeeds_AndWritesVariables()
+    {
+        var action = new BotAction { Config =
+        {
+            [TemplateMatchCore.TemplatePathKey] = "btn.png",
+            [AndroidWaitForImageAction.TimeoutMsKey] = 1000,
+            [AndroidWaitForImageAction.PollIntervalMsKey] = 10,
+        } };
+        var (ctx, _) = WithDevice(action);
+
+        var result = await Wait(new MatchResult(10, 20, 4, 6, 0.95)).ExecuteAsync(ctx, default);
+
+        Assert.True(result.Success);
+        Assert.Equal("onSuccess", result.OutputPort);
+        Assert.Equal("10", ctx.Context.Variables["matchLeft"]);
+    }
+
+    [Fact]
+    public async Task Wait_Timeout_Fails()
+    {
+        var action = new BotAction { Config =
+        {
+            [TemplateMatchCore.TemplatePathKey] = "btn.png",
+            [AndroidWaitForImageAction.TimeoutMsKey] = 30,
+            [AndroidWaitForImageAction.PollIntervalMsKey] = 10,
+        } };
+        var (ctx, _) = WithDevice(action);
+
+        var result = await Wait(null).ExecuteAsync(ctx, default);
+
+        Assert.False(result.Success);
+        Assert.Contains("did not appear", result.ErrorMessage);
+    }
+
+    [Fact]
+    public void Wait_Definition_Metadata()
+    {
+        var def = Wait(null);
+        Assert.Equal("android.waitForImage", def.TypeKey);
+        Assert.Equal("Wait for Image (Android)", def.DisplayName);
+        Assert.Contains(def.ConfigFields, f => f.Key == AndroidWaitForImageAction.TimeoutMsKey);
+    }
 }
