@@ -11,13 +11,6 @@ namespace BotBuilder.Core.Tests;
 
 public class DocumentMapperBranchesTests
 {
-    private static BotEditorViewModel Editor()
-    {
-        var defs = new ActionRegistry();
-        BuiltInActions.Register(defs, new ActionExecutorRegistry());
-        return new BotEditorViewModel(defs);
-    }
-
     [Fact]
     public void Load_RunParallelWithFiveBranches_RebuildsPortsAndLinksConnections()
     {
@@ -39,7 +32,7 @@ public class DocumentMapperBranchesTests
             Id = System.Guid.NewGuid(), SourceActionId = rpId, SourcePort = "branch5", TargetActionId = endId, TargetPort = "in",
         });
 
-        var editor = Editor();
+        var editor = new BotEditorViewModel(registry);
         DocumentMapper.Populate(editor, bot, registry);
 
         var rp = editor.Nodes.Single(n => n.Id == rpId);
