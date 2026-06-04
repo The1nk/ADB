@@ -12,6 +12,9 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
     <RootNamespace>BotBuilder</RootNamespace>
+    <!-- Per-Monitor-V2 DPI awareness: the in-process coordinate picker captures target windows via Win32,
+         so BotBuilder must see true device pixels (matching the PerMonitorV2 BotRunner) on scaled displays. -->
+    <ApplicationManifest>app.manifest</ApplicationManifest>
   </PropertyGroup>
 
 </Project>
