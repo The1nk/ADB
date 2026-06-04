@@ -20,7 +20,4 @@ public class ActionExecutionContext
 
     /// <summary>Emits a message to the run log sink.</summary>
     public Action<string> Log { get; }
-
-    /// <summary>Convenience accessor for <see cref="BotExecutionContext.Variables"/>.</summary>
-    public System.Collections.Concurrent.ConcurrentDictionary<string, object> Variables => Context.Variables;
 }

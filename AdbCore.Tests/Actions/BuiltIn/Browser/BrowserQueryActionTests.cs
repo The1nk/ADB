@@ -38,7 +38,7 @@ public class BrowserQueryActionTests
 
         Assert.True(r.Success);
         Assert.Equal("gettext h1", page.Calls.Single());
-        Assert.Equal("Welcome", ctx.Variables["title"]);
+        Assert.Equal("Welcome", ctx.Context.Variables["title"]);
     }
 
     [Fact]
@@ -50,6 +50,6 @@ public class BrowserQueryActionTests
 
         await new GetTextAction().ExecuteAsync(ctx, default);
 
-        Assert.Equal("Hi", ctx.Variables["text"]);
+        Assert.Equal("Hi", ctx.Context.Variables["text"]);
     }
 }
