@@ -52,6 +52,8 @@ public static class BuiltInActions
         Add(new OpenUrlAction(), definitions, executors);
         Add(new BrowserClickAction(), definitions, executors);
         Add(new BrowserTypeAction(), definitions, executors);
+        Add(new WaitForSelectorAction(), definitions, executors);
+        Add(new GetTextAction(), definitions, executors);
 
         // Loop is engine-native: register its definition only (no executor).
         definitions.Register(new LoopAction());
