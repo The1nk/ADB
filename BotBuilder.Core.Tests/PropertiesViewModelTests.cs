@@ -118,4 +118,16 @@ public class PropertiesViewModelTests
             if (File.Exists(path)) File.Delete(path);
         }
     }
+
+    [Fact]
+    public void SupportsRegionPicking_TrueForActionsWithRegionFields_FalseOtherwise()
+    {
+        var e = BuiltInEditor();
+
+        e.Select(e.AddNode("screen.findImage", 0, 0));
+        Assert.True(e.Properties.SupportsRegionPicking);
+
+        e.Select(e.AddNode("data.log", 0, 0));
+        Assert.False(e.Properties.SupportsRegionPicking);
+    }
 }
