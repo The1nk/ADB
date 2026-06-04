@@ -64,16 +64,25 @@ public sealed class RunnerApp
 
     private static async Task DisposeTargetHandlesAsync(IReadOnlyDictionary<Guid, ResolvedTarget> targets)
     {
+        // Best-effort per handle: a handle that fails to dispose (e.g. a browser the user closed mid-run)
+        // must not prevent the remaining handles from being cleaned up.
         foreach (var target in targets.Values)
         {
-            switch (target.Handle)
+            try
             {
-                case IAsyncDisposable asyncDisposable:
-                    await asyncDisposable.DisposeAsync();
-                    break;
-                case IDisposable disposable:
-                    disposable.Dispose();
-                    break;
+                switch (target.Handle)
+                {
+                    case IAsyncDisposable asyncDisposable:
+                        await asyncDisposable.DisposeAsync();
+                        break;
+                    case IDisposable disposable:
+                        disposable.Dispose();
+                        break;
+                }
+            }
+            catch
+            {
+                // Swallow: run teardown should never throw over a handle that's already gone.
             }
         }
     }
