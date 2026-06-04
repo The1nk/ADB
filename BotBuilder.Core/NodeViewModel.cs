@@ -1,4 +1,6 @@
+using System.Collections.ObjectModel;
 using AdbCore.Actions;
+using AdbCore.Actions.BuiltIn;
 using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace BotBuilder.Core;
@@ -31,7 +33,7 @@ public partial class NodeViewModel : ObservableObject
         _label = label;
         Category = category;
         InputPorts = inputPorts;
-        OutputPorts = outputPorts;
+        OutputPorts = new ObservableCollection<PortViewModel>(outputPorts);
         _x = x;
         _y = y;
     }
@@ -44,7 +46,7 @@ public partial class NodeViewModel : ObservableObject
     public Dictionary<string, object> Config { get; } = new();
     public string CategoryColor => CategoryColors.ColorFor(Category);
     public IReadOnlyList<PortViewModel> InputPorts { get; }
-    public IReadOnlyList<PortViewModel> OutputPorts { get; }
+    public ObservableCollection<PortViewModel> OutputPorts { get; }
 
     /// <summary>Builds a node from an action definition, deriving ports/category from it.</summary>
     public static NodeViewModel FromDefinition(IActionDefinition definition, Guid id, string label, double x, double y)
@@ -65,5 +67,33 @@ public partial class NodeViewModel : ObservableObject
             outputs,
             x,
             y);
+    }
+
+    /// <summary>Builds the output PortViewModel for a 0-based branch index (Run Parallel dynamic ports).</summary>
+    public static PortViewModel BranchOutputPort(int zeroBasedIndex) =>
+        new(RunParallelAction.BranchPort(zeroBasedIndex + 1), PortDirection.Out, NodeLayout.OutputAnchor(zeroBasedIndex));
+
+    /// <summary>Grows or shrinks the output ports to exactly <paramref name="count"/> branch ports,
+    /// preserving existing instances. Non-undoable primitive (used on load and by the undo command's snapshots).</summary>
+    public void SetBranchPortCount(int count)
+    {
+        while (OutputPorts.Count < count)
+        {
+            OutputPorts.Add(BranchOutputPort(OutputPorts.Count));
+        }
+        while (OutputPorts.Count > count)
+        {
+            OutputPorts.RemoveAt(OutputPorts.Count - 1);
+        }
+    }
+
+    /// <summary>Replaces the output ports with the given instances (used by the undoable branch-count command).</summary>
+    public void ReplaceOutputPorts(IReadOnlyList<PortViewModel> ports)
+    {
+        OutputPorts.Clear();
+        foreach (var p in ports)
+        {
+            OutputPorts.Add(p);
+        }
     }
 }
