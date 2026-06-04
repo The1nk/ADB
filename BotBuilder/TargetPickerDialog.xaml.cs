@@ -11,6 +11,7 @@ public partial class TargetPickerDialog : Window
 {
     private readonly TargetPickerViewModel _vm;
     private readonly IWindowEnumerator _windows;
+    private readonly AdbCore.Android.IAdbDevices _adbDevices = new AdbCore.Android.AdvancedSharpAdbDevices();
 
     public TargetPickerDialog(TargetPickerViewModel vm, IWindowEnumerator windows)
     {
@@ -47,6 +48,35 @@ public partial class TargetPickerDialog : Window
             row.Selector = string.IsNullOrEmpty(choice.Info.ProcessName)
                 ? $"title:{choice.Info.Title}"
                 : $"process:{choice.Info.ProcessName}";
+        }
+    }
+
+    // A display wrapper for the Android device dropdown.
+    private sealed record DeviceChoice(AdbCore.Android.AdbDeviceInfo Info)
+    {
+        public string Display => $"{Info.Serial} ({Info.State})";
+    }
+
+    private void OnAndroidComboLoaded(object sender, RoutedEventArgs e)
+    {
+        if (sender is ComboBox combo)
+        {
+            try
+            {
+                combo.ItemsSource = _adbDevices.List().Select(d => new DeviceChoice(d)).ToList();
+            }
+            catch
+            {
+                combo.ItemsSource = System.Array.Empty<DeviceChoice>(); // no ADB server / devices — leave manual entry
+            }
+        }
+    }
+
+    private void OnAndroidChosen(object sender, SelectionChangedEventArgs e)
+    {
+        if (sender is ComboBox { SelectedItem: DeviceChoice choice, Tag: TargetSelectionRow row })
+        {
+            row.Selector = $"serial:{choice.Info.Serial}";
         }
     }
 

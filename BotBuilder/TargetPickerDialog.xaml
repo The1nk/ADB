@@ -34,11 +34,17 @@
                         </StackPanel>
                         <TextBox Grid.Column="1" VerticalAlignment="Center"
                                  Text="{Binding Selector, UpdateSourceTrigger=PropertyChanged}" />
-                        <!-- Window targets get a live dropdown; populated + handled in code-behind. -->
-                        <ComboBox Grid.Column="2" Width="180" Margin="8,0,0,0" VerticalAlignment="Center"
-                                  Visibility="{Binding IsWindow, Converter={StaticResource BoolToVis}}"
-                                  Tag="{Binding}" Loaded="OnWindowComboLoaded" SelectionChanged="OnWindowChosen"
-                                  DisplayMemberPath="Display" />
+                        <!-- Window/Android targets each get a live dropdown; mutually exclusive via Visibility. -->
+                        <StackPanel Grid.Column="2" Orientation="Horizontal">
+                            <ComboBox Width="180" Margin="8,0,0,0" VerticalAlignment="Center"
+                                      Visibility="{Binding IsWindow, Converter={StaticResource BoolToVis}}"
+                                      Tag="{Binding}" Loaded="OnWindowComboLoaded" SelectionChanged="OnWindowChosen"
+                                      DisplayMemberPath="Display" />
+                            <ComboBox Width="180" Margin="8,0,0,0" VerticalAlignment="Center"
+                                      Visibility="{Binding IsAndroid, Converter={StaticResource BoolToVis}}"
+                                      Tag="{Binding}" Loaded="OnAndroidComboLoaded" SelectionChanged="OnAndroidChosen"
+                                      DisplayMemberPath="Display" />
+                        </StackPanel>
                     </Grid>
                 </DataTemplate>
             </ItemsControl.ItemTemplate>

@@ -16,6 +16,7 @@ public partial class TargetSelectionRow : ObservableObject
     public string Name { get; }
     public BotTargetType Type { get; }
     public bool IsWindow => Type == BotTargetType.Window;
+    public bool IsAndroid => Type == BotTargetType.AndroidDevice;
 
     [ObservableProperty] private string _selector = string.Empty;
 }
