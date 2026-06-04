@@ -61,8 +61,9 @@ public class TemplateMatchCoreTests
     public void WriteMatchVariables_WritesEdgesCenterRandomAndScore()
     {
         var vars = new Dictionary<string, object>();
+        var rng = new FixedRandomSource(123);
 
-        TemplateMatchCore.WriteMatchVariables(vars, new MatchResult(100, 40, 30, 20, 0.97), "match", new FixedRandomSource(123));
+        TemplateMatchCore.WriteMatchVariables(vars, new MatchResult(100, 40, 30, 20, 0.97), "match", rng);
 
         Assert.Equal("100", vars["matchLeft"]);
         Assert.Equal("40", vars["matchTop"]);
@@ -73,5 +74,32 @@ public class TemplateMatchCoreTests
         Assert.Equal("123", vars["matchRandX"]);
         Assert.Equal("123", vars["matchRandY"]);
         Assert.Equal("0.97", vars["matchConfidence"]);
+
+        // Random point must be requested strictly inside the match: X in [100,129], Y in [40,59].
+        Assert.Equal((100, 129), rng.Calls[0]);
+        Assert.Equal((40, 59), rng.Calls[1]);
+    }
+
+    [Fact]
+    public void MatchInRegion_NoRegion_NoMatch_ReturnsNull()
+    {
+        using var haystack = new Bitmap(100, 100);
+        var matcher = new FakeTemplateMatcher(null);
+
+        Assert.Null(TemplateMatchCore.MatchInRegion(haystack, new Dictionary<string, object>(), matcher, "t.png", 0.8));
+    }
+
+    [Fact]
+    public void MatchInRegion_WithRegion_NoMatch_ReturnsNull()
+    {
+        using var haystack = new Bitmap(100, 100);
+        var matcher = new FakeTemplateMatcher(null);
+        var config = new Dictionary<string, object>
+        {
+            [TemplateMatchCore.RegionXKey] = 10, [TemplateMatchCore.RegionYKey] = 10,
+            [TemplateMatchCore.RegionWidthKey] = 50, [TemplateMatchCore.RegionHeightKey] = 50,
+        };
+
+        Assert.Null(TemplateMatchCore.MatchInRegion(haystack, config, matcher, "t.png", 0.8));
     }
 }

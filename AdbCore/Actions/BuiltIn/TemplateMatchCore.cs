@@ -82,8 +82,8 @@ public static class TemplateMatchCore
         variables[$"{prefix}Bottom"] = Str(bottom);
         variables[$"{prefix}CenterX"] = Str(m.X + m.Width / 2);
         variables[$"{prefix}CenterY"] = Str(m.Y + m.Height / 2);
-        variables[$"{prefix}RandX"] = Str(random.Next(left, right));
-        variables[$"{prefix}RandY"] = Str(random.Next(top, bottom));
+        variables[$"{prefix}RandX"] = Str(random.Next(left, Math.Max(left, right - 1)));
+        variables[$"{prefix}RandY"] = Str(random.Next(top, Math.Max(top, bottom - 1)));
         variables[$"{prefix}Confidence"] = m.Score.ToString(CultureInfo.InvariantCulture);
     }
 

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Drawing;
 using AdbCore.Screen;
 
@@ -35,5 +36,11 @@ internal sealed class FakeTemplateMatcher(MatchResult? result) : ITemplateMatche
 
 internal sealed class FixedRandomSource(int value) : IRandomSource
 {
-    public int Next(int minInclusive, int maxInclusive) => value;
+    public List<(int Min, int Max)> Calls { get; } = new();
+
+    public int Next(int minInclusive, int maxInclusive)
+    {
+        Calls.Add((minInclusive, maxInclusive));
+        return value;
+    }
 }
