@@ -9,6 +9,8 @@ namespace AdbCore.Ocr;
 public sealed class TesseractOcrEngine : IOcrEngine, IDisposable
 {
     private readonly TesseractEngine _engine;
+    // TesseractEngine is not thread-safe; serialize all engine/Pix/page/iter access.
+    private readonly object _lock = new();
 
     public TesseractOcrEngine(string? tessdataPath = null, string language = "eng")
     {
@@ -20,34 +22,45 @@ public sealed class TesseractOcrEngine : IOcrEngine, IDisposable
     {
         // PixConverter is not present in charlesw Tesseract 5.2.0 netstandard2.0.
         // Use Pix.LoadFromMemory(byte[]) via an in-memory PNG instead.
-        using var ms = new System.IO.MemoryStream();
-        image.Save(ms, System.Drawing.Imaging.ImageFormat.Png);
-        using var pix = Pix.LoadFromMemory(ms.ToArray());
-        using var page = _engine.Process(pix);
-
-        var text = page.GetText() ?? string.Empty;
-        var words = new List<OcrWord>();
-
-        using var iter = page.GetIterator();
-        iter.Begin();
-        do
+        // PNG-encode is image-local and touches no engine state — do it outside the lock.
+        byte[] png;
+        using (var ms = new System.IO.MemoryStream())
         {
-            if (iter.TryGetBoundingBox(PageIteratorLevel.Word, out var rect))
-            {
-                var wordText = iter.GetText(PageIteratorLevel.Word) ?? string.Empty;
-                if (!string.IsNullOrWhiteSpace(wordText))
-                {
-                    var confidence = iter.GetConfidence(PageIteratorLevel.Word) / 100.0; // 0–100 → 0–1
-                    words.Add(new OcrWord(
-                        wordText.Trim(),
-                        new Rectangle(rect.X1, rect.Y1, rect.Width, rect.Height),
-                        confidence));
-                }
-            }
+            image.Save(ms, System.Drawing.Imaging.ImageFormat.Png);
+            png = ms.ToArray();
         }
-        while (iter.Next(PageIteratorLevel.Word));
 
-        return new OcrResult(text, words);
+        lock (_lock)
+        {
+            using var pix = Pix.LoadFromMemory(png);
+            using var page = _engine.Process(pix);
+
+            var text = page.GetText() ?? string.Empty;
+            var words = new List<OcrWord>();
+
+            using (var iter = page.GetIterator())
+            {
+                iter.Begin();
+                do
+                {
+                    if (iter.TryGetBoundingBox(PageIteratorLevel.Word, out var rect))
+                    {
+                        var wordText = iter.GetText(PageIteratorLevel.Word) ?? string.Empty;
+                        if (!string.IsNullOrWhiteSpace(wordText))
+                        {
+                            var confidence = iter.GetConfidence(PageIteratorLevel.Word) / 100.0; // 0–100 → 0–1
+                            words.Add(new OcrWord(
+                                wordText.Trim(),
+                                new Rectangle(rect.X1, rect.Y1, rect.Width, rect.Height),
+                                confidence));
+                        }
+                    }
+                }
+                while (iter.Next(PageIteratorLevel.Word));
+            }
+
+            return new OcrResult(text, words);
+        }
     }
 
     public void Dispose() => _engine.Dispose();
