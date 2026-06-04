@@ -75,4 +75,44 @@ public class ScreenOcrActionTests
         Assert.False(r.Success);
         Assert.Contains("Window", r.ErrorMessage);
     }
+
+    [Fact]
+    public async Task WaitForText_Present_Succeeds()
+    {
+        var id = Guid.NewGuid();
+        var ctx = WindowCtx(id, (IntPtr)5);
+        var action = new BotAction { TargetId = id, Config = { ["text"] = "ready", [WaitForTextAction.TimeoutMsKey] = 1000, [WaitForTextAction.PollIntervalMsKey] = 10 } };
+        var wait = new WaitForTextAction(new FakeWindowCapture(400, 300), new FakeOcrEngine(Result(new OcrWord("READY", new Rectangle(1, 2, 3, 4), 0.9))), new FixedRandomSource(0));
+
+        var r = await wait.ExecuteAsync(Exec(action, ctx), default);
+        Assert.True(r.Success);
+        Assert.Equal("onSuccess", r.OutputPort);
+    }
+
+    [Fact]
+    public async Task WaitForText_Timeout_Fails()
+    {
+        var id = Guid.NewGuid();
+        var ctx = WindowCtx(id, (IntPtr)5);
+        var action = new BotAction { TargetId = id, Config = { ["text"] = "ready", [WaitForTextAction.TimeoutMsKey] = 30, [WaitForTextAction.PollIntervalMsKey] = 10 } };
+        var wait = new WaitForTextAction(new FakeWindowCapture(400, 300), new FakeOcrEngine(Result(new OcrWord("loading", new Rectangle(1, 2, 3, 4), 0.9))), new FixedRandomSource(0));
+
+        var r = await wait.ExecuteAsync(Exec(action, ctx), default);
+        Assert.False(r.Success);
+        Assert.Contains("did not appear", r.ErrorMessage);
+    }
+
+    [Fact]
+    public async Task AssertTextAbsent_Absent_Succeeds_Present_Fails()
+    {
+        var id = Guid.NewGuid();
+        var ctx = WindowCtx(id, (IntPtr)5);
+        var absent = new AssertTextAbsentAction(new FakeWindowCapture(400, 300), new FakeOcrEngine(Result(new OcrWord("menu", new Rectangle(1, 2, 3, 4), 0.9))));
+        var okAction = new BotAction { TargetId = id, Config = { ["text"] = "gameover" } };
+        Assert.True((await absent.ExecuteAsync(Exec(okAction, ctx), default)).Success);
+
+        var present = new AssertTextAbsentAction(new FakeWindowCapture(400, 300), new FakeOcrEngine(Result(new OcrWord("gameover", new Rectangle(1, 2, 3, 4), 0.9))));
+        var failAction = new BotAction { TargetId = id, Config = { ["text"] = "gameover" } };
+        Assert.False((await present.ExecuteAsync(Exec(failAction, ctx), default)).Success);
+    }
 }
