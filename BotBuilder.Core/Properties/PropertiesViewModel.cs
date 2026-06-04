@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using AdbCore.Actions;
+using AdbCore.Actions.BuiltIn;
 using BotBuilder.Core.Picker;
 using BotBuilder.Core.Targets;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -76,7 +77,11 @@ public partial class PropertiesViewModel : ObservableObject
             {
                 foreach (var field in definition.ConfigFields)
                 {
-                    Fields.Add(new ConfigFieldViewModel(Node, field, _editor.MarkDirty));
+                    var node = Node;
+                    Action onChanged = node.TypeKey == RunParallelAction.RunParallelTypeKey && field.Key == RunParallelAction.BranchesKey
+                        ? () => _editor.OnBranchCountChanged(node)
+                        : _editor.MarkDirty;
+                    Fields.Add(new ConfigFieldViewModel(node, field, onChanged));
                 }
             }
         }
