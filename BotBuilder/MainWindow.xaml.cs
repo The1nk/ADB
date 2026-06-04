@@ -557,6 +557,58 @@ public partial class MainWindow : Window
         }
     }
 
+    private void PickRegion_Click(object sender, RoutedEventArgs e)
+    {
+        var node = _editor.Properties.Node;
+        if (node is null)
+        {
+            return;
+        }
+
+        var targets = _editor.TargetBar.Targets;
+        var target = node.TargetId is System.Guid id
+            ? targets.FirstOrDefault(t => t.Id == id)
+            : targets.FirstOrDefault();
+        if (target is null)
+        {
+            MessageBox.Show(
+                "Add a target (Window or Android device) first, then pick a region against it.",
+                "Pick region", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        var frame = _frameCapturer.TryCapture(target.Type, target.Selector, out var error);
+        if (frame is null)
+        {
+            MessageBox.Show(error ?? "Couldn't capture the target.",
+                "Pick region", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        (int X, int Y, int Width, int Height)? region;
+        bool confirmed;
+        try
+        {
+            var dialog = new RegionPickerDialog(frame) { Owner = this };
+            confirmed = dialog.ShowDialog() == true;
+            region = dialog.Region;
+        }
+        finally
+        {
+            frame.Dispose();
+        }
+
+        if (!confirmed || region is not (int rx, int ry, int rw, int rh))
+        {
+            return;
+        }
+
+        if (FieldByKey(AdbCore.Actions.BuiltIn.TemplateMatchCore.RegionXKey) is { } fx) { fx.Value = (double)rx; }
+        if (FieldByKey(AdbCore.Actions.BuiltIn.TemplateMatchCore.RegionYKey) is { } fy) { fy.Value = (double)ry; }
+        if (FieldByKey(AdbCore.Actions.BuiltIn.TemplateMatchCore.RegionWidthKey) is { } fw) { fw.Value = (double)rw; }
+        if (FieldByKey(AdbCore.Actions.BuiltIn.TemplateMatchCore.RegionHeightKey) is { } fh) { fh.Value = (double)rh; }
+    }
+
     /// <summary>The selected action's config field with the given key, or null.</summary>
     private ConfigFieldViewModel? FieldByKey(string key) =>
         _editor.Properties.Fields.FirstOrDefault(f => f.Key == key);
