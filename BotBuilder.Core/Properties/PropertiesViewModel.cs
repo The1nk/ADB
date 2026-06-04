@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using AdbCore.Actions;
+using BotBuilder.Core.Picker;
 using BotBuilder.Core.Targets;
 using CommunityToolkit.Mvvm.ComponentModel;
 
@@ -30,6 +31,9 @@ public partial class PropertiesViewModel : ObservableObject
 
     /// <summary>The configured targets, for the target dropdown.</summary>
     public IReadOnlyList<TargetViewModel> Targets => _editor.TargetBar.Targets;
+
+    /// <summary>Whether the selected action exposes coordinate fields the picker can fill.</summary>
+    public bool SupportsCoordinatePicking => Node is not null && CoordinateFieldMap.Supports(Node.TypeKey);
 
     /// <summary>The selected node's assigned target id (null = the default first target).</summary>
     public Guid? SelectedTargetId
@@ -79,5 +83,6 @@ public partial class PropertiesViewModel : ObservableObject
 
         OnPropertyChanged(nameof(SelectedTargetId));
         OnPropertyChanged(nameof(Targets));
+        OnPropertyChanged(nameof(SupportsCoordinatePicking));
     }
 }

@@ -86,6 +86,20 @@ public class PropertiesViewModelTests
     }
 
     [Fact]
+    public void SupportsCoordinatePicking_TrueForCoordinateActions_FalseOtherwise()
+    {
+        var e = BuiltInEditor();
+        var tapNode = e.AddNode("android.tap", 0, 0);
+        var logNode = e.AddNode("data.log", 0, 0);
+
+        e.Select(tapNode);
+        Assert.True(e.Properties.SupportsCoordinatePicking);
+
+        e.Select(logNode);
+        Assert.False(e.Properties.SupportsCoordinatePicking);
+    }
+
+    [Fact]
     public void EditingAField_MarksEditorDirty()
     {
         var e = BuiltInEditor();
