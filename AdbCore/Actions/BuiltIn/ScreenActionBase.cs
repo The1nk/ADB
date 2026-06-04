@@ -1,5 +1,4 @@
 using System.Drawing;
-using System.Globalization;
 using AdbCore.Execution;
 using AdbCore.Models;
 using AdbCore.Screen;
@@ -13,19 +12,18 @@ namespace AdbCore.Actions.BuiltIn;
 public abstract class ScreenActionBase : IActionDefinition, IActionExecutor
 {
     public const string CaptureMethodKey = "captureMethod";
-    public const string RegionXKey = "regionX";
-    public const string RegionYKey = "regionY";
-    public const string RegionWidthKey = "regionWidth";
-    public const string RegionHeightKey = "regionHeight";
-    public const string SuccessPort = "onSuccess";
-    public const string FailurePort = "onFailure";
+    public const string RegionXKey = TemplateMatchCore.RegionXKey;
+    public const string RegionYKey = TemplateMatchCore.RegionYKey;
+    public const string RegionWidthKey = TemplateMatchCore.RegionWidthKey;
+    public const string RegionHeightKey = TemplateMatchCore.RegionHeightKey;
+    public const string SuccessPort = TemplateMatchCore.SuccessPort;
+    public const string FailurePort = TemplateMatchCore.FailurePort;
 
-    // Shared match config (used by Find Image, Wait for Image, Assert Image Absent).
-    public const string TemplatePathKey = "templatePath";
-    public const string ConfidenceKey = "confidence";
-    public const string ResultVarKey = "resultVar";
-    public const double DefaultConfidence = 0.8;
-    public const string DefaultResultVar = "match";
+    public const string TemplatePathKey = TemplateMatchCore.TemplatePathKey;
+    public const string ConfidenceKey = TemplateMatchCore.ConfidenceKey;
+    public const string ResultVarKey = TemplateMatchCore.ResultVarKey;
+    public const double DefaultConfidence = TemplateMatchCore.DefaultConfidence;
+    public const string DefaultResultVar = TemplateMatchCore.DefaultResultVar;
 
     private readonly IWindowCapture _capture;
     private List<ConfigField>? _configFields;
@@ -56,18 +54,15 @@ public abstract class ScreenActionBase : IActionDefinition, IActionExecutor
             DefaultValue = nameof(ScreenCaptureMethod.Auto),
             Options = new() { nameof(ScreenCaptureMethod.Auto), nameof(ScreenCaptureMethod.BitBlt) },
         },
-        new ConfigField { Key = RegionXKey, Label = "Region X", Type = ConfigFieldType.Number, DefaultValue = 0 },
-        new ConfigField { Key = RegionYKey, Label = "Region Y", Type = ConfigFieldType.Number, DefaultValue = 0 },
-        new ConfigField { Key = RegionWidthKey, Label = "Region Width", Type = ConfigFieldType.Number, DefaultValue = 0 },
-        new ConfigField { Key = RegionHeightKey, Label = "Region Height", Type = ConfigFieldType.Number, DefaultValue = 0 },
+        .. TemplateMatchCore.RegionFields(),
     ];
 
     public abstract Task<ActionResult> ExecuteAsync(ActionExecutionContext context, CancellationToken ct);
 
     // Shared config-field factories for the match actions.
-    protected static ConfigField TemplatePathField() => new() { Key = TemplatePathKey, Label = "Template Image", Type = ConfigFieldType.ImagePath };
-    protected static ConfigField ConfidenceField() => new() { Key = ConfidenceKey, Label = "Confidence", Type = ConfigFieldType.Number, DefaultValue = DefaultConfidence };
-    protected static ConfigField ResultVarField() => new() { Key = ResultVarKey, Label = "Result Variable", Type = ConfigFieldType.String, DefaultValue = DefaultResultVar };
+    protected static ConfigField TemplatePathField() => TemplateMatchCore.TemplatePathField();
+    protected static ConfigField ConfidenceField() => TemplateMatchCore.ConfidenceField();
+    protected static ConfigField ResultVarField() => TemplateMatchCore.ResultVarField();
 
     /// <summary>Resolves the action's target HWND: the explicit TargetId, or the sole target if unset.</summary>
     protected static IntPtr? ResolveWindow(ActionExecutionContext context)
@@ -88,20 +83,7 @@ public abstract class ScreenActionBase : IActionDefinition, IActionExecutor
 
     /// <summary>Reads + clamps the ROI fields against the client size; null when no usable region.</summary>
     protected static Rectangle? ResolveRegion(ActionExecutionContext context, int clientWidth, int clientHeight)
-    {
-        var w = ConfigValues.GetInt(context.Action.Config, RegionWidthKey, 0);
-        var h = ConfigValues.GetInt(context.Action.Config, RegionHeightKey, 0);
-        if (w <= 0 || h <= 0 || clientWidth <= 0 || clientHeight <= 0)
-        {
-            return null;
-        }
-
-        var x = Math.Clamp(ConfigValues.GetInt(context.Action.Config, RegionXKey, 0), 0, clientWidth - 1);
-        var y = Math.Clamp(ConfigValues.GetInt(context.Action.Config, RegionYKey, 0), 0, clientHeight - 1);
-        w = Math.Min(w, clientWidth - x);
-        h = Math.Min(h, clientHeight - y);
-        return w > 0 && h > 0 ? new Rectangle(x, y, w, h) : null;
-    }
+        => TemplateMatchCore.ResolveRegion(context.Action.Config, clientWidth, clientHeight);
 
     /// <summary>Captures the window's client area via the chosen method, cropping to the ROI when set.
     /// Returns the (possibly cropped) bitmap and the ROI offset (0,0 when no ROI). Caller disposes.</summary>
@@ -124,34 +106,16 @@ public abstract class ScreenActionBase : IActionDefinition, IActionExecutor
         }
     }
 
-    /// <summary>Captures (with any ROI crop), matches the template, and returns the match in full-window
-    /// client coordinates (null if none ≥ confidence). Disposes the capture.</summary>
+    /// <summary>Captures the window's client area via the chosen method, then crops to any ROI, matches the
+    /// template, and returns the match in full-window client coordinates (null if none ≥ confidence).</summary>
     protected MatchResult? CaptureAndMatch(ActionExecutionContext context, IntPtr hwnd, ITemplateMatcher matcher, string templatePath, double confidence)
     {
-        using var region = CaptureRegion(context, hwnd, out var offsetX, out var offsetY);
-        var hit = matcher.Match(region, templatePath, confidence);
-        return hit is MatchResult m ? m with { X = m.X + offsetX, Y = m.Y + offsetY } : null;
+        using var shot = _capture.Capture(hwnd, CaptureMethodOf(context));
+        return TemplateMatchCore.MatchInRegion(shot, context.Action.Config, matcher, templatePath, confidence);
     }
 
     /// <summary>Writes a match's region edges, center, a random in-region point, and the score to run
     /// variables under <paramref name="prefix"/> (all client-relative integers, as InvariantCulture strings).</summary>
     protected static void WriteMatchVariables(ActionExecutionContext context, MatchResult m, string prefix, IRandomSource random)
-    {
-        var left = m.X;
-        var top = m.Y;
-        var right = m.X + m.Width;
-        var bottom = m.Y + m.Height;
-        var vars = context.Context.Variables;
-        vars[$"{prefix}Left"] = Str(left);
-        vars[$"{prefix}Top"] = Str(top);
-        vars[$"{prefix}Right"] = Str(right);
-        vars[$"{prefix}Bottom"] = Str(bottom);
-        vars[$"{prefix}CenterX"] = Str(m.X + m.Width / 2);
-        vars[$"{prefix}CenterY"] = Str(m.Y + m.Height / 2);
-        vars[$"{prefix}RandX"] = Str(random.Next(left, right));
-        vars[$"{prefix}RandY"] = Str(random.Next(top, bottom));
-        vars[$"{prefix}Confidence"] = m.Score.ToString(CultureInfo.InvariantCulture);
-    }
-
-    private static string Str(int v) => v.ToString(CultureInfo.InvariantCulture);
+        => TemplateMatchCore.WriteMatchVariables(context.Context.Variables, m, prefix, random);
 }
