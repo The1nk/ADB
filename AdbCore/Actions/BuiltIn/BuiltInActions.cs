@@ -21,6 +21,7 @@ public static class BuiltInActions
         Add(new BranchAction(), definitions, executors);
         Add(new SetVariableAction(), definitions, executors);
         Add(new CommentAction(), definitions, executors);
+        Add(new MathAction(), definitions, executors);
 
         // Scripting (no external deps — MoonSharp is in-process; two-way `vars` bridge to run variables).
         Add(new RunLuaScriptAction(), definitions, executors);
