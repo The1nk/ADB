@@ -9,11 +9,23 @@ namespace AdbCore.Scripting;
 public sealed class LuaScriptHost
 {
     private readonly Action<string> _log;
+    private readonly IFileSystem _fs;
+    private readonly IProcessRunner _process;
+    private readonly IHttpRequester _http;
 
     public LuaScriptHost(Action<string> log)
+        : this(log, new LiveFileSystem(), new LiveProcessRunner(), new HttpRequester()) { }
+
+    public LuaScriptHost(Action<string> log, IFileSystem fileSystem, IProcessRunner processRunner, IHttpRequester httpRequester)
     {
         ArgumentNullException.ThrowIfNull(log);
+        ArgumentNullException.ThrowIfNull(fileSystem);
+        ArgumentNullException.ThrowIfNull(processRunner);
+        ArgumentNullException.ThrowIfNull(httpRequester);
         _log = log;
+        _fs = fileSystem;
+        _process = processRunner;
+        _http = httpRequester;
     }
 
     public readonly record struct Result(bool Success, string? Error);
@@ -26,8 +38,8 @@ public sealed class LuaScriptHost
         ArgumentNullException.ThrowIfNull(variables);
 
         // A cancelled run is not a script "failure" — let OperationCanceledException propagate to the caller.
-        // TODO(M12b): full mid-script abort once long-running http/process host calls (which honor ct) are
-        // the realistic cancellation points. Until then, cancellation is checked once before execution.
+        // Mid-script CPU-bound work (e.g. `while true do end`) is interrupted cooperatively below via a
+        // coroutine that auto-yields every N VM instructions; blocking I/O host calls honor ct directly.
         ct.ThrowIfCancellationRequested();
 
         // SoftSandbox: language features but no raw io/os/loadfile (the host API is provided explicitly).
@@ -53,9 +65,26 @@ public sealed class LuaScriptHost
         // `log(msg)`.
         script.Globals["log"] = (Action<DynValue>)(v => _log(v is null || v.IsNil() ? "" : v.ToPrintString()));
 
+        // `fs` table (read/write/copy/move/exists/delete).
+        script.Globals["fs"] = Modules.FsModule.Build(script, _fs);
+
+        // `process` table (run -> { exitCode, stdout, stderr }).
+        script.Globals["process"] = Modules.ProcessModule.Build(script, _process, ct);
+
+        // `http` table (get/post -> { status, body, headers }).
+        script.Globals["http"] = Modules.HttpModule.Build(script, _http, ct);
+
         try
         {
-            script.DoString(scriptText);
+            var fn = script.LoadString(scriptText);
+            var coroutine = script.CreateCoroutine(fn).Coroutine;
+            coroutine.AutoYieldCounter = 20000; // auto-yield every N VM instructions
+            DynValue exec = coroutine.Resume();
+            while (exec.Type == DataType.YieldRequest)
+            {
+                ct.ThrowIfCancellationRequested();
+                exec = coroutine.Resume();
+            }
         }
         catch (InterpreterException ex)
         {
