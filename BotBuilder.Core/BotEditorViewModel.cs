@@ -94,6 +94,22 @@ public partial class BotEditorViewModel : ObservableObject
         AfterEdit();
     }
 
+    /// <summary>Records a multi-node drag (each node already at its new position) as one undoable step.
+    /// Nodes that didn't actually move are ignored; a no-op overall does nothing.</summary>
+    public void CommitMoves(IReadOnlyList<(NodeViewModel Node, double OldX, double OldY)> moves)
+    {
+        var actual = moves
+            .Where(m => m.OldX != m.Node.X || m.OldY != m.Node.Y)
+            .Select(m => (m.Node, m.OldX, m.OldY, m.Node.X, m.Node.Y))
+            .ToList();
+        if (actual.Count == 0)
+        {
+            return;
+        }
+        _undo.PushExecuted(new MoveNodesCommand(actual));
+        AfterEdit();
+    }
+
     public ConnectionError Connect(NodeViewModel source, PortViewModel sourcePort, NodeViewModel target, PortViewModel targetPort)
     {
         var error = ConnectionValidator.Validate(Connections, source, sourcePort, target, targetPort);
@@ -175,6 +191,74 @@ public partial class BotEditorViewModel : ObservableObject
         foreach (var n in Nodes) { n.IsSelected = false; }
         SelectedNode = null;
         SelectedConnection = connection;
+    }
+
+    private NodeClipboard? _clipboard;
+
+    /// <summary>Snapshots the selected nodes (or the single SelectedNode) and the connections among them
+    /// into the in-app clipboard. No-op when nothing is selected.</summary>
+    public void CopySelection()
+    {
+        var selected = Nodes.Where(n => n.IsSelected).ToList();
+        if (selected.Count == 0 && SelectedNode is not null) selected.Add(SelectedNode);
+        if (selected.Count == 0) return;
+
+        var indexOf = new Dictionary<NodeViewModel, int>();
+        for (var i = 0; i < selected.Count; i++) indexOf[selected[i]] = i;
+
+        var nodeClips = selected
+            .Select(n => new NodeClip(n.TypeKey, n.Label, n.TargetId, n.RetryMaxAttempts, n.RetryDelayMs,
+                new Dictionary<string, object>(n.Config), n.X, n.Y))
+            .ToList();
+
+        var connClips = Connections
+            .Where(c => indexOf.ContainsKey(c.Source) && indexOf.ContainsKey(c.Target))
+            .Select(c => new ConnectionClip(indexOf[c.Source], c.SourcePort.Name, indexOf[c.Target], c.TargetPort.Name))
+            .ToList();
+
+        _clipboard = new NodeClipboard(nodeClips, connClips);
+    }
+
+    /// <summary>Pastes the clipboard: fresh nodes (new Ids, offset +24,+24), the internal connections among
+    /// them re-created by port name, added as one undoable step and selected. No-op when the clipboard is empty.</summary>
+    public void Paste()
+    {
+        if (_clipboard is null || _clipboard.Nodes.Count == 0) return;
+        const double dx = 24, dy = 24;
+
+        var newNodes = new List<NodeViewModel>(_clipboard.Nodes.Count);
+        foreach (var clip in _clipboard.Nodes)
+        {
+            var definition = _registry.Get(clip.TypeKey);
+            var node = NodeViewModel.FromDefinition(definition, Guid.NewGuid(), clip.Label, clip.X + dx, clip.Y + dy);
+            node.TargetId = clip.TargetId;
+            node.RetryMaxAttempts = clip.RetryMaxAttempts;
+            node.RetryDelayMs = clip.RetryDelayMs;
+            node.Config.Clear();
+            foreach (var kv in clip.Config) { node.Config[kv.Key] = kv.Value; }
+            if (node.TypeKey == RunParallelAction.RunParallelTypeKey)
+            {
+                node.SetBranchPortCount(Math.Max(2, ConfigValues.GetInt(node.Config, RunParallelAction.BranchesKey, RunParallelAction.DefaultBranchCount)));
+            }
+            newNodes.Add(node);
+        }
+
+        var newConnections = new List<ConnectionViewModel>(_clipboard.Connections.Count);
+        foreach (var cc in _clipboard.Connections)
+        {
+            var source = newNodes[cc.SourceIndex];
+            var target = newNodes[cc.TargetIndex];
+            var sp = source.OutputPorts.FirstOrDefault(p => p.Name == cc.SourcePort);
+            var tp = target.InputPorts.FirstOrDefault(p => p.Name == cc.TargetPort);
+            if (sp is not null && tp is not null)
+            {
+                newConnections.Add(new ConnectionViewModel(Guid.NewGuid(), source, sp, target, tp));
+            }
+        }
+
+        _undo.Execute(new PasteCommand(this, newNodes, newConnections));
+        SelectNodes(newNodes);
+        AfterEdit();
     }
 
     public void Undo()

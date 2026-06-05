@@ -23,8 +23,7 @@ public partial class MainWindow : Window
 
     private NodeViewModel? _draggingNode;
     private Point _dragStartPointerOnCanvas;
-    private double _dragStartNodeX;
-    private double _dragStartNodeY;
+    private readonly List<(NodeViewModel Node, double StartX, double StartY)> _dragNodes = new();
     private Point _paletteMouseDownPoint;
 
     private NodeViewModel? _connectSourceNode;
@@ -125,12 +124,24 @@ public partial class MainWindow : Window
     {
         if (sender is FrameworkElement { DataContext: NodeViewModel node })
         {
-            _editor.Select(node);
+            // Grabbing a node that's already part of a multi-selection keeps the whole group (so the drag
+            // moves all of them); grabbing an unselected node selects just it.
+            if (!node.IsSelected)
+            {
+                _editor.Select(node);
+            }
 
             _draggingNode = node;
             _dragStartPointerOnCanvas = e.GetPosition(NodeHost);
-            _dragStartNodeX = node.X;
-            _dragStartNodeY = node.Y;
+            _dragNodes.Clear();
+            foreach (var n in _editor.Nodes.Where(n => n.IsSelected))
+            {
+                _dragNodes.Add((n, n.X, n.Y));
+            }
+            if (_dragNodes.Count == 0)
+            {
+                _dragNodes.Add((node, node.X, node.Y));
+            }
 
             ((UIElement)sender).CaptureMouse();
             NodeHost.MouseMove += NodeHost_MouseMove;
@@ -149,7 +160,10 @@ public partial class MainWindow : Window
         var current = e.GetPosition(NodeHost);
         var dx = current.X - _dragStartPointerOnCanvas.X;
         var dy = current.Y - _dragStartPointerOnCanvas.Y;
-        _editor.MoveNode(_draggingNode, _dragStartNodeX + dx, _dragStartNodeY + dy);
+        foreach (var (node, startX, startY) in _dragNodes)
+        {
+            _editor.MoveNode(node, startX + dx, startY + dy);
+        }
     }
 
     private void NodeHost_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
@@ -159,7 +173,8 @@ public partial class MainWindow : Window
             Mouse.Capture(null);
             NodeHost.MouseMove -= NodeHost_MouseMove;
             NodeHost.MouseLeftButtonUp -= NodeHost_MouseLeftButtonUp;
-            _editor.CommitMove(_draggingNode, _dragStartNodeX, _dragStartNodeY);
+            _editor.CommitMoves(_dragNodes);
+            _dragNodes.Clear();
             _draggingNode = null;
         }
     }
@@ -199,6 +214,18 @@ public partial class MainWindow : Window
         else if (e.Key == Key.Y && Keyboard.Modifiers == ModifierKeys.Control)
         {
             _editor.Redo();
+            e.Handled = true;
+        }
+        else if (e.Key == Key.C && Keyboard.Modifiers == ModifierKeys.Control)
+        {
+            if (e.OriginalSource is TextBox) return;   // let the textbox copy its text
+            _editor.CopySelection();
+            e.Handled = true;
+        }
+        else if (e.Key == Key.V && Keyboard.Modifiers == ModifierKeys.Control)
+        {
+            if (e.OriginalSource is TextBox) return;   // let the textbox paste text
+            _editor.Paste();
             e.Handled = true;
         }
     }
