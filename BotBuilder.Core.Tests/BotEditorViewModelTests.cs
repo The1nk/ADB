@@ -113,6 +113,24 @@ public class BotEditorViewModelTests
     }
 
     [Fact]
+    public void AddNode_TypeMismatch_LeavesUnassigned()
+    {
+        var editor = NewEditor();
+        SeedTarget(editor, BotTargetType.AndroidDevice);          // only an Android target
+        var node = editor.AddNode("input.click", 10, 10);          // a Window-category node
+        Assert.Null(node.TargetId);
+    }
+
+    [Fact]
+    public void AddNode_ScreenNodeWithLoneWindowTarget_AutoAssigns()
+    {
+        var editor = NewEditor();
+        var win = SeedTarget(editor, BotTargetType.Window);
+        var node = editor.AddNode("screen.findImage", 10, 10);
+        Assert.Equal(win.Id, node.TargetId);
+    }
+
+    [Fact]
     public void New_ClearsNodesAndDirty()
     {
         var editor = NewEditor();
