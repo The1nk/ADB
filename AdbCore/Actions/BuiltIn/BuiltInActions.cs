@@ -60,6 +60,12 @@ public static class BuiltInActions
         Add(new AndroidWaitForImageAction(templateMatcher, randomSource), definitions, executors);
         Add(new AndroidAssertImageAbsentAction(templateMatcher), definitions, executors);
 
+        // Android OCR (Tesseract; reuses the shared OCR engine + RNG).
+        Add(new AndroidReadTextAction(ocrEngine), definitions, executors);
+        Add(new AndroidFindTextAction(ocrEngine, randomSource), definitions, executors);
+        Add(new AndroidWaitForTextAction(ocrEngine, randomSource), definitions, executors);
+        Add(new AndroidAssertTextAbsentAction(ocrEngine), definitions, executors);
+
         // Browser (handle-based — the bound IBrowserPage is the ResolvedTarget handle; no injection).
         Add(new OpenUrlAction(), definitions, executors);
         Add(new BrowserClickAction(), definitions, executors);

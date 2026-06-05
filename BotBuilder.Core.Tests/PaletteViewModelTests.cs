@@ -30,7 +30,7 @@ public class PaletteViewModelTests
         Assert.Equal(6, input.Items.Count); // Click, Right Click, Double Click, Mouse Move, Type Text, Key Press
 
         var android = palette.Categories.Single(c => c.Name == "Android");
-        Assert.Equal(9, android.Items.Count); // Tap, Swipe, Press Back, Launch App, Install APK, Screenshot, Find Image, Wait for Image, Assert Image Absent
+        Assert.Equal(13, android.Items.Count); // Tap, Swipe, Press Back, Launch App, Install APK, Screenshot, Find Image, Wait for Image, Assert Image Absent, Read Text, Find Text, Wait for Text, Assert Text Absent
 
         var screen = palette.Categories.Single(c => c.Name == "Screen");
         Assert.Equal(8, screen.Items.Count); // Find/Wait/AssertAbsent Image + Screenshot + Read/Find/Wait/AssertAbsent Text
@@ -61,7 +61,7 @@ public class PaletteViewModelTests
         var palette = new PaletteViewModel(SeededRegistry()) { SearchText = "log" };
         palette.SearchText = "";
 
-        Assert.Equal(38, palette.Categories.SelectMany(c => c.Items).Count()); // 7 Control Flow + 3 Data + 6 Input + 8 Screen + 9 Android + 5 Browser
+        Assert.Equal(42, palette.Categories.SelectMany(c => c.Items).Count()); // 7 Control Flow + 3 Data + 6 Input + 8 Screen + 13 Android + 5 Browser
     }
 
     [Fact]
