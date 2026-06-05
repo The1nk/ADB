@@ -1,4 +1,3 @@
-using System.Linq;
 using AdbCore.Android;
 using AdbCore.Execution;
 using AdbCore.Models;
@@ -30,13 +29,7 @@ public abstract class AndroidActionBase : IActionDefinition, IActionExecutor
     /// <summary>The bound Android device for this action's target (explicit TargetId, or the sole target
     /// when unset); null when the target isn't a bound Android device.</summary>
     protected static IAndroidDevice? ResolveDevice(ActionExecutionContext context)
-    {
-        var targets = context.Context.Targets;
-        ResolvedTarget? target = context.Action.TargetId is Guid id
-            ? targets.TryGetValue(id, out var t) ? t : null
-            : targets.Count == 1 ? targets.Values.First() : null;
-        return target?.Handle as IAndroidDevice;
-    }
+        => TargetResolution.ResolveHandle<IAndroidDevice>(context);
 
     /// <summary>Standard "no device" failure message.</summary>
     protected ActionResult RequiresDevice() => ActionResult.Fail($"{DisplayName} requires a connected Android device target.");

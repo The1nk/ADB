@@ -44,13 +44,7 @@ public abstract class ScreenOcrActionBase : IActionDefinition, IActionExecutor
 
     /// <summary>Resolves the action's target HWND (explicit TargetId or the sole target).</summary>
     protected static IntPtr? ResolveWindow(ActionExecutionContext context)
-    {
-        var targets = context.Context.Targets;
-        ResolvedTarget? target = context.Action.TargetId is Guid id
-            ? targets.TryGetValue(id, out var t) ? t : null
-            : targets.Count == 1 ? targets.Values.First() : null;
-        return target?.Handle as IntPtr?;
-    }
+        => TargetResolution.ResolveHandle<IntPtr>(context);
 
     /// <summary>Captures the client area (Auto) and OCRs the configured region (full-frame word coords).</summary>
     protected OcrResult RecognizeWindow(ActionExecutionContext context, IntPtr hwnd)
