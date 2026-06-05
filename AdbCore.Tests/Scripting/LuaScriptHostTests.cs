@@ -62,6 +62,23 @@ public class LuaScriptHostTests
     }
 
     [Fact]
+    public void JsonEncode_NonTable_FailsCleanly()
+    {
+        var r = Run("vars.s = json.encode('not a table')", new Dictionary<string, object>());
+        Assert.False(r.Success);
+        Assert.NotNull(r.Error);
+    }
+
+    [Fact]
+    public void WritesStringVariableBack()
+    {
+        var vars = new Dictionary<string, object>();
+        var r = Run("vars.name = 'hello'", vars);
+        Assert.True(r.Success);
+        Assert.Equal("hello", vars["name"]);
+    }
+
+    [Fact]
     public void CleanScript_Succeeds()
     {
         var r = Run("local x = 1 + 1", new Dictionary<string, object>());

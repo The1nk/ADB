@@ -44,7 +44,10 @@ public sealed class LuaScriptHost
         // `json` table (MoonSharp's built-in JSON <-> Table converter).
         var json = new Table(script);
         json["parse"] = (Func<string, DynValue>)(s => DynValue.NewTable(JsonTableConverter.JsonToTable(s, script)));
-        json["encode"] = (Func<DynValue, string>)(v => JsonTableConverter.TableToJson(v.Table));
+        json["encode"] = (Func<DynValue, string>)(v =>
+            v.Type == DataType.Table
+                ? JsonTableConverter.TableToJson(v.Table)
+                : throw new ScriptRuntimeException("json.encode expects a table"));
         script.Globals["json"] = json;
 
         // `log(msg)`.
