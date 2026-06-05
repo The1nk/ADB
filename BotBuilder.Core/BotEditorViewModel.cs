@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using AdbCore.Actions;
+using AdbCore.Actions.BuiltIn;
 using AdbCore.Serialization;
 using BotBuilder.Core.Canvas;
 using BotBuilder.Core.Connections;
@@ -259,6 +260,47 @@ public partial class BotEditorViewModel : ObservableObject
         node.TargetId = targetId;
         RefreshTargetBadges();
         IsDirty = true;
+    }
+
+    /// <summary>Reconciles a Run Parallel node's branch ports to its current `branches` config value
+    /// (clamped to >= 2): grows/shrinks the output ports and, on a shrink, deletes the connections on the
+    /// dropped ports. The whole change is a single undoable step.</summary>
+    public void OnBranchCountChanged(NodeViewModel node)
+    {
+        var requested = ConfigValues.GetInt(node.Config, RunParallelAction.BranchesKey, RunParallelAction.DefaultBranchCount);
+        var newCount = Math.Max(2, requested);
+        var oldPorts = node.OutputPorts.ToList();
+        var oldCount = oldPorts.Count;
+
+        if (newCount == oldCount)
+        {
+            node.Config[RunParallelAction.BranchesKey] = newCount;
+            IsDirty = true;
+            return;
+        }
+
+        List<PortViewModel> newPorts;
+        List<ConnectionViewModel> removed;
+        if (newCount > oldCount)
+        {
+            newPorts = oldPorts.ToList();
+            for (var i = oldCount; i < newCount; i++)
+            {
+                newPorts.Add(NodeViewModel.BranchOutputPort(i));
+            }
+            removed = new List<ConnectionViewModel>();
+        }
+        else
+        {
+            newPorts = oldPorts.Take(newCount).ToList();
+            var dropped = oldPorts.Skip(newCount).ToHashSet();
+            removed = Connections
+                .Where(c => ReferenceEquals(c.Source, node) && dropped.Contains(c.SourcePort))
+                .ToList();
+        }
+
+        _undo.Execute(new SetBranchCountCommand(this, node, oldPorts, newPorts, oldCount, newCount, removed));
+        AfterEdit();
     }
 
     /// <summary>Recomputes every node's target badge: shown (the resolved target's name) only when the

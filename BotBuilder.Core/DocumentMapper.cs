@@ -1,4 +1,5 @@
 using AdbCore.Actions;
+using AdbCore.Actions.BuiltIn;
 using AdbCore.Models;
 using BotBuilder.Core.Connections;
 using BotBuilder.Core.Targets;
@@ -119,6 +120,11 @@ public static class DocumentMapper
 
         node.TargetId = action.TargetId;
         foreach (var kv in action.Config) { node.Config[kv.Key] = kv.Value; }
+        if (node.TypeKey == RunParallelAction.RunParallelTypeKey)
+        {
+            var branches = System.Math.Max(2, ConfigValues.GetInt(node.Config, RunParallelAction.BranchesKey, RunParallelAction.DefaultBranchCount));
+            node.SetBranchPortCount(branches);
+        }
         node.RetryMaxAttempts = action.Retry?.MaxAttempts ?? 1;
         node.RetryDelayMs = action.Retry?.DelayMs ?? 0;
         return node;

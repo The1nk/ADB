@@ -1,3 +1,4 @@
+using AdbCore.Actions.BuiltIn;
 using BotBuilder.Core.Connections;
 
 namespace BotBuilder.Core.Undo;
@@ -66,5 +67,50 @@ internal sealed class DeleteNodesCommand : IUndoableCommand
     {
         foreach (var n in _nodes) { _editor.AddNodeCore(n); }
         foreach (var c in _connections) { _editor.AddConnectionCore(c); }
+    }
+}
+
+/// <summary>Changes a Run Parallel node's branch-port count: swaps its output ports and removes the
+/// connections orphaned by a shrink. Undo restores the previous ports and re-adds those connections.</summary>
+internal sealed class SetBranchCountCommand : IUndoableCommand
+{
+    private readonly BotEditorViewModel _editor;
+    private readonly NodeViewModel _node;
+    private readonly IReadOnlyList<PortViewModel> _oldPorts;
+    private readonly IReadOnlyList<PortViewModel> _newPorts;
+    private readonly int _oldCount;
+    private readonly int _newCount;
+    private readonly IReadOnlyList<ConnectionViewModel> _removedConnections;
+
+    public SetBranchCountCommand(
+        BotEditorViewModel editor,
+        NodeViewModel node,
+        IReadOnlyList<PortViewModel> oldPorts,
+        IReadOnlyList<PortViewModel> newPorts,
+        int oldCount,
+        int newCount,
+        IReadOnlyList<ConnectionViewModel> removedConnections)
+    {
+        _editor = editor;
+        _node = node;
+        _oldPorts = oldPorts;
+        _newPorts = newPorts;
+        _oldCount = oldCount;
+        _newCount = newCount;
+        _removedConnections = removedConnections;
+    }
+
+    public void Do()
+    {
+        _node.Config[RunParallelAction.BranchesKey] = _newCount;
+        _node.ReplaceOutputPorts(_newPorts);
+        foreach (var c in _removedConnections) { _editor.RemoveConnectionCore(c); }
+    }
+
+    public void Undo()
+    {
+        _node.Config[RunParallelAction.BranchesKey] = _oldCount;
+        _node.ReplaceOutputPorts(_oldPorts);
+        foreach (var c in _removedConnections) { _editor.AddConnectionCore(c); }
     }
 }

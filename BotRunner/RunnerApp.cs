@@ -24,6 +24,7 @@ public sealed class RunnerApp
         // Throws CommandLineException before any file is opened if a declared target is unmatched.
         var resolvedTargets = TargetResolver.Resolve(bot, args.Targets);
 
+        IDisposable? builtInResources = null;
         try
         {
             // Resolve Window target selectors to live HWNDs before execution (Input/Screen need them).
@@ -41,7 +42,7 @@ public sealed class RunnerApp
 
             var definitions = new ActionRegistry();
             var executors = new ActionExecutorRegistry();
-            BuiltInActions.Register(definitions, executors);
+            builtInResources = BuiltInActions.Register(definitions, executors);
 
             var options = new ExecutionOptions
             {
@@ -59,6 +60,7 @@ public sealed class RunnerApp
         finally
         {
             await DisposeTargetHandlesAsync(resolvedTargets);
+            builtInResources?.Dispose();
         }
     }
 
