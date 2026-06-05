@@ -1,7 +1,9 @@
 using AdbCore.Actions;
 using AdbCore.Actions.BuiltIn;
 using AdbCore.Execution;
+using AdbCore.Models;
 using BotBuilder.Core;
+using BotBuilder.Core.Targets;
 using Xunit;
 
 namespace BotBuilder.Core.Tests;
@@ -56,6 +58,58 @@ public class BotEditorViewModelTests
         editor.Select(b);
         Assert.False(a.IsSelected);
         Assert.True(b.IsSelected);
+    }
+
+    private static TargetViewModel SeedTarget(BotEditorViewModel editor, BotTargetType type)
+    {
+        var target = editor.TargetBar.AddTarget();
+        target.Type = type;
+        return target;
+    }
+
+    [Fact]
+    public void AddNode_OneMatchingTypeTarget_AutoAssigns()
+    {
+        var editor = NewEditor();
+        var android = SeedTarget(editor, BotTargetType.AndroidDevice);
+
+        var node = editor.AddNode("android.findImage", 10, 10);
+
+        Assert.Equal(android.Id, node.TargetId);
+    }
+
+    [Fact]
+    public void AddNode_TwoMatchingTargets_LeavesUnassigned()
+    {
+        var editor = NewEditor();
+        SeedTarget(editor, BotTargetType.AndroidDevice);
+        SeedTarget(editor, BotTargetType.AndroidDevice);
+
+        var node = editor.AddNode("android.findImage", 10, 10);
+
+        Assert.Null(node.TargetId);
+    }
+
+    [Fact]
+    public void AddNode_TargetAgnosticNode_NeverAssigns()
+    {
+        var editor = NewEditor();
+        SeedTarget(editor, BotTargetType.AndroidDevice);
+
+        var node = editor.AddNode("control.branch", 10, 10);
+
+        Assert.Null(node.TargetId);
+    }
+
+    [Fact]
+    public void AddNode_WindowNodeWithLoneWindowTarget_AutoAssigns()
+    {
+        var editor = NewEditor();
+        var win = SeedTarget(editor, BotTargetType.Window);
+
+        var node = editor.AddNode("input.click", 10, 10);
+
+        Assert.Equal(win.Id, node.TargetId);
     }
 
     [Fact]
