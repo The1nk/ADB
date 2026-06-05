@@ -26,6 +26,25 @@ public class LuaScriptHostCancellationTests
     }
 
     [Fact]
+    public void AdapterCancellation_Propagates_AndDoesNotCommitVars()
+    {
+        var http = new AdbCore.Tests.Scripting.Fakes.FakeHttpRequester
+        {
+            OnSend = (m, u, b, h) => throw new System.OperationCanceledException()
+        };
+        var host = new LuaScriptHost(_ => { }, new AdbCore.Tests.Scripting.Fakes.FakeFileSystem(),
+            new AdbCore.Tests.Scripting.Fakes.FakeProcessRunner(), http);
+        var vars = new Dictionary<string, object> { ["pre"] = "original" };
+
+        // The script mutates `pre` then calls http.get, which throws OCE.
+        Assert.Throws<System.OperationCanceledException>(
+            () => host.Run("vars.pre = 'changed'; http.get('http://x')", vars, default));
+
+        // Cancellation skipped the write-back: the pre-existing value is untouched (no partial commit).
+        Assert.Equal("original", vars["pre"]);
+    }
+
+    [Fact]
     public void NotCancelled_CleanScriptStillSucceeds()
     {
         var host = new LuaScriptHost(_ => { });
