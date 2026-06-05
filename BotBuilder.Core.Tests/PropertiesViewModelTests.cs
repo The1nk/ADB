@@ -121,6 +121,18 @@ public class PropertiesViewModelTests
     }
 
     [Fact]
+    public void SupportsRegionPicking_TrueForActionsWithRegionFields_FalseOtherwise()
+    {
+        var e = BuiltInEditor();
+
+        e.Select(e.AddNode("screen.findImage", 0, 0));
+        Assert.True(e.Properties.SupportsRegionPicking);
+
+        e.Select(e.AddNode("data.log", 0, 0));
+        Assert.False(e.Properties.SupportsRegionPicking);
+    }
+
+    [Fact]
     public void EditingRunParallelBranchesField_GrowsOutputPorts()
     {
         var e = BuiltInEditor();

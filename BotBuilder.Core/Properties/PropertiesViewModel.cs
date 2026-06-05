@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Linq;
 using AdbCore.Actions;
 using AdbCore.Actions.BuiltIn;
 using BotBuilder.Core.Picker;
@@ -35,6 +36,12 @@ public partial class PropertiesViewModel : ObservableObject
 
     /// <summary>Whether the selected action exposes coordinate fields the picker can fill.</summary>
     public bool SupportsCoordinatePicking => Node is not null && CoordinateFieldMap.Supports(Node.TypeKey);
+
+    /// <summary>Whether the selected action exposes ROI region fields the region picker can fill.</summary>
+    public bool SupportsRegionPicking =>
+        Node is not null
+        && _registry.TryGet(Node.TypeKey, out var def) && def is not null
+        && def.ConfigFields.Any(f => f.Key == TemplateMatchCore.RegionWidthKey);
 
     /// <summary>The selected node's assigned target id (null = the default first target).</summary>
     public Guid? SelectedTargetId
@@ -89,5 +96,6 @@ public partial class PropertiesViewModel : ObservableObject
         OnPropertyChanged(nameof(SelectedTargetId));
         OnPropertyChanged(nameof(Targets));
         OnPropertyChanged(nameof(SupportsCoordinatePicking));
+        OnPropertyChanged(nameof(SupportsRegionPicking));
     }
 }
