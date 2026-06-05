@@ -51,11 +51,13 @@ public partial class NodeViewModel : ObservableObject
     /// <summary>Builds a node from an action definition, deriving ports/category from it.</summary>
     public static NodeViewModel FromDefinition(IActionDefinition definition, Guid id, string label, double x, double y)
     {
+        var outCount = definition.OutputPorts.Count;
+        var height = NodeLayout.CardHeight(outCount);
         var inputs = definition.InputPorts
-            .Select((p, i) => new PortViewModel(p.Name, PortDirection.In, NodeLayout.InputAnchor(i)))
+            .Select((p, i) => new PortViewModel(p.Name, PortDirection.In, NodeLayout.LeftAnchor(i, definition.InputPorts.Count, height)))
             .ToList();
         var outputs = definition.OutputPorts
-            .Select((p, i) => new PortViewModel(p.Name, PortDirection.Out, NodeLayout.OutputAnchor(i)))
+            .Select((p, i) => new PortViewModel(p.Name, PortDirection.Out, NodeLayout.RightAnchor(i, outCount, height)))
             .ToList();
 
         return new NodeViewModel(
@@ -69,9 +71,10 @@ public partial class NodeViewModel : ObservableObject
             y);
     }
 
-    /// <summary>Builds the output PortViewModel for a 0-based branch index (Run Parallel dynamic ports).</summary>
+    /// <summary>Builds the output PortViewModel for a 0-based branch index (Run Parallel dynamic ports).
+    /// NOTE: count/height are provisional placeholders; Task 2 will supply the real values.</summary>
     public static PortViewModel BranchOutputPort(int zeroBasedIndex) =>
-        new(RunParallelAction.BranchPort(zeroBasedIndex + 1), PortDirection.Out, NodeLayout.OutputAnchor(zeroBasedIndex));
+        new(RunParallelAction.BranchPort(zeroBasedIndex + 1), PortDirection.Out, NodeLayout.RightAnchor(zeroBasedIndex, 1, NodeLayout.CardHeight_Default));
 
     /// <summary>Grows or shrinks the output ports to exactly <paramref name="count"/> branch ports,
     /// preserving existing instances. Non-undoable primitive (used on load and by the undo command's snapshots).</summary>

@@ -64,7 +64,7 @@ public class NodeViewModelPortsTests
     {
         var node = RunParallelNode();
         var replacement = RunParallelAction.OutputPortsForBranches(3)
-            .Select((p, i) => new PortViewModel(p.Name, PortDirection.Out, NodeLayout.OutputAnchor(i)))
+            .Select((p, i) => new PortViewModel(p.Name, PortDirection.Out, NodeLayout.RightAnchor(i, 3, NodeLayout.CardHeight(3))))
             .ToList();
 
         node.ReplaceOutputPorts(replacement);
