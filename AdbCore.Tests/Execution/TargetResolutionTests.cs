@@ -98,6 +98,32 @@ public class TargetResolutionTests
         Assert.NotNull(TargetResolution.ResolveHandle<IAndroidDevice>(Make(ctx, null)));
     }
 
+    [Fact]
+    public void Explicit_RightType_ResolvesWindowTarget()
+    {
+        var (ctx, _, windowId) = MixedContext();
+        var hwnd = TargetResolution.ResolveHandle<IntPtr>(Make(ctx, windowId));
+        Assert.Equal((IntPtr)0x1234, hwnd);
+    }
+
+    [Fact]
+    public void Explicit_NullHandle_ReturnsDefault()
+    {
+        var ctx = new BotExecutionContext();
+        var id = System.Guid.NewGuid();
+        ctx.Targets[id] = new ResolvedTarget { Handle = null };
+        Assert.Null(TargetResolution.ResolveHandle<IAndroidDevice>(Make(ctx, id)));
+    }
+
+    [Fact]
+    public void Unassigned_TwoOfType_Window_IsAmbiguous_ReturnsDefault()
+    {
+        var ctx = new BotExecutionContext();
+        ctx.Targets[System.Guid.NewGuid()] = new ResolvedTarget { Handle = (IntPtr)0x10 };
+        ctx.Targets[System.Guid.NewGuid()] = new ResolvedTarget { Handle = (IntPtr)0x20 };
+        Assert.Equal(IntPtr.Zero, TargetResolution.ResolveHandle<IntPtr>(Make(ctx, null)));
+    }
+
     private static IAndroidDevice NewAndroidDevice() => new FakeAndroidDevice();
     private static IBrowserPage NewBrowserPage() => new FakeBrowserPage();
 }
