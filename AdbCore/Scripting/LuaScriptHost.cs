@@ -65,6 +65,9 @@ public sealed class LuaScriptHost
         // `log(msg)`.
         script.Globals["log"] = (Action<DynValue>)(v => _log(v is null || v.IsNil() ? "" : v.ToPrintString()));
 
+        // `fs` table (read/write/copy/move/exists/delete).
+        script.Globals["fs"] = Modules.FsModule.Build(script, _fs);
+
         try
         {
             script.DoString(scriptText);
