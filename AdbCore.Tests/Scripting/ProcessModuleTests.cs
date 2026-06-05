@@ -45,6 +45,15 @@ public class ProcessModuleTests
     }
 
     [Fact]
+    public void Run_NonTableArgs_RoutesToFailure()
+    {
+        var proc = new FakeProcessRunner();
+        var r = Run("process.run('git', 'status')", proc, new Dictionary<string, object>());
+        Assert.False(r.Success);
+        Assert.Contains("must be a table", r.Error);
+    }
+
+    [Fact]
     public void Run_StartFailure_RoutesToFailure()
     {
         var proc = new FakeProcessRunner { OnRun = (cmd, args) => throw new InvalidOperationException("cannot start") };

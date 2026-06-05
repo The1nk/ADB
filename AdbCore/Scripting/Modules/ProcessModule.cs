@@ -22,6 +22,10 @@ internal static class ProcessModule
                     list.Add(args[1].Table.Get(i).CastToString());
                 argList = list;
             }
+            else if (args.Count > 1 && args[1].Type != DataType.Nil)
+            {
+                throw new ScriptRuntimeException("process.run: second argument must be a table of string arguments");
+            }
 
             ProcessResult result;
             try { result = runner.Run(command, argList, ct); }
