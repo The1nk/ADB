@@ -2,6 +2,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using AdbCore.Actions;
+using AdbUi.Theme;
 using AdbCore.Actions.BuiltIn;
 using AdbCore.Execution;
 using BotBuilder.Core;
@@ -43,6 +44,29 @@ public partial class MainWindow : Window
         BuiltInActions.Register(registry, new ActionExecutorRegistry());
         _editor = new BotEditorViewModel(registry);
         DataContext = _editor;
+        SyncThemeChecks();
+    }
+
+    private void ThemeSystem_Click(object sender, RoutedEventArgs e) => SetTheme(ThemeSelection.System);
+    private void ThemeLight_Click(object sender, RoutedEventArgs e) => SetTheme(ThemeSelection.Light);
+    private void ThemeDark_Click(object sender, RoutedEventArgs e) => SetTheme(ThemeSelection.Dark);
+    private void ThemeHighContrast_Click(object sender, RoutedEventArgs e) => SetTheme(ThemeSelection.HighContrast);
+
+    private void SetTheme(ThemeSelection selection)
+    {
+        ((App)Application.Current).Theme.Apply(selection);
+        SyncThemeChecks();
+    }
+
+    // Reflects the active selection as the single checked item (radio-style). Called on startup and after
+    // each change. OS-follow changes keep the selection at System, so no checkmark update is needed for them.
+    private void SyncThemeChecks()
+    {
+        var selection = ((App)Application.Current).Theme.CurrentSelection;
+        ThemeSystemItem.IsChecked = selection == ThemeSelection.System;
+        ThemeLightItem.IsChecked = selection == ThemeSelection.Light;
+        ThemeDarkItem.IsChecked = selection == ThemeSelection.Dark;
+        ThemeHighContrastItem.IsChecked = selection == ThemeSelection.HighContrast;
     }
 
     private void New_Click(object sender, RoutedEventArgs e) => _editor.New();
