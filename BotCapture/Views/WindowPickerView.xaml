@@ -11,7 +11,7 @@
             <Button Content="Capture Selected" Click="OnCapture" Width="140" Margin="8,0,0,0" />
             <Button Content="Use This Capture →" Click="OnUseCapture" Width="150" Margin="8,0,0,0"
                     IsEnabled="{Binding HasCapture}" />
-            <TextBlock Text="{Binding StatusMessage}" Foreground="DarkRed" Margin="12,4,0,0" />
+            <TextBlock Text="{Binding StatusMessage}" Foreground="{DynamicResource ErrorBrush}" Margin="12,4,0,0" />
         </StackPanel>
         <Grid>
             <Grid.ColumnDefinitions>
@@ -28,13 +28,13 @@
                                    Source="{Binding ThumbnailPng, Converter={StaticResource PngToImage}}" />
                             <StackPanel VerticalAlignment="Center">
                                 <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-                                <TextBlock Text="{Binding ProcessName}" Foreground="Gray" FontSize="11" />
+                                <TextBlock Text="{Binding ProcessName}" Foreground="{DynamicResource SecondaryTextBrush}" FontSize="11" />
                             </StackPanel>
                         </StackPanel>
                     </DataTemplate>
                 </ListBox.ItemTemplate>
             </ListBox>
-            <Border Grid.Column="1" BorderBrush="LightGray" BorderThickness="1" Margin="8,0,0,0">
+            <Border Grid.Column="1" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" Margin="8,0,0,0">
                 <Image x:Name="CapturedPreview" Stretch="Uniform" Margin="4" />
             </Border>
         </Grid>

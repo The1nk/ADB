@@ -13,9 +13,9 @@
                 <Button Content="Browse…" Click="OnBrowse" Width="80" Margin="8,0,0,0" />
             </StackPanel>
             <Button Content="+ New Capture" Click="OnNewCapture" HorizontalAlignment="Left" Width="140" Margin="0,0,0,8" />
-            <TextBlock Text="Saved this session (double-click a row to re-edit):" Foreground="Gray" Margin="0,0,0,4" />
+            <TextBlock Text="Saved this session (double-click a row to re-edit):" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,4" />
         </StackPanel>
-        <Border BorderBrush="LightGray" BorderThickness="1">
+        <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1">
             <ListBox x:Name="RowList" ItemsSource="{Binding Rows}" HorizontalContentAlignment="Stretch"
                      MouseDoubleClick="OnRowDoubleClick">
                 <ListBox.ItemTemplate>
@@ -32,7 +32,7 @@
                             <TextBlock Grid.Column="1" Text="{Binding Confidence, StringFormat=F2}" Width="48"
                                        VerticalAlignment="Center" />
                             <Ellipse Grid.Column="2" Width="14" Height="14" Margin="7,0" VerticalAlignment="Center"
-                                     Stroke="Gray" StrokeThickness="0.5"
+                                     Stroke="{DynamicResource SecondaryTextBrush}" StrokeThickness="0.5"
                                      Fill="{Binding LastRetestMatched, Converter={StaticResource Retest}}" />
                             <Button Grid.Column="3" Content="Re-test" Click="OnRetest" Tag="{Binding}" Margin="4,0,0,0" />
                             <Button Grid.Column="4" Content="🗑" Click="OnDelete" Tag="{Binding}" Margin="4,0,0,0" />

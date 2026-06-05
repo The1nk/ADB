@@ -9,11 +9,11 @@
 
         <StackPanel Grid.Column="0" Margin="0,0,16,0">
             <TextBlock Text="Preview (1×)" FontWeight="SemiBold" />
-            <Border BorderBrush="LightGray" BorderThickness="1" Margin="0,2,0,8">
+            <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" Margin="0,2,0,8">
                 <Image x:Name="Preview1x" Stretch="None" />
             </Border>
             <TextBlock Text="Preview (2×)" FontWeight="SemiBold" />
-            <Border BorderBrush="LightGray" BorderThickness="1" Margin="0,2,0,0">
+            <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" Margin="0,2,0,0">
                 <Image x:Name="Preview2x" Stretch="Fill" />
             </Border>
         </StackPanel>
@@ -38,7 +38,7 @@
                 <Button Content="Save" Click="OnSave" Width="100" />
                 <Button Content="Retake" Click="OnRetake" Width="100" Margin="8,0,0,0" />
             </StackPanel>
-            <TextBlock x:Name="SaveStatus" Foreground="Green" Margin="0,8,0,0" />
+            <TextBlock x:Name="SaveStatus" Foreground="{DynamicResource SuccessBrush}" Margin="0,8,0,0" />
         </StackPanel>
     </Grid>
 </UserControl>
