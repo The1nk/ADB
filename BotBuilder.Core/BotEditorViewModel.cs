@@ -207,6 +207,42 @@ public partial class BotEditorViewModel : ObservableObject
     /// them re-created by port name, added as one undoable step and selected. No-op when the clipboard is empty.</summary>
     public void Paste()
     {
+        if (_clipboard is null || _clipboard.Nodes.Count == 0) return;
+        const double dx = 24, dy = 24;
+
+        var newNodes = new List<NodeViewModel>(_clipboard.Nodes.Count);
+        foreach (var clip in _clipboard.Nodes)
+        {
+            var definition = _registry.Get(clip.TypeKey);
+            var node = NodeViewModel.FromDefinition(definition, Guid.NewGuid(), clip.Label, clip.X + dx, clip.Y + dy);
+            node.TargetId = clip.TargetId;
+            node.RetryMaxAttempts = clip.RetryMaxAttempts;
+            node.RetryDelayMs = clip.RetryDelayMs;
+            node.Config.Clear();
+            foreach (var kv in clip.Config) { node.Config[kv.Key] = kv.Value; }
+            if (node.TypeKey == RunParallelAction.RunParallelTypeKey)
+            {
+                node.SetBranchPortCount(Math.Max(2, ConfigValues.GetInt(node.Config, RunParallelAction.BranchesKey, RunParallelAction.DefaultBranchCount)));
+            }
+            newNodes.Add(node);
+        }
+
+        var newConnections = new List<ConnectionViewModel>(_clipboard.Connections.Count);
+        foreach (var cc in _clipboard.Connections)
+        {
+            var source = newNodes[cc.SourceIndex];
+            var target = newNodes[cc.TargetIndex];
+            var sp = source.OutputPorts.FirstOrDefault(p => p.Name == cc.SourcePort);
+            var tp = target.InputPorts.FirstOrDefault(p => p.Name == cc.TargetPort);
+            if (sp is not null && tp is not null)
+            {
+                newConnections.Add(new ConnectionViewModel(Guid.NewGuid(), source, sp, target, tp));
+            }
+        }
+
+        _undo.Execute(new PasteCommand(this, newNodes, newConnections));
+        SelectNodes(newNodes);
+        AfterEdit();
     }
 
     public void Undo()

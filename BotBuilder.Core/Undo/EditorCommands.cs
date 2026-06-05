@@ -70,6 +70,33 @@ internal sealed class DeleteNodesCommand : IUndoableCommand
     }
 }
 
+/// <summary>Adds a pasted set of nodes and connections; undo removes them.</summary>
+internal sealed class PasteCommand : IUndoableCommand
+{
+    private readonly BotEditorViewModel _editor;
+    private readonly IReadOnlyList<NodeViewModel> _nodes;
+    private readonly IReadOnlyList<ConnectionViewModel> _connections;
+
+    public PasteCommand(BotEditorViewModel editor, IReadOnlyList<NodeViewModel> nodes, IReadOnlyList<ConnectionViewModel> connections)
+    {
+        _editor = editor;
+        _nodes = nodes;
+        _connections = connections;
+    }
+
+    public void Do()
+    {
+        foreach (var n in _nodes) { _editor.AddNodeCore(n); }
+        foreach (var c in _connections) { _editor.AddConnectionCore(c); }
+    }
+
+    public void Undo()
+    {
+        foreach (var c in _connections) { _editor.RemoveConnectionCore(c); }
+        foreach (var n in _nodes) { _editor.RemoveNodeCore(n); }
+    }
+}
+
 /// <summary>Changes a Run Parallel node's branch-port count: swaps its output ports and removes the
 /// connections orphaned by a shrink. Undo restores the previous ports and re-adds those connections.</summary>
 internal sealed class SetBranchCountCommand : IUndoableCommand
