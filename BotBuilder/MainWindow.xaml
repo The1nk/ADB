@@ -208,7 +208,7 @@
                         </ItemsControl.ItemContainerStyle>
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
-                                <Border Width="160" MinHeight="70" CornerRadius="6" Background="White"
+                                <Border Width="160" Height="{Binding Height}" CornerRadius="6" Background="White"
                                         BorderThickness="2"
                                         MouseLeftButtonDown="Node_MouseLeftButtonDown">
                                     <Border.BorderBrush>
