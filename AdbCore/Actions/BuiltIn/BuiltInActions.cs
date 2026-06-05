@@ -3,6 +3,7 @@ using AdbCore.Actions.BuiltIn.Browser;
 using AdbCore.Execution;
 using AdbCore.Input;
 using AdbCore.Screen;
+using AdbCore.Window;
 
 namespace AdbCore.Actions.BuiltIn;
 
@@ -69,6 +70,9 @@ public static class BuiltInActions
         Add(new AndroidFindTextAction(ocrEngine, randomSource), definitions, executors);
         Add(new AndroidWaitForTextAction(ocrEngine, randomSource), definitions, executors);
         Add(new AndroidAssertTextAbsentAction(ocrEngine), definitions, executors);
+
+        // Window actions (injected activator; same HWND resolution as Screen/Input).
+        Add(new ActivateWindowAction(new Win32WindowActivator()), definitions, executors);
 
         // Browser (handle-based — the bound IBrowserPage is the ResolvedTarget handle; no injection).
         Add(new OpenUrlAction(), definitions, executors);

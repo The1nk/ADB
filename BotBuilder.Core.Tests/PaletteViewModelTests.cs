@@ -37,6 +37,9 @@ public class PaletteViewModelTests
 
         var scripting = palette.Categories.Single(c => c.Name == "Scripting");
         Assert.Single(scripting.Items); // Run Lua Script
+
+        var window = palette.Categories.Single(c => c.Name == "Window");
+        Assert.Single(window.Items); // Activate Window
     }
 
     [Fact]
@@ -64,7 +67,7 @@ public class PaletteViewModelTests
         var palette = new PaletteViewModel(SeededRegistry()) { SearchText = "log" };
         palette.SearchText = "";
 
-        Assert.Equal(44, palette.Categories.SelectMany(c => c.Items).Count()); // 7 Control Flow + 4 Data + 1 Scripting + 6 Input + 8 Screen + 13 Android + 5 Browser
+        Assert.Equal(45, palette.Categories.SelectMany(c => c.Items).Count()); // 7 Control Flow + 4 Data + 1 Scripting + 6 Input + 8 Screen + 13 Android + 5 Browser + 1 Window
     }
 
     [Fact]
