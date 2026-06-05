@@ -1,6 +1,8 @@
 <Solution>
   <Project Path="AdbCore.Tests/AdbCore.Tests.csproj" />
   <Project Path="AdbCore/AdbCore.csproj" />
+  <Project Path="AdbUi.Theme.Tests/AdbUi.Theme.Tests.csproj" />
+  <Project Path="AdbUi.Theme/AdbUi.Theme.csproj" />
   <Project Path="BotBuilder.Core.Tests/BotBuilder.Core.Tests.csproj" />
   <Project Path="BotBuilder.Core/BotBuilder.Core.csproj" />
   <Project Path="BotBuilder/BotBuilder.csproj" />
