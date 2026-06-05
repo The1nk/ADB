@@ -1,3 +1,4 @@
+using System.Linq;
 using AdbCore.Actions;
 using AdbCore.Actions.BuiltIn;
 using AdbCore.Execution;
@@ -117,5 +118,30 @@ public class PropertiesViewModelTests
         {
             if (File.Exists(path)) File.Delete(path);
         }
+    }
+
+    [Fact]
+    public void SupportsRegionPicking_TrueForActionsWithRegionFields_FalseOtherwise()
+    {
+        var e = BuiltInEditor();
+
+        e.Select(e.AddNode("screen.findImage", 0, 0));
+        Assert.True(e.Properties.SupportsRegionPicking);
+
+        e.Select(e.AddNode("data.log", 0, 0));
+        Assert.False(e.Properties.SupportsRegionPicking);
+    }
+
+    [Fact]
+    public void EditingRunParallelBranchesField_GrowsOutputPorts()
+    {
+        var e = BuiltInEditor();
+        var rp = e.AddNode(RunParallelAction.RunParallelTypeKey, 0, 0);
+        e.Select(rp);
+
+        var branchesField = e.Properties.Fields.Single(f => f.Key == RunParallelAction.BranchesKey);
+        branchesField.Value = 4d;
+
+        Assert.Equal(4, rp.OutputPorts.Count);
     }
 }
