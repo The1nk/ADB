@@ -92,9 +92,9 @@ public partial class NodeViewModel : ObservableObject
     }
 
     /// <summary>Builds the output PortViewModel for a 0-based Run Parallel branch index (right edge).
-    /// Anchor is provisional — the owning node re-anchors all branch ports via <see cref="SetBranchPortCount"/>
-    /// (or <see cref="ReplaceOutputPorts"/>) once the final branch count/height is known. Task 4 will route the
-    /// undoable branch-count command through <see cref="SetBranchPortCount"/> so this stays consistent.</summary>
+    /// The anchor is a placeholder; the owning node immediately re-anchors all branch ports via
+    /// <see cref="ReplaceOutputPorts"/> (grow path) or <see cref="SetBranchPortCount"/> once it recomputes
+    /// its layout for the final branch count/height.</summary>
     public static PortViewModel BranchOutputPort(int zeroBasedIndex) =>
         new(RunParallelAction.BranchPort(zeroBasedIndex + 1), PortDirection.Out, PortEdge.Right, default);
 
