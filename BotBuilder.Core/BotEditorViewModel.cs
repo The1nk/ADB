@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using AdbCore.Actions;
 using AdbCore.Actions.BuiltIn;
+using AdbCore.Models;
 using AdbCore.Serialization;
 using BotBuilder.Core.Canvas;
 using BotBuilder.Core.Connections;
@@ -56,9 +57,24 @@ public partial class BotEditorViewModel : ObservableObject
     {
         var definition = _registry.Get(typeKey);
         var node = NodeViewModel.FromDefinition(definition, Guid.NewGuid(), definition.DisplayName, x, y);
+        node.TargetId = AutoTargetFor(definition.Category);
         _undo.Execute(new AddNodeCommand(this, node));
         AfterEdit();
         return node;
+    }
+
+    /// <summary>The lone target whose type matches the node's category, or null when the category is
+    /// target-agnostic or there isn't exactly one matching-type target.</summary>
+    private Guid? AutoTargetFor(string category)
+    {
+        if (NodeTargetType.For(category) is not BotTargetType type) return null;
+        Guid? found = null;
+        var count = 0;
+        foreach (var t in TargetBar.Targets)
+        {
+            if (t.Type == type) { found = t.Id; count++; }
+        }
+        return count == 1 ? found : null;
     }
 
     public void MoveNode(NodeViewModel node, double x, double y)
