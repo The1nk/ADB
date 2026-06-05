@@ -201,6 +201,16 @@ public partial class MainWindow : Window
             _editor.Redo();
             e.Handled = true;
         }
+        else if (e.Key == Key.C && Keyboard.Modifiers == ModifierKeys.Control)
+        {
+            _editor.CopySelection();
+            e.Handled = true;
+        }
+        else if (e.Key == Key.V && Keyboard.Modifiers == ModifierKeys.Control)
+        {
+            _editor.Paste();
+            e.Handled = true;
+        }
     }
 
     private void Connection_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
