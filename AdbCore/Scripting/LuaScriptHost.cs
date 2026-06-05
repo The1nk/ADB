@@ -9,11 +9,23 @@ namespace AdbCore.Scripting;
 public sealed class LuaScriptHost
 {
     private readonly Action<string> _log;
+    private readonly IFileSystem _fs;
+    private readonly IProcessRunner _process;
+    private readonly IHttpRequester _http;
 
     public LuaScriptHost(Action<string> log)
+        : this(log, new LiveFileSystem(), new LiveProcessRunner(), new HttpRequester()) { }
+
+    public LuaScriptHost(Action<string> log, IFileSystem fileSystem, IProcessRunner processRunner, IHttpRequester httpRequester)
     {
         ArgumentNullException.ThrowIfNull(log);
+        ArgumentNullException.ThrowIfNull(fileSystem);
+        ArgumentNullException.ThrowIfNull(processRunner);
+        ArgumentNullException.ThrowIfNull(httpRequester);
         _log = log;
+        _fs = fileSystem;
+        _process = processRunner;
+        _http = httpRequester;
     }
 
     public readonly record struct Result(bool Success, string? Error);
