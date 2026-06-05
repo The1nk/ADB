@@ -11,6 +11,7 @@ public class NodeTargetTypeTests
     [InlineData("Browser", BotTargetType.Browser)]
     [InlineData("Screen", BotTargetType.Window)]
     [InlineData("Input", BotTargetType.Window)]
+    [InlineData("Window", BotTargetType.Window)]
     public void For_KnownCategories_MapToTargetType(string category, BotTargetType expected)
         => Assert.Equal(expected, NodeTargetType.For(category));
 
