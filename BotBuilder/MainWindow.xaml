@@ -114,6 +114,8 @@
                                               SelectedItem="{Binding Type}" Margin="4,0" VerticalAlignment="Center" />
                                     <TextBox Text="{Binding Selector, UpdateSourceTrigger=PropertyChanged}" Width="130"
                                              VerticalAlignment="Center" ToolTip="selector" />
+                                    <Button Content="Pick…" Click="PickSelector_Click" Margin="4,0,0,0" Padding="4,0"
+                                            ToolTip="Pick from open windows / devices / browsers" />
                                     <Button Content="x" Click="RemoveTarget_Click" Margin="4,0,0,0" Padding="4,0"
                                             ToolTip="Remove target" />
                                 </StackPanel>

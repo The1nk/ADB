@@ -189,6 +189,19 @@ public partial class MainWindow : Window
         }
     }
 
+    private void PickSelector_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement { DataContext: BotBuilder.Core.Targets.TargetViewModel target })
+        {
+            var dialog = new SelectorPickerDialog(target.Type, new AdbCore.Targets.Win32WindowEnumerator()) { Owner = this };
+            if (dialog.ShowDialog() == true && dialog.ChosenSelector is string selector)
+            {
+                target.Selector = selector;
+                _editor.MarkDirty();
+            }
+        }
+    }
+
     private void Undo_Click(object sender, RoutedEventArgs e) => _editor.Undo();
     private void Redo_Click(object sender, RoutedEventArgs e) => _editor.Redo();
     private void Delete_Click(object sender, RoutedEventArgs e) => _editor.DeleteSelection();
