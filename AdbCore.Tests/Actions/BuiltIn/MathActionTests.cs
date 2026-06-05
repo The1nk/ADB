@@ -134,6 +134,14 @@ public class MathActionTests
     }
 
     [Fact]
+    public void NonNumericRightOperand_Fails()
+    {
+        var (res, _) = Run(MathAction.OpAdd, "3", "abc");
+        Assert.False(res.Success);
+        Assert.Contains("not a number", res.ErrorMessage);
+    }
+
+    [Fact]
     public void EmptyResultVariable_Fails()
     {
         var (res, _) = Run(MathAction.OpAdd, "1", "2", resultVar: "");
