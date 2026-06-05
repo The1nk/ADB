@@ -71,6 +71,9 @@ public sealed class LuaScriptHost
         // `process` table (run -> { exitCode, stdout, stderr }).
         script.Globals["process"] = Modules.ProcessModule.Build(script, _process, ct);
 
+        // `http` table (get/post -> { status, body, headers }).
+        script.Globals["http"] = Modules.HttpModule.Build(script, _http, ct);
+
         try
         {
             script.DoString(scriptText);
