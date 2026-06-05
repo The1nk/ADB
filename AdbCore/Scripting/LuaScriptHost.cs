@@ -62,13 +62,23 @@ public sealed class LuaScriptHost
             return new Result(false, ex.DecoratedMessage ?? ex.Message);
         }
 
-        // Write the final `vars` table back to the bot variables (string keys only).
+        // Write the final `vars` table back to the bot variables (string keys only). A nil final value
+        // means "unset" (spec model: nil = unset), so remove the key rather than storing a CLR null.
+        // Pre-existing keys that the script set to nil are dropped from the Lua table and so never appear
+        // in vars.Pairs — handle their removal explicitly by checking the current table value per key.
+        foreach (var key in variables.Keys.ToList())
+        {
+            if (vars.Get(key).IsNil())
+                variables.Remove(key);
+        }
         foreach (var pair in vars.Pairs)
         {
-            if (pair.Key.Type == DataType.String)
-            {
-                variables[pair.Key.String] = LuaValues.ToClr(pair.Value)!;
-            }
+            if (pair.Key.Type != DataType.String) continue;
+            var key = pair.Key.String;
+            if (pair.Value.IsNil())
+                variables.Remove(key);
+            else
+                variables[key] = LuaValues.ToClr(pair.Value)!;
         }
 
         return new Result(true, null);

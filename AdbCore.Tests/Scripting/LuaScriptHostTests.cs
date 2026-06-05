@@ -79,6 +79,15 @@ public class LuaScriptHostTests
     }
 
     [Fact]
+    public void NilAssignment_RemovesVariable()
+    {
+        var vars = new Dictionary<string, object> { ["gone"] = "here" };
+        var r = Run("vars.gone = nil", vars);
+        Assert.True(r.Success);
+        Assert.False(vars.ContainsKey("gone"));
+    }
+
+    [Fact]
     public void CleanScript_Succeeds()
     {
         var r = Run("local x = 1 + 1", new Dictionary<string, object>());
