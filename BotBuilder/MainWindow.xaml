@@ -90,6 +90,8 @@
                 <MenuItem Header="_Redo" Click="Redo_Click" InputGestureText="Ctrl+Y" />
                 <Separator />
                 <MenuItem Header="_Delete" Click="Delete_Click" InputGestureText="Del" />
+                <Separator />
+                <MenuItem Header="_Tidy Up" Click="TidyUp_Click" InputGestureText="Ctrl+L" />
             </MenuItem>
             <MenuItem Header="_Run">
                 <MenuItem Header="_Test Run..." Click="TestRun_Click" InputGestureText="F5" />

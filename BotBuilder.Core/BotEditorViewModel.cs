@@ -110,6 +110,27 @@ public partial class BotEditorViewModel : ObservableObject
         AfterEdit();
     }
 
+    /// <summary>Re-arranges all nodes into a tidy left-to-right layered layout, as one undoable step.</summary>
+    public void AutoLayout()
+    {
+        if (Nodes.Count == 0) return;
+        var nodes = Nodes.Select(n => (n.Id, n.Height)).ToList();
+        var edges = Connections.Select(c => (c.Source.Id, c.Target.Id)).ToList();
+        var positions = BotBuilder.Core.Layout.AutoLayout.Arrange(nodes, edges);
+
+        var moves = new List<(NodeViewModel Node, double OldX, double OldY)>();
+        foreach (var node in Nodes)
+        {
+            if (positions.TryGetValue(node.Id, out var p))
+            {
+                var oldX = node.X; var oldY = node.Y;
+                node.X = p.X; node.Y = p.Y;
+                moves.Add((node, oldX, oldY));
+            }
+        }
+        CommitMoves(moves);   // records a single MoveNodesCommand (no-op-safe)
+    }
+
     public ConnectionError Connect(NodeViewModel source, PortViewModel sourcePort, NodeViewModel target, PortViewModel targetPort)
     {
         var error = ConnectionValidator.Validate(Connections, source, sourcePort, target, targetPort);

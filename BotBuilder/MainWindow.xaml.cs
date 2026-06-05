@@ -205,6 +205,7 @@ public partial class MainWindow : Window
     private void Undo_Click(object sender, RoutedEventArgs e) => _editor.Undo();
     private void Redo_Click(object sender, RoutedEventArgs e) => _editor.Redo();
     private void Delete_Click(object sender, RoutedEventArgs e) => _editor.DeleteSelection();
+    private void TidyUp_Click(object sender, RoutedEventArgs e) => _editor.AutoLayout();
 
     private void Window_KeyDown(object sender, KeyEventArgs e)
     {
@@ -239,6 +240,12 @@ public partial class MainWindow : Window
         {
             if (e.OriginalSource is TextBox) return;   // let the textbox paste text
             _editor.Paste();
+            e.Handled = true;
+        }
+        else if (e.Key == Key.L && Keyboard.Modifiers == ModifierKeys.Control)
+        {
+            if (e.OriginalSource is TextBox) return;   // let the textbox handle Ctrl+L if focused
+            _editor.AutoLayout();
             e.Handled = true;
         }
     }
