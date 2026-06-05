@@ -30,8 +30,9 @@ public partial class RegionPickerDialog : Window
     private void OnDragStart(object sender, MouseButtonEventArgs e)
     {
         _dragStart = e.GetPosition(FrameImage);
-        Canvas.SetLeft(RubberBand, _dragStart.Value.X);
-        Canvas.SetTop(RubberBand, _dragStart.Value.Y);
+        var origin = FrameImage.TranslatePoint(new System.Windows.Point(0, 0), OverlayCanvas);
+        Canvas.SetLeft(RubberBand, origin.X + _dragStart.Value.X);
+        Canvas.SetTop(RubberBand, origin.Y + _dragStart.Value.Y);
         RubberBand.Width = 0;
         RubberBand.Height = 0;
         RubberBand.Visibility = Visibility.Visible;
@@ -45,8 +46,9 @@ public partial class RegionPickerDialog : Window
             return;
         }
         var p = e.GetPosition(FrameImage);
-        Canvas.SetLeft(RubberBand, System.Math.Min(start.X, p.X));
-        Canvas.SetTop(RubberBand, System.Math.Min(start.Y, p.Y));
+        var origin = FrameImage.TranslatePoint(new System.Windows.Point(0, 0), OverlayCanvas);
+        Canvas.SetLeft(RubberBand, origin.X + System.Math.Min(start.X, p.X));
+        Canvas.SetTop(RubberBand, origin.Y + System.Math.Min(start.Y, p.Y));
         RubberBand.Width = System.Math.Abs(p.X - start.X);
         RubberBand.Height = System.Math.Abs(p.Y - start.Y);
     }
