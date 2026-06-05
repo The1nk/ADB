@@ -15,13 +15,19 @@ public class LuaValuesTests
         Assert.Equal("hi", LuaValues.ToDynValue("hi").String);
         Assert.Equal(3.5, LuaValues.ToDynValue(3.5).Number);
         Assert.True(LuaValues.ToDynValue(true).Boolean);
+        Assert.False(LuaValues.ToDynValue(false).Boolean);
     }
 
     [Fact]
     public void ToDynValue_IntAndNull()
     {
         Assert.Equal(7d, LuaValues.ToDynValue(7).Number);       // int -> Lua number
+        Assert.Equal(2.5d, LuaValues.ToDynValue(2.5f).Number);  // float -> Lua number
+        Assert.Equal(9d, LuaValues.ToDynValue(9L).Number);      // long -> Lua number
         Assert.Equal(DataType.Nil, LuaValues.ToDynValue(null).Type);
+
+        var jsonNull = System.Text.Json.JsonDocument.Parse("null").RootElement;
+        Assert.Equal(DataType.Nil, LuaValues.ToDynValue(jsonNull).Type);
     }
 
     [Fact]

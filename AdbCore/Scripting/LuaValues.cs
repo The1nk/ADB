@@ -19,7 +19,8 @@ public static class LuaValues
         JsonElement { ValueKind: JsonValueKind.Number } je => DynValue.NewNumber(je.GetDouble()),
         JsonElement { ValueKind: JsonValueKind.True } => DynValue.True,
         JsonElement { ValueKind: JsonValueKind.False } => DynValue.False,
-        JsonElement je => DynValue.NewString(je.ValueKind == JsonValueKind.String ? je.GetString() ?? "" : je.ToString()),
+        JsonElement { ValueKind: JsonValueKind.Null } => DynValue.Nil,
+        JsonElement je => DynValue.NewString(je.ValueKind == JsonValueKind.String ? je.GetString() ?? string.Empty : je.ToString()),
         _ => DynValue.NewString(value.ToString() ?? string.Empty),
     };
 
