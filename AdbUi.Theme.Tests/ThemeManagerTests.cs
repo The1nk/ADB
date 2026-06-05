@@ -98,4 +98,22 @@ public class ThemeManagerTests
 
         Assert.Equal(ThemeSelection.Dark, observed);
     }
+
+    [Fact]
+    public void Apply_still_applies_and_signals_when_persistence_fails()
+    {
+        var applier = new FakeThemeApplier();
+        var probe = new FakeOsThemeProbe { Current = AppTheme.Light };
+        var store = new FakeSettingsStore(new AppSettings { Theme = ThemeSelection.System }) { ThrowOnSave = true };
+        var mgr = new ThemeManager(store, probe, applier);
+        mgr.Initialize();
+        var fired = false;
+        mgr.SelectionChanged += (_, _) => fired = true;
+
+        mgr.Apply(ThemeSelection.Dark); // must not throw despite the failing store
+
+        Assert.Equal(AppTheme.Dark, applier.Last);
+        Assert.Equal(ThemeSelection.Dark, mgr.CurrentSelection);
+        Assert.True(fired);
+    }
 }

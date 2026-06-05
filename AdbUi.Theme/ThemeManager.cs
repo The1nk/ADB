@@ -1,3 +1,5 @@
+using System.IO;
+
 namespace AdbUi.Theme;
 
 /// <summary>Owns the app's current theme selection. Resolves it (consulting the OS when "System"), applies the
@@ -14,6 +16,8 @@ public sealed class ThemeManager
         _store = store;
         _osProbe = osProbe;
         _applier = applier;
+        // App-lifetime ownership: the manager and probe share the application's lifetime, so this
+        // subscription is intentionally never detached (neither object outlives the other).
         _osProbe.OsThemeChanged += OnOsThemeChanged;
     }
 
@@ -35,8 +39,21 @@ public sealed class ThemeManager
     {
         CurrentSelection = selection;
         ApplyEffective();
-        _store.Save(new AppSettings { Theme = selection });
+        TryPersist(selection);
         SelectionChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    private void TryPersist(ThemeSelection selection)
+    {
+        try
+        {
+            _store.Save(new AppSettings { Theme = selection });
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            // Persistence is best-effort: the theme is already applied for this session. A failed write
+            // (file locked by the other app, read-only directory) must not break theme switching.
+        }
     }
 
     private void ApplyEffective() =>

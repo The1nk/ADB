@@ -36,6 +36,11 @@ public sealed class JsonSettingsStore : ISettingsStore
     {
         var dir = Path.GetDirectoryName(_path);
         if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
-        File.WriteAllText(_path, JsonSerializer.Serialize(settings, Options));
+
+        // Write to a temp file then atomically replace, so a crash mid-write can't leave a truncated
+        // (corrupt) settings file. The file is shared by both apps, so torn writes are a real risk.
+        var tmp = _path + ".tmp";
+        File.WriteAllText(tmp, JsonSerializer.Serialize(settings, Options));
+        File.Move(tmp, _path, overwrite: true);
     }
 }
