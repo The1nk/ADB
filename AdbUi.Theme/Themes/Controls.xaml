@@ -48,14 +48,119 @@
         </Setter>
     </Style>
 
-    <!-- Menu / MenuItem -->
+    <!-- Menu / MenuItem.
+         WPF's default Menu/MenuItem templates source their chrome from OS theme brushes (and the system
+         high-contrast theme), so plain Background/Foreground setters do NOT recolour the bar, items, or
+         dropdowns. We therefore fully template them with DynamicResource brushes (which also defeats the
+         high-contrast system override, since we never use SystemColors). -->
+
     <Style TargetType="Menu">
         <Setter Property="Background" Value="{DynamicResource PanelBackgroundBrush}" />
         <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Menu">
+                    <Border Background="{TemplateBinding Background}" Padding="2" SnapsToDevicePixels="True">
+                        <ItemsPresenter />
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
     </Style>
+
+    <!-- Top-level menu-bar header (File / Edit / …) + its drop-down popup. -->
+    <ControlTemplate x:Key="AdbTopLevelMenuItem" TargetType="MenuItem">
+        <Border x:Name="Bd" Background="{TemplateBinding Background}" Padding="8,4" SnapsToDevicePixels="True">
+            <Grid>
+                <ContentPresenter ContentSource="Header" RecognizesAccessKey="True" VerticalAlignment="Center" />
+                <Popup x:Name="PART_Popup" AllowsTransparency="True" Focusable="False" Placement="Bottom"
+                       PopupAnimation="None"
+                       IsOpen="{Binding IsSubmenuOpen, RelativeSource={RelativeSource TemplatedParent}}">
+                    <Border Background="{DynamicResource MenuBackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}"
+                            BorderThickness="1" Padding="2">
+                        <ItemsPresenter Grid.IsSharedSizeScope="True" />
+                    </Border>
+                </Popup>
+            </Grid>
+        </Border>
+        <ControlTemplate.Triggers>
+            <Trigger Property="IsHighlighted" Value="True">
+                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource AccentBrush}" />
+                <Setter Property="Foreground" Value="{DynamicResource AccentTextBrush}" />
+            </Trigger>
+            <Trigger Property="IsSubmenuOpen" Value="True">
+                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource AccentBrush}" />
+                <Setter Property="Foreground" Value="{DynamicResource AccentTextBrush}" />
+            </Trigger>
+            <Trigger Property="IsEnabled" Value="False">
+                <Setter Property="Foreground" Value="{DynamicResource DisabledTextBrush}" />
+            </Trigger>
+        </ControlTemplate.Triggers>
+    </ControlTemplate>
+
+    <!-- Drop-down item (incl. checkable + sub-submenu header). -->
+    <ControlTemplate x:Key="AdbSubmenuMenuItem" TargetType="MenuItem">
+        <Border x:Name="Bd" Background="{TemplateBinding Background}" SnapsToDevicePixels="True">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" MinWidth="22" SharedSizeGroup="AdbMenuIcon" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" SharedSizeGroup="AdbMenuGesture" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBlock x:Name="Check" Grid.Column="0" Text="✓" VerticalAlignment="Center"
+                           HorizontalAlignment="Center" Visibility="Collapsed" Foreground="{TemplateBinding Foreground}" />
+                <ContentPresenter x:Name="Icon" Grid.Column="0" ContentSource="Icon" VerticalAlignment="Center"
+                                  HorizontalAlignment="Center" Margin="4,0" />
+                <ContentPresenter Grid.Column="1" ContentSource="Header" RecognizesAccessKey="True"
+                                  VerticalAlignment="Center" Margin="4,5" />
+                <TextBlock Grid.Column="2" Text="{TemplateBinding InputGestureText}" VerticalAlignment="Center"
+                           Margin="16,0,8,0" Opacity="0.7" Foreground="{TemplateBinding Foreground}" />
+                <TextBlock x:Name="Arrow" Grid.Column="3" Text="▶" FontSize="9" VerticalAlignment="Center"
+                           Margin="0,0,8,0" Visibility="Collapsed" Foreground="{TemplateBinding Foreground}" />
+                <Popup x:Name="PART_Popup" AllowsTransparency="True" Focusable="False" Placement="Right"
+                       PopupAnimation="None"
+                       IsOpen="{Binding IsSubmenuOpen, RelativeSource={RelativeSource TemplatedParent}}">
+                    <Border Background="{DynamicResource MenuBackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}"
+                            BorderThickness="1" Padding="2">
+                        <ItemsPresenter Grid.IsSharedSizeScope="True" />
+                    </Border>
+                </Popup>
+            </Grid>
+        </Border>
+        <ControlTemplate.Triggers>
+            <Trigger Property="Icon" Value="{x:Null}">
+                <Setter TargetName="Icon" Property="Visibility" Value="Collapsed" />
+            </Trigger>
+            <Trigger Property="IsChecked" Value="True">
+                <Setter TargetName="Check" Property="Visibility" Value="Visible" />
+            </Trigger>
+            <Trigger Property="Role" Value="SubmenuHeader">
+                <Setter TargetName="Arrow" Property="Visibility" Value="Visible" />
+            </Trigger>
+            <Trigger Property="IsHighlighted" Value="True">
+                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource AccentBrush}" />
+                <Setter Property="Foreground" Value="{DynamicResource AccentTextBrush}" />
+            </Trigger>
+            <Trigger Property="IsEnabled" Value="False">
+                <Setter Property="Foreground" Value="{DynamicResource DisabledTextBrush}" />
+            </Trigger>
+        </ControlTemplate.Triggers>
+    </ControlTemplate>
 
     <Style TargetType="MenuItem">
         <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}" />
+        <Setter Property="Background" Value="Transparent" />
+        <!-- Default to the drop-down template (SubmenuItem / SubmenuHeader); switch the bar headers. -->
+        <Setter Property="Template" Value="{StaticResource AdbSubmenuMenuItem}" />
+        <Style.Triggers>
+            <Trigger Property="Role" Value="TopLevelHeader">
+                <Setter Property="Template" Value="{StaticResource AdbTopLevelMenuItem}" />
+            </Trigger>
+            <Trigger Property="Role" Value="TopLevelItem">
+                <Setter Property="Template" Value="{StaticResource AdbTopLevelMenuItem}" />
+            </Trigger>
+        </Style.Triggers>
     </Style>
 
     <Style TargetType="ContextMenu">
