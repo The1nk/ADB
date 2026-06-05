@@ -81,4 +81,38 @@ public class AndroidOcrActionTests
         Assert.Equal("Find Text (Android)", def.DisplayName);
         Assert.Equal("Android", def.Category);
     }
+
+    [Fact]
+    public async Task WaitForText_Present_Succeeds()
+    {
+        var action = new BotAction { Config = { ["text"] = "ready", [AndroidWaitForTextAction.TimeoutMsKey] = 1000, [AndroidWaitForTextAction.PollIntervalMsKey] = 10 } };
+        var (ctx, _) = WithDevice(action);
+        var wait = new AndroidWaitForTextAction(new FakeOcrEngine(Result(new OcrWord("READY", new Rectangle(1, 2, 3, 4), 0.9))), new FixedRandomSource(0));
+
+        Assert.True((await wait.ExecuteAsync(ctx, default)).Success);
+    }
+
+    [Fact]
+    public async Task WaitForText_Timeout_Fails()
+    {
+        var action = new BotAction { Config = { ["text"] = "ready", [AndroidWaitForTextAction.TimeoutMsKey] = 30, [AndroidWaitForTextAction.PollIntervalMsKey] = 10 } };
+        var (ctx, _) = WithDevice(action);
+        var wait = new AndroidWaitForTextAction(new FakeOcrEngine(Result(new OcrWord("loading", new Rectangle(1, 2, 3, 4), 0.9))), new FixedRandomSource(0));
+
+        var r = await wait.ExecuteAsync(ctx, default);
+        Assert.False(r.Success);
+        Assert.Contains("did not appear", r.ErrorMessage);
+    }
+
+    [Fact]
+    public async Task AssertTextAbsent_Absent_Ok_Present_Fail()
+    {
+        var a1 = new BotAction { Config = { ["text"] = "gameover" } };
+        var (c1, _) = WithDevice(a1);
+        Assert.True((await new AndroidAssertTextAbsentAction(new FakeOcrEngine(Result(new OcrWord("menu", new Rectangle(1, 2, 3, 4), 0.9)))).ExecuteAsync(c1, default)).Success);
+
+        var a2 = new BotAction { Config = { ["text"] = "gameover" } };
+        var (c2, _) = WithDevice(a2);
+        Assert.False((await new AndroidAssertTextAbsentAction(new FakeOcrEngine(Result(new OcrWord("gameover", new Rectangle(1, 2, 3, 4), 0.9)))).ExecuteAsync(c2, default)).Success);
+    }
 }
