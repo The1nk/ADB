@@ -22,11 +22,18 @@ public sealed class RunParallelAction : IActionDefinition
     public string Category => "Control Flow";
     public string Description => "Runs each wired branch concurrently; branches converge on a Join.";
     public List<PortDefinition> InputPorts { get; } = new() { new PortDefinition { Name = "in", Label = "In" } };
-    public List<PortDefinition> OutputPorts { get; } = new()
+    /// <summary>Builds the branch output ports (`branch1..branchN`) for a given branch count.</summary>
+    public static List<PortDefinition> OutputPortsForBranches(int count)
     {
-        new PortDefinition { Name = BranchPort(1), Label = "Branch 1" },
-        new PortDefinition { Name = BranchPort(2), Label = "Branch 2" },
-    };
+        var ports = new List<PortDefinition>(Math.Max(0, count));
+        for (var i = 1; i <= count; i++)
+        {
+            ports.Add(new PortDefinition { Name = BranchPort(i), Label = $"Branch {i}" });
+        }
+        return ports;
+    }
+
+    public List<PortDefinition> OutputPorts { get; } = OutputPortsForBranches(DefaultBranchCount);
     public List<ConfigField> ConfigFields { get; } = new()
     {
         new ConfigField { Key = BranchesKey, Label = "Branches", Type = ConfigFieldType.Number, DefaultValue = DefaultBranchCount },
