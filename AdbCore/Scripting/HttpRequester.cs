@@ -15,7 +15,10 @@ public sealed class HttpRequester : IHttpRequester
             request.Content = new StringContent(body);
         if (headers is not null)
             foreach (var h in headers)
-                request.Headers.TryAddWithoutValidation(h.Key, h.Value);
+            {
+                if (!request.Headers.TryAddWithoutValidation(h.Key, h.Value))
+                    request.Content?.Headers.TryAddWithoutValidation(h.Key, h.Value);
+            }
 
         using var response = Client.Send(request, ct);
         var responseBody = response.Content.ReadAsStringAsync(ct).GetAwaiter().GetResult();
