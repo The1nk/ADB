@@ -27,7 +27,7 @@ public sealed class RunLuaScriptAction : IActionDefinition, IActionExecutor
 
     public List<ConfigField> ConfigFields { get; } = new()
     {
-        new ConfigField { Key = ScriptKey, Label = "Lua Script", Type = ConfigFieldType.MultilineString, DefaultValue = "" },
+        new ConfigField { Key = ScriptKey, Label = "Lua Script", Type = ConfigFieldType.MultilineString },
     };
 
     public bool SupportsRetry => true;

@@ -36,7 +36,7 @@ public class PaletteViewModelTests
         Assert.Equal(8, screen.Items.Count); // Find/Wait/AssertAbsent Image + Screenshot + Read/Find/Wait/AssertAbsent Text
 
         var scripting = palette.Categories.Single(c => c.Name == "Scripting");
-        Assert.Equal(1, scripting.Items.Count); // Run Lua Script
+        Assert.Single(scripting.Items); // Run Lua Script
     }
 
     [Fact]
