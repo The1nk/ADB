@@ -66,14 +66,7 @@ public abstract class ScreenActionBase : IActionDefinition, IActionExecutor
 
     /// <summary>Resolves the action's target HWND: the explicit TargetId, or the sole target if unset.</summary>
     protected static IntPtr? ResolveWindow(ActionExecutionContext context)
-    {
-        var targets = context.Context.Targets;
-        ResolvedTarget? target = context.Action.TargetId is Guid id
-            ? targets.TryGetValue(id, out var t) ? t : null
-            : targets.Count == 1 ? targets.Values.First() : null;
-
-        return target?.Handle as IntPtr?;
-    }
+        => TargetResolution.ResolveHandle<IntPtr>(context);
 
     private ScreenCaptureMethod CaptureMethodOf(ActionExecutionContext context)
         => string.Equals(
