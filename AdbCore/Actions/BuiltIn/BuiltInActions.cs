@@ -22,6 +22,9 @@ public static class BuiltInActions
         Add(new SetVariableAction(), definitions, executors);
         Add(new CommentAction(), definitions, executors);
 
+        // Scripting (no external deps — MoonSharp is in-process; two-way `vars` bridge to run variables).
+        Add(new RunLuaScriptAction(), definitions, executors);
+
         // Input actions share one resolver: SendInput (foreground, default) + PostMessage (background, opt-in per node).
         var inputSenders = new InputSenderResolver(new Win32SendInputSender(), new Win32PostMessageSender());
         Add(new ClickAction(inputSenders), definitions, executors);
