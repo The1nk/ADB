@@ -96,6 +96,14 @@
             <MenuItem Header="_Run">
                 <MenuItem Header="_Test Run..." Click="TestRun_Click" InputGestureText="F5" />
             </MenuItem>
+            <MenuItem Header="_View">
+                <MenuItem Header="_Theme">
+                    <MenuItem x:Name="ThemeSystemItem" Header="_System" IsCheckable="True" Click="ThemeSystem_Click" />
+                    <MenuItem x:Name="ThemeLightItem" Header="_Light" IsCheckable="True" Click="ThemeLight_Click" />
+                    <MenuItem x:Name="ThemeDarkItem" Header="_Dark" IsCheckable="True" Click="ThemeDark_Click" />
+                    <MenuItem x:Name="ThemeHighContrastItem" Header="_High Contrast" IsCheckable="True" Click="ThemeHighContrast_Click" />
+                </MenuItem>
+            </MenuItem>
         </Menu>
 
         <Border DockPanel.Dock="Top" Background="#EEE" Padding="6" BorderBrush="#CCC" BorderThickness="0,0,0,1">

@@ -3,6 +3,7 @@
   <ItemGroup>
     <ProjectReference Include="..\BotBuilder.Core\BotBuilder.Core.csproj" />
     <ProjectReference Include="..\AdbCore\AdbCore.csproj" />
+    <ProjectReference Include="..\AdbUi.Theme\AdbUi.Theme.csproj" />
   </ItemGroup>
 
   <PropertyGroup>
