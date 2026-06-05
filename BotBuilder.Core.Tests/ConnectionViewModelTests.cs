@@ -34,4 +34,17 @@ public class ConnectionViewModelTests
 
         Assert.Contains(nameof(ConnectionViewModel.PathData), raised);
     }
+
+    [Fact]
+    public void HeightChange_RecomputesPathData()
+    {
+        var (src, tgt) = TwoNodes();
+        var conn = new ConnectionViewModel(Guid.NewGuid(), src, src.OutputPorts[0], tgt, tgt.InputPorts[0]);
+        var raised = false;
+        conn.PropertyChanged += (_, e) => { if (e.PropertyName == nameof(ConnectionViewModel.PathData)) raised = true; };
+
+        src.Height += 40;   // simulate a Run Parallel re-center
+
+        Assert.True(raised);
+    }
 }

@@ -31,7 +31,8 @@ public partial class ConnectionViewModel : ObservableObject
     public NodeViewModel Target { get; }
     public PortViewModel TargetPort { get; }
 
-    public string PathData => ConnectionGeometry.BuildPath(Anchor(Source, SourcePort), Anchor(Target, TargetPort));
+    public string PathData => ConnectionGeometry.BuildPath(
+        Anchor(Source, SourcePort), SourcePort.Edge, Anchor(Target, TargetPort), TargetPort.Edge);
 
     /// <summary>(Re)subscribes to endpoint move notifications. Idempotent.</summary>
     public void Attach()
@@ -51,7 +52,7 @@ public partial class ConnectionViewModel : ObservableObject
 
     private void OnEndpointMoved(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName is nameof(NodeViewModel.X) or nameof(NodeViewModel.Y))
+        if (e.PropertyName is nameof(NodeViewModel.X) or nameof(NodeViewModel.Y) or nameof(NodeViewModel.Height))
         {
             OnPropertyChanged(nameof(PathData));
         }

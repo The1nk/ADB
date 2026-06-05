@@ -41,4 +41,22 @@ public class MarqueeSelectionTests
 
         Assert.Empty(hit);
     }
+
+    [Fact]
+    public void NodesInRect_UsesPerNodeHeight_ForGrownRunParallelNode()
+    {
+        // A 4-branch Run Parallel node is taller than the default card; a marquee that overlaps only
+        // its lower half (well below the default 70-tall band) must still select it.
+        var node = NodeViewModel.FromDefinition(new RunParallelAction(), Guid.NewGuid(), "", 100, 200);
+        node.SetBranchPortCount(4);
+        Assert.True(node.Height > NodeLayout.CardHeight_Default);
+
+        var bandY = 200 + NodeLayout.CardHeight_Default + 5; // below where a default-height card would end
+        Assert.True(bandY < 200 + node.Height);                // ...but still inside this grown card
+
+        var hit = MarqueeSelection.NodesInRect(new[] { node }, 100, bandY, 50, 20).ToList();
+
+        Assert.Single(hit);
+        Assert.Same(node, hit[0]);
+    }
 }

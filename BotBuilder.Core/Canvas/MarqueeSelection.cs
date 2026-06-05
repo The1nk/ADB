@@ -12,6 +12,6 @@ public static class MarqueeSelection
 
         return nodes.Where(n =>
             n.X < right && n.X + NodeLayout.CardWidth > x &&
-            n.Y < bottom && n.Y + NodeLayout.CardHeight > y);
+            n.Y < bottom && n.Y + n.Height > y);
     }
 }
