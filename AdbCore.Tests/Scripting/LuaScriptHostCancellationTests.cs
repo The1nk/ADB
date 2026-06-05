@@ -1,5 +1,7 @@
+using System;
 using System.Collections.Generic;
 using System.Threading;
+using System.Threading.Tasks;
 using AdbCore.Scripting;
 using Xunit;
 
@@ -8,17 +10,19 @@ namespace AdbCore.Tests.Scripting;
 public class LuaScriptHostCancellationTests
 {
     [Fact]
-    public void RunawayLoop_IsCancelled_WithinTimeout()
+    public async Task RunawayLoop_IsCancelled_WithinTimeout()
     {
         using var cts = new CancellationTokenSource();
         cts.CancelAfter(200); // cancel shortly after the loop starts spinning
 
         var host = new LuaScriptHost(_ => { });
-        var task = System.Threading.Tasks.Task.Run(() =>
-            Assert.Throws<System.OperationCanceledException>(() =>
-                host.Run("while true do end", new Dictionary<string, object>(), cts.Token)));
+        var run = Task.Run(
+            () => host.Run("while true do end", new Dictionary<string, object>(), cts.Token));
 
-        Assert.True(task.Wait(System.TimeSpan.FromSeconds(5)), "Run did not honor cancellation within 5s");
+        var completed = await Task.WhenAny(run, Task.Delay(TimeSpan.FromSeconds(5)));
+
+        Assert.Same(run, completed); // Run returned (it honored cancellation rather than hanging past 5s)
+        await Assert.ThrowsAsync<OperationCanceledException>(() => run);
     }
 
     [Fact]
