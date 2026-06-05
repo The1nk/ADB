@@ -11,9 +11,9 @@ public abstract class ScreenOcrActionBase : IActionDefinition, IActionExecutor
 {
     public const string SuccessPort = "onSuccess";
     public const string FailurePort = "onFailure";
-    public const string TextKey = "text";
-    public const string ResultVarKey = "resultVar";
-    public const string MinConfidenceKey = "minConfidence";
+    public const string TextKey = OcrCore.TextKey;
+    public const string ResultVarKey = OcrCore.ResultVarKey;
+    public const string MinConfidenceKey = OcrCore.MinConfidenceKey;
 
     private readonly IWindowCapture _capture;
     private List<ConfigField>? _configFields;
@@ -59,7 +59,7 @@ public abstract class ScreenOcrActionBase : IActionDefinition, IActionExecutor
         return OcrCore.RecognizeRegion(shot, context.Action.Config, Ocr);
     }
 
-    protected static ConfigField TextField() => new() { Key = TextKey, Label = "Text", Type = ConfigFieldType.String };
-    protected static ConfigField ResultVarField(string def) => new() { Key = ResultVarKey, Label = "Result Variable", Type = ConfigFieldType.String, DefaultValue = def };
-    protected static ConfigField MinConfidenceField() => new() { Key = MinConfidenceKey, Label = "Min Confidence", Type = ConfigFieldType.Number, DefaultValue = 0 };
+    protected static ConfigField TextField() => OcrCore.TextField();
+    protected static ConfigField ResultVarField(string def) => OcrCore.ResultVarField(def);
+    protected static ConfigField MinConfidenceField() => OcrCore.MinConfidenceField();
 }

@@ -1,4 +1,5 @@
 using System.Drawing;
+using AdbCore.Actions;
 using AdbCore.Actions.BuiltIn;
 using AdbCore.Screen;
 
@@ -8,6 +9,14 @@ namespace AdbCore.Ocr;
 /// <see cref="TemplateMatchCore"/> for ROI resolution (and, in the actions, match-variable writing).</summary>
 public static class OcrCore
 {
+    public const string TextKey = "text";
+    public const string ResultVarKey = "resultVar";
+    public const string MinConfidenceKey = "minConfidence";
+
+    public static ConfigField TextField() => new() { Key = TextKey, Label = "Text", Type = ConfigFieldType.String };
+    public static ConfigField ResultVarField(string def) => new() { Key = ResultVarKey, Label = "Result Variable", Type = ConfigFieldType.String, DefaultValue = def };
+    public static ConfigField MinConfidenceField() => new() { Key = MinConfidenceKey, Label = "Min Confidence", Type = ConfigFieldType.Number, DefaultValue = 0 };
+
     /// <summary>Recognizes the configured ROI of <paramref name="image"/> (or the whole image when no ROI),
     /// returning word boxes in full-image coordinates (offset back by the ROI origin).</summary>
     public static OcrResult RecognizeRegion(Bitmap image, IReadOnlyDictionary<string, object> config, IOcrEngine engine)
