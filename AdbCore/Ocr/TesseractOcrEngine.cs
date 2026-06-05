@@ -4,18 +4,22 @@ using Tesseract;
 namespace AdbCore.Ocr;
 
 /// <summary>Tesseract-backed OCR engine (charlesw Tesseract 5.2.0). Loads <c>eng</c> trained data from a
-/// <c>tessdata</c> directory (default: a <c>tessdata</c> folder next to the running executable).
-/// Live adapter — verified by hand, not unit-tested.</summary>
+/// <c>tessdata</c> directory (default: a <c>tessdata</c> folder next to the running executable)
+/// LAZILY on first recognition, so registering the OCR actions (e.g. in BotBuilder or tests) does not
+/// load the 23 MB data. Live adapter — verified by hand, not unit-tested.
+/// The native engine isn't thread-safe, so Recognize is serialized by a lock.</summary>
 public sealed class TesseractOcrEngine : IOcrEngine, IDisposable
 {
-    private readonly TesseractEngine _engine;
+    private readonly string _tessdataPath;
+    private readonly string _language;
     // TesseractEngine is not thread-safe; serialize all engine/Pix/page/iter access.
     private readonly object _lock = new();
+    private TesseractEngine? _engine;
 
     public TesseractOcrEngine(string? tessdataPath = null, string language = "eng")
     {
-        var path = tessdataPath ?? System.IO.Path.Combine(AppContext.BaseDirectory, "tessdata");
-        _engine = new TesseractEngine(path, language, EngineMode.Default);
+        _tessdataPath = tessdataPath ?? System.IO.Path.Combine(AppContext.BaseDirectory, "tessdata");
+        _language = language;
     }
 
     public OcrResult Recognize(Bitmap image)
@@ -32,6 +36,8 @@ public sealed class TesseractOcrEngine : IOcrEngine, IDisposable
 
         lock (_lock)
         {
+            _engine ??= new TesseractEngine(_tessdataPath, _language, EngineMode.Default);
+
             using var pix = Pix.LoadFromMemory(png);
             using var page = _engine.Process(pix);
 
@@ -63,5 +69,12 @@ public sealed class TesseractOcrEngine : IOcrEngine, IDisposable
         }
     }
 
-    public void Dispose() => _engine.Dispose();
+    public void Dispose()
+    {
+        lock (_lock)
+        {
+            _engine?.Dispose();
+            _engine = null;
+        }
+    }
 }

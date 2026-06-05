@@ -9,7 +9,7 @@ namespace AdbCore.Actions.BuiltIn;
 /// <summary>Registers the built-in action set into the definition and executor registries.</summary>
 public static class BuiltInActions
 {
-    public static void Register(ActionRegistry definitions, ActionExecutorRegistry executors)
+    public static IDisposable Register(ActionRegistry definitions, ActionExecutorRegistry executors)
     {
         ArgumentNullException.ThrowIfNull(definitions);
         ArgumentNullException.ThrowIfNull(executors);
@@ -73,6 +73,8 @@ public static class BuiltInActions
         // Run Parallel and Join are engine-native: register their definitions only (no executors).
         definitions.Register(new RunParallelAction());
         definitions.Register(new JoinAction());
+
+        return ocrEngine;
     }
 
     private static void Add<T>(T action, ActionRegistry definitions, ActionExecutorRegistry executors)
