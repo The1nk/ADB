@@ -68,6 +68,9 @@ public sealed class LuaScriptHost
         // `fs` table (read/write/copy/move/exists/delete).
         script.Globals["fs"] = Modules.FsModule.Build(script, _fs);
 
+        // `process` table (run -> { exitCode, stdout, stderr }).
+        script.Globals["process"] = Modules.ProcessModule.Build(script, _process, ct);
+
         try
         {
             script.DoString(scriptText);
