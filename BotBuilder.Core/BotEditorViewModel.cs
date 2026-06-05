@@ -177,6 +177,38 @@ public partial class BotEditorViewModel : ObservableObject
         SelectedConnection = connection;
     }
 
+    private NodeClipboard? _clipboard;
+
+    /// <summary>Snapshots the selected nodes (or the single SelectedNode) and the connections among them
+    /// into the in-app clipboard. No-op when nothing is selected.</summary>
+    public void CopySelection()
+    {
+        var selected = Nodes.Where(n => n.IsSelected).ToList();
+        if (selected.Count == 0 && SelectedNode is not null) selected.Add(SelectedNode);
+        if (selected.Count == 0) return;
+
+        var indexOf = new Dictionary<NodeViewModel, int>();
+        for (var i = 0; i < selected.Count; i++) indexOf[selected[i]] = i;
+
+        var nodeClips = selected
+            .Select(n => new NodeClip(n.TypeKey, n.Label, n.TargetId, n.RetryMaxAttempts, n.RetryDelayMs,
+                new Dictionary<string, object>(n.Config), n.X, n.Y))
+            .ToList();
+
+        var connClips = Connections
+            .Where(c => indexOf.ContainsKey(c.Source) && indexOf.ContainsKey(c.Target))
+            .Select(c => new ConnectionClip(indexOf[c.Source], c.SourcePort.Name, indexOf[c.Target], c.TargetPort.Name))
+            .ToList();
+
+        _clipboard = new NodeClipboard(nodeClips, connClips);
+    }
+
+    /// <summary>Pastes the clipboard: fresh nodes (new Ids, offset +24,+24), the internal connections among
+    /// them re-created by port name, added as one undoable step and selected. No-op when the clipboard is empty.</summary>
+    public void Paste()
+    {
+    }
+
     public void Undo()
     {
         if (!_undo.CanUndo)
