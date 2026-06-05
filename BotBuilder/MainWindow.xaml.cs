@@ -203,11 +203,13 @@ public partial class MainWindow : Window
         }
         else if (e.Key == Key.C && Keyboard.Modifiers == ModifierKeys.Control)
         {
+            if (e.OriginalSource is TextBox) return;   // let the textbox copy its text
             _editor.CopySelection();
             e.Handled = true;
         }
         else if (e.Key == Key.V && Keyboard.Modifiers == ModifierKeys.Control)
         {
+            if (e.OriginalSource is TextBox) return;   // let the textbox paste text
             _editor.Paste();
             e.Handled = true;
         }
