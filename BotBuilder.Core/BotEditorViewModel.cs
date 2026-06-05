@@ -94,6 +94,22 @@ public partial class BotEditorViewModel : ObservableObject
         AfterEdit();
     }
 
+    /// <summary>Records a multi-node drag (each node already at its new position) as one undoable step.
+    /// Nodes that didn't actually move are ignored; a no-op overall does nothing.</summary>
+    public void CommitMoves(IReadOnlyList<(NodeViewModel Node, double OldX, double OldY)> moves)
+    {
+        var actual = moves
+            .Where(m => m.OldX != m.Node.X || m.OldY != m.Node.Y)
+            .Select(m => (m.Node, m.OldX, m.OldY, m.Node.X, m.Node.Y))
+            .ToList();
+        if (actual.Count == 0)
+        {
+            return;
+        }
+        _undo.PushExecuted(new MoveNodesCommand(actual));
+        AfterEdit();
+    }
+
     public ConnectionError Connect(NodeViewModel source, PortViewModel sourcePort, NodeViewModel target, PortViewModel targetPort)
     {
         var error = ConnectionValidator.Validate(Connections, source, sourcePort, target, targetPort);

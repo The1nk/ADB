@@ -22,6 +22,15 @@ internal sealed class MoveNodeCommand : IUndoableCommand
     public void Undo() { _node.X = _oldX; _node.Y = _oldY; }
 }
 
+/// <summary>Moves a set of nodes (a multi-selection drag) as one undoable step.</summary>
+internal sealed class MoveNodesCommand : IUndoableCommand
+{
+    private readonly IReadOnlyList<(NodeViewModel Node, double OldX, double OldY, double NewX, double NewY)> _moves;
+    public MoveNodesCommand(IReadOnlyList<(NodeViewModel, double, double, double, double)> moves) { _moves = moves; }
+    public void Do() { foreach (var m in _moves) { m.Node.X = m.NewX; m.Node.Y = m.NewY; } }
+    public void Undo() { foreach (var m in _moves) { m.Node.X = m.OldX; m.Node.Y = m.OldY; } }
+}
+
 internal sealed class ConnectCommand : IUndoableCommand
 {
     private readonly BotEditorViewModel _editor;
