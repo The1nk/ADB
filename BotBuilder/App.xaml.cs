@@ -1,4 +1,3 @@
-using System;
 using System.Windows;
 using AdbUi.Theme;
 
@@ -13,13 +12,8 @@ public partial class App : Application
     {
         base.OnStartup(e);
 
-        // Theme-agnostic control styles. Their colours come from the active theme brush dictionary,
-        // which the ThemeManager's applier merges/swaps. Merge this once, before MainWindow loads.
-        Resources.MergedDictionaries.Add(new ResourceDictionary
-        {
-            Source = new Uri("pack://application:,,,/AdbUi.Theme;component/Themes/Controls.xaml", UriKind.Absolute),
-        });
-
+        // Controls.xaml + a Dark baseline are merged statically in App.xaml (anti-flash). Here we just create
+        // the manager and apply the resolved theme, which swaps the Dark baseline for the saved selection.
         Theme = new ThemeManager(
             new JsonSettingsStore(SettingsPaths.SettingsFile),
             new Win32OsThemeProbe(),
