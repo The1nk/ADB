@@ -15,6 +15,35 @@ public class PaletteViewModelTests
         return defs;
     }
 
+    private sealed class FakeProbe : IDependencyProbe
+    {
+        private readonly HashSet<string> _unavailable;
+        public FakeProbe(params string[] unavailable) => _unavailable = new HashSet<string>(unavailable);
+
+        public DependencyStatus ForCategory(string category) =>
+            _unavailable.Contains(category) ? new DependencyStatus(false, category + " missing") : DependencyStatus.Available;
+    }
+
+    [Fact]
+    public void Unavailable_category_marks_its_items_and_leaves_others_available()
+    {
+        var palette = new PaletteViewModel(SeededRegistry(), new FakeProbe("Android"));
+
+        var android = palette.Categories.Single(c => c.Name == "Android");
+        Assert.False(android.IsAvailable);
+        Assert.Equal("Android missing", android.DisabledReason);
+        Assert.All(android.Items, i =>
+        {
+            Assert.False(i.IsAvailable);
+            Assert.Equal("Android missing", i.DisabledReason);
+        });
+
+        var screen = palette.Categories.Single(c => c.Name == "Screen");
+        Assert.True(screen.IsAvailable);
+        Assert.Null(screen.DisabledReason);
+        Assert.All(screen.Items, i => Assert.True(i.IsAvailable));
+    }
+
     [Fact]
     public void Categories_GroupBuiltInsByCategory()
     {
