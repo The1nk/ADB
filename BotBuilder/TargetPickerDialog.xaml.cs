@@ -30,6 +30,8 @@ public partial class TargetPickerDialog : Window
         public string Display => string.IsNullOrEmpty(Info.ProcessName)
             ? Info.Title
             : $"{Info.ProcessName} — {Info.Title}";
+
+        public override string ToString() => Display; // ComboBox selection box uses ToString()
     }
 
     private void OnWindowComboLoaded(object sender, RoutedEventArgs e)
@@ -55,6 +57,8 @@ public partial class TargetPickerDialog : Window
     private sealed record DeviceChoice(AdbCore.Android.AdbDeviceInfo Info)
     {
         public string Display => $"{Info.Serial} ({Info.State})";
+
+        public override string ToString() => Display; // ComboBox selection box uses ToString()
     }
 
     private void OnAndroidComboLoaded(object sender, RoutedEventArgs e)

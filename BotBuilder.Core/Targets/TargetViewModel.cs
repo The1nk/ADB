@@ -14,4 +14,8 @@ public partial class TargetViewModel : ObservableObject
     [ObservableProperty] private string _name = string.Empty;
     [ObservableProperty] private BotTargetType _type;
     [ObservableProperty] private string _selector = string.Empty;
+
+    // A ComboBox's selection box renders the selected item via ToString() (DisplayMemberPath only styles the
+    // drop-down list), so without this the properties-panel Target combo shows the type name. Show the Name.
+    public override string ToString() => Name;
 }
