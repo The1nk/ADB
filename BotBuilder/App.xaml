@@ -3,5 +3,14 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              StartupUri="MainWindow.xaml">
     <Application.Resources>
+        <!-- Merge a Dark baseline + the control styles at parse time (before any window renders) so the very
+             first frame is dark rather than system-white. ThemeManager swaps the Dark dictionary for the
+             resolved theme on startup; the applier removes this baseline by source path. -->
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="pack://application:,,,/AdbUi.Theme;component/Themes/Dark.xaml" />
+                <ResourceDictionary Source="pack://application:,,,/AdbUi.Theme;component/Themes/Controls.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
     </Application.Resources>
 </Application>

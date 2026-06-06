@@ -4,5 +4,7 @@ namespace AdbUi.Theme;
 /// theme choice.</summary>
 public sealed record AppSettings
 {
-    public ThemeSelection Theme { get; init; } = ThemeSelection.System;
+    // Default to Dark (not System) so a fresh install opens dark — dark-mode users aren't flash-banged by a
+    // bright window on first launch. Users can still pick System (follow OS) / Light explicitly.
+    public ThemeSelection Theme { get; init; } = ThemeSelection.Dark;
 }

@@ -17,7 +17,7 @@ public class JsonSettingsStoreTests : IDisposable
     {
         var store = new JsonSettingsStore(_path);
 
-        Assert.Equal(ThemeSelection.System, store.Load().Theme);
+        Assert.Equal(ThemeSelection.Dark, store.Load().Theme);
     }
 
     [Fact]
@@ -36,7 +36,7 @@ public class JsonSettingsStoreTests : IDisposable
         File.WriteAllText(_path, "{ this is not valid json");
         var store = new JsonSettingsStore(_path);
 
-        Assert.Equal(ThemeSelection.System, store.Load().Theme);
+        Assert.Equal(ThemeSelection.Dark, store.Load().Theme);
     }
 
     [Fact]
