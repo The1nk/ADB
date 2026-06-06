@@ -103,6 +103,9 @@
                     <MenuItem x:Name="ThemeDarkItem" Header="_Dark" IsCheckable="True" Click="ThemeDark_Click" />
                     <MenuItem x:Name="ThemeHighContrastItem" Header="_High Contrast" IsCheckable="True" Click="ThemeHighContrast_Click" />
                 </MenuItem>
+                <Separator />
+                <MenuItem Header="_Fit to Window" Click="FitToWindow_Click" InputGestureText="Ctrl+Shift+0" />
+                <MenuItem Header="Reset _Zoom" Click="ResetZoom_Click" InputGestureText="Ctrl+0" />
             </MenuItem>
         </Menu>
 
@@ -139,8 +142,21 @@
 
         <local:LogPanelView x:Name="LogPanel" DockPanel.Dock="Bottom" Height="180" Visibility="Collapsed" />
         <StatusBar DockPanel.Dock="Bottom">
+            <StatusBar.ItemsPanel>
+                <ItemsPanelTemplate><DockPanel /></ItemsPanelTemplate>
+            </StatusBar.ItemsPanel>
             <StatusBarItem><TextBlock Text="{Binding BotName}" /></StatusBarItem>
             <StatusBarItem><TextBlock Text="{Binding Nodes.Count, StringFormat='Nodes: {0}'}" /></StatusBarItem>
+            <StatusBarItem DockPanel.Dock="Right">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="{Binding Viewport.ZoomPercent, StringFormat='Zoom: {0}%'}"
+                               VerticalAlignment="Center" Margin="0,0,8,0" />
+                    <Button Content="Fit" Click="FitToWindow_Click" Padding="6,0" Margin="0,0,4,0"
+                            ToolTip="Frame all nodes (Ctrl+Shift+0)" />
+                    <Button Content="100%" Click="ResetZoom_Click" Padding="6,0"
+                            ToolTip="Reset zoom to 100% (Ctrl+0)" />
+                </StackPanel>
+            </StatusBarItem>
             <StatusBarItem><TextBlock x:Name="RunStatusText" Foreground="{DynamicResource SecondaryTextBrush}" /></StatusBarItem>
         </StatusBar>
 
