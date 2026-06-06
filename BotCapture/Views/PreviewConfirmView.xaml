@@ -4,19 +4,27 @@
     <Grid Margin="12">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="Auto" />
-            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="*" MinWidth="240" />
         </Grid.ColumnDefinitions>
 
-        <StackPanel Grid.Column="0" Margin="0,0,16,0">
-            <TextBlock Text="Preview (1×)" FontWeight="SemiBold" />
-            <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" Margin="0,2,0,8">
-                <Image x:Name="Preview1x" Stretch="None" />
-            </Border>
-            <TextBlock Text="Preview (2×)" FontWeight="SemiBold" />
-            <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" Margin="0,2,0,0">
-                <Image x:Name="Preview2x" Stretch="Fill" />
-            </Border>
-        </StackPanel>
+        <!-- The previews are pixel-accurate (1× native, 2× zoom), so a large capture would otherwise grow this
+             column wide enough to push the controls off-screen. Cap it and scroll instead, so Save/Retake stay
+             reachable without resizing the window. -->
+        <ScrollViewer Grid.Column="0" Margin="0,0,16,0" MaxWidth="540"
+                      HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+                <TextBlock Text="Preview (1×)" FontWeight="SemiBold" />
+                <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" Margin="0,2,0,8"
+                        HorizontalAlignment="Left">
+                    <Image x:Name="Preview1x" Stretch="None" />
+                </Border>
+                <TextBlock Text="Preview (2×)" FontWeight="SemiBold" />
+                <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" Margin="0,2,0,0"
+                        HorizontalAlignment="Left">
+                    <Image x:Name="Preview2x" Stretch="Fill" />
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
 
         <StackPanel Grid.Column="1">
             <TextBlock Text="Filename" FontWeight="SemiBold" />

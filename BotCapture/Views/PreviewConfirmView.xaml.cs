@@ -44,17 +44,17 @@ public partial class PreviewConfirmView : UserControl
 
         if (o.Error is not null)
         {
-            MatchStatus.Foreground = Brushes.DarkRed;
+            MatchStatus.Foreground = TryFindResource("ErrorBrush") as Brush ?? Brushes.DarkRed;
             MatchStatus.Text = $"Test Match failed: {o.Error}";
         }
         else if (o.Matched && o.Location is { } loc)
         {
-            MatchStatus.Foreground = Brushes.Green;
+            MatchStatus.Foreground = TryFindResource("SuccessBrush") as Brush ?? Brushes.Green;
             MatchStatus.Text = $"✅ Match — {FormatScore(o.Score.GetValueOrDefault())} @ ({loc.X},{loc.Y})";
         }
         else
         {
-            MatchStatus.Foreground = Brushes.DarkRed;
+            MatchStatus.Foreground = TryFindResource("ErrorBrush") as Brush ?? Brushes.DarkRed;
             MatchStatus.Text =
                 $"🔴 No match — best {FormatScore(o.Score.GetValueOrDefault())}, threshold {Vm.Confidence:F3}";
         }
