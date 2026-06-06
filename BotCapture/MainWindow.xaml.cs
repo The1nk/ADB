@@ -3,6 +3,7 @@ using System.Windows;
 using System.Windows.Controls;
 using AdbCore.Screen;
 using AdbCore.Targets;
+using AdbUi.Theme;
 using BotCapture.Core;
 using BotCapture.Views;
 
@@ -54,6 +55,21 @@ public partial class MainWindow : Window
         else
         {
             ShowSession();
+        }
+        InitThemeSelector();
+    }
+
+    private void InitThemeSelector()
+    {
+        ThemeSelector.ItemsSource = Enum.GetValues<ThemeSelection>();
+        ThemeSelector.SelectedItem = ((App)Application.Current).Theme.CurrentSelection;
+    }
+
+    private void ThemeSelector_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (ThemeSelector.SelectedItem is ThemeSelection selection)
+        {
+            ((App)Application.Current).Theme.Apply(selection);
         }
     }
 
