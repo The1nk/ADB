@@ -1,3 +1,5 @@
+using AdbCore.Execution.ControlFlow;
+
 namespace AdbCore.Execution;
 
 /// <summary>Catalogue of engine-native control-flow executors, keyed by
@@ -21,7 +23,12 @@ public sealed class ControlFlowExecutorRegistry
     public bool TryGet(string typeKey, out IControlFlowExecutor? executor)
         => _byKey.TryGetValue(typeKey, out executor);
 
-    /// <summary>The default set wired into <see cref="BotExecutor"/>. Populated in a later task with Loop and
-    /// Run Parallel; returns an empty registry until then.</summary>
-    public static ControlFlowExecutorRegistry CreateDefault() => new();
+    /// <summary>The default set wired into <see cref="BotExecutor"/>: Loop and Run Parallel.</summary>
+    public static ControlFlowExecutorRegistry CreateDefault()
+    {
+        var registry = new ControlFlowExecutorRegistry();
+        registry.Register(new LoopControlFlowExecutor());
+        registry.Register(new ParallelControlFlowExecutor());
+        return registry;
+    }
 }
