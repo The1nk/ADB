@@ -36,6 +36,14 @@ public partial class TargetBarViewModel : ObservableObject
 
     public void RemoveTarget(TargetViewModel target) => Targets.Remove(target);
 
+    /// <summary>Resolves the target a node is bound to: its explicit <paramref name="targetId"/> when set
+    /// (returning null when set but no longer present), otherwise the first target — or null when there are
+    /// no targets at all.</summary>
+    public TargetViewModel? ResolveForNode(Guid? targetId)
+        => targetId is Guid id
+            ? Targets.FirstOrDefault(t => t.Id == id)
+            : Targets.FirstOrDefault();
+
     private void OnCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
         if (e.OldItems is not null)

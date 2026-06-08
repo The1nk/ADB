@@ -597,10 +597,7 @@ public partial class MainWindow : Window
         }
 
         // Resolve the action's bound target: explicit TargetId, else the first configured target.
-        var targets = _editor.TargetBar.Targets;
-        var target = node.TargetId is System.Guid id
-            ? targets.FirstOrDefault(t => t.Id == id)
-            : targets.FirstOrDefault();
+        var target = _editor.TargetBar.ResolveForNode(node.TargetId);
         if (target is null)
         {
             MessageBox.Show(
@@ -657,10 +654,7 @@ public partial class MainWindow : Window
             return;
         }
 
-        var targets = _editor.TargetBar.Targets;
-        var target = node.TargetId is System.Guid id
-            ? targets.FirstOrDefault(t => t.Id == id)
-            : targets.FirstOrDefault();
+        var target = _editor.TargetBar.ResolveForNode(node.TargetId);
         if (target is null)
         {
             MessageBox.Show(
