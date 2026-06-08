@@ -1,6 +1,14 @@
-# ADB — Visual Bot Builder & Automation Toolkit
+# ADB: A Damn Bot — Visual Bot Builder & Automation Toolkit
 
-ADB is a Windows desktop toolkit for building and running UI-automation "bots" against Windows windows, Android devices (via `adb`), and web browsers (via Playwright). Design bots as node graphs in the visual editor (BotBuilder), then execute them from the editor or headlessly via command line (BotRunner). The system supports image matching, OCR, Lua scripting, and multi-target execution.
+**ADB stands for "A Damn Bot"** — a tongue-in-cheek backronym, and the project leans into it. ADB is a Windows desktop toolkit for building and running UI-automation "bots" that grind the tedious parts of Windows games, Android devices (via `adb`), and web browsers (via Playwright). Design bots as node graphs in the visual editor (BotBuilder), then execute them from the editor or headlessly via command line (BotRunner). The system supports image matching, OCR, Lua scripting, and multi-target execution.
+
+## Project Identity & Voice
+
+ADB's public face — `README.md` above all — uses a deliberately **playful, irreverent "game-grinding goblin" voice** ("Let a damn bot do the grinding"; themed section names like *The arsenal*, *Summoning requirements*, *Where everything lives*). This is intentional and approved; the fun is part of the product's identity. When editing `README.md` or other user-facing copy:
+
+- **Keep the goblin voice.** Don't sand it back to neutral corporate doc-speak. Jokes, asides, and themed section headers are welcome and on-brand.
+- **Never let the fun break the facts.** Every command, flag, selector format, version, and file path must stay accurate even when wrapped in a joke — a funny README that misleads is a bug. The grounding rules in the contracts below still apply: don't imply features, integrations, or behavior that don't exist in code.
+- **This CLAUDE.md and engineering docs stay straight.** This file, specs, and XML doc comments remain plain and precise — the voice is for the README and marketing surfaces, not the engineering reference.
 
 ## Tech Stack
 
@@ -76,7 +84,7 @@ ADB/
 │
 ├── BotBuilder/               # WPF visual editor
 │   ├── MainWindow.xaml       # Main editor canvas, palette, properties, toolbar
-│   ├── BotBuilder.xaml.cs    # Window code-behind
+│   ├── MainWindow.xaml.cs    # Main window code-behind
 │   ├── CoordinatePickerDialog.xaml   # Region selection dialog for image matching
 │   ├── RegionPickerDialog.xaml       # Region picker for template images
 │   ├── TargetPickerDialog.xaml       # Window/device/browser selector
@@ -152,7 +160,7 @@ ADB follows a **three-layer architecture**:
 - `Bot` model: named DAG of actions and connections (saved as JSON `.bot` files)
 - `BotExecutor`: walks the action graph, executes leaf actions, follows output ports
 - Multi-target support: resolve named targets (Window, Android device, Browser) at run start
-- Action categories: Control Flow, Screen, Input, Android, Browser, Data, Scripting, OCR, Imaging
+- Action categories: Control Flow, Screen, Input, Window, Android, Browser, Data, Scripting (OCR and image-matching actions live under the **Screen** category)
 - Target-specific drivers: Win32 window capture/input, ADB for Android, Playwright for browsers
 
 **Key Design Pattern: Action Definition + Executor**
