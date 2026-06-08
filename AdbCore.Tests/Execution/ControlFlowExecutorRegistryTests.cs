@@ -39,4 +39,16 @@ public class ControlFlowExecutorRegistryTests
         registry.Register(new FakeControlFlow { TypeKey = "dup" });
         Assert.Throws<InvalidOperationException>(() => registry.Register(new FakeControlFlow { TypeKey = "dup" }));
     }
+
+    [Fact]
+    public void CreateDefault_RegistersLoopAndParallel()
+    {
+        var registry = ControlFlowExecutorRegistry.CreateDefault();
+
+        Assert.Equal(2, registry.Count);
+        Assert.True(registry.TryGet(AdbCore.Actions.BuiltIn.LoopAction.LoopTypeKey, out var loop));
+        Assert.IsType<AdbCore.Execution.ControlFlow.LoopControlFlowExecutor>(loop);
+        Assert.True(registry.TryGet(AdbCore.Actions.BuiltIn.RunParallelAction.RunParallelTypeKey, out var parallel));
+        Assert.IsType<AdbCore.Execution.ControlFlow.ParallelControlFlowExecutor>(parallel);
+    }
 }

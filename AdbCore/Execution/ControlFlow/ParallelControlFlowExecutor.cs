@@ -73,16 +73,17 @@ public sealed class ParallelControlFlowExecutor : IControlFlowExecutor
         }
 
         // A branch failed. If someFailed is wired, route to it (handled) regardless of strategy.
-        if (graph.FindNext(joinId.Value, JoinAction.SomeFailedPort) is not null)
+        var someFailedNext = graph.FindNext(joinId.Value, JoinAction.SomeFailedPort);
+        if (someFailedNext is not null)
         {
-            return ControlFlowResult.Continue(graph.FindNext(joinId.Value, JoinAction.SomeFailedPort));
+            return ControlFlowResult.Continue(someFailedNext);
         }
 
         // Unhandled failure (someFailed unwired). Continue treats it as a warning and lets the run proceed
         // (the someFailed route simply dead-ends, hence null); the Halt strategies fail the run.
         if (strategy == ParallelErrorStrategy.Continue)
         {
-            return ControlFlowResult.Continue(graph.FindNext(joinId.Value, JoinAction.SomeFailedPort));
+            return ControlFlowResult.Continue(someFailedNext);
         }
 
         return ControlFlowResult.Halt(WalkOutcome.Failed(firstFailure.ErrorMessage, firstFailure.FailedActionId ?? runParallel.Id));
@@ -112,6 +113,7 @@ public sealed class ParallelControlFlowExecutor : IControlFlowExecutor
         {
             return null;
         }
+
         if (commonJoins.Count == 1)
         {
             return commonJoins[0];

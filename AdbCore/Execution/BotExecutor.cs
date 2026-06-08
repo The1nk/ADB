@@ -76,7 +76,7 @@ public class BotExecutor
             {
                 var cfContext = new ControlFlowContext(
                     state.Graph, current, state.Context, state.Log,
-                    (start, stop, token) => WalkAsync(state, start, token, stop));
+                    (cfStart, cfStop, cfToken) => WalkAsync(state, cfStart, cfToken, cfStop));
                 var cfResult = await controlFlow.ExecuteAsync(cfContext, ct);
                 if (!cfResult.Outcome.Success)
                 {
