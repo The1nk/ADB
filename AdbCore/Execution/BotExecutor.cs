@@ -34,7 +34,8 @@ public class BotExecutor
             context.Targets[kvp.Key] = kvp.Value;
         }
 
-        var entry = FindEntryPoint(bot);
+        var graph = new BotGraph(bot);
+        var entry = graph.EntryPoint;
         if (entry is null)
         {
             return new ExecutionResult
@@ -44,7 +45,7 @@ public class BotExecutor
             };
         }
 
-        var state = new RunState(bot, _executors, context, options.Log ?? (_ => { }), progress);
+        var state = new RunState(graph, _executors, context, options.Log ?? (_ => { }), progress);
         var outcome = await WalkAsync(state, entry, ct);
 
         return new ExecutionResult
@@ -78,7 +79,7 @@ public class BotExecutor
                     return loopOutcome;
                 }
 
-                current = FindNext(state.Bot, current.Id, LoopAction.DonePort);
+                current = state.Graph.FindNext(current.Id, LoopAction.DonePort);
                 continue;
             }
 
@@ -90,7 +91,7 @@ public class BotExecutor
                     return parallelOutcome;
                 }
 
-                current = joinId is null ? null : FindNext(state.Bot, joinId.Value, joinPort);
+                current = joinId is null ? null : state.Graph.FindNext(joinId.Value, joinPort);
                 continue;
             }
 
@@ -113,7 +114,7 @@ public class BotExecutor
 
             if (!result.Success)
             {
-                var failureNext = FindNext(state.Bot, current.Id, FailurePort);
+                var failureNext = state.Graph.FindNext(current.Id, FailurePort);
                 if (failureNext is not null)
                 {
                     current = failureNext;
@@ -123,7 +124,7 @@ public class BotExecutor
                 return WalkOutcome.Failed(result.ErrorMessage, current.Id);
             }
 
-            current = FindNext(state.Bot, current.Id, result.OutputPort);
+            current = state.Graph.FindNext(current.Id, result.OutputPort);
         }
 
         return WalkOutcome.Completed();
@@ -133,7 +134,7 @@ public class BotExecutor
     /// setting the optional index/item variables, then returns so the caller can follow Done.</summary>
     private async Task<WalkOutcome> ExecuteLoopAsync(RunState state, BotAction loop, CancellationToken ct)
     {
-        var bodyStart = FindNext(state.Bot, loop.Id, LoopAction.BodyPort);
+        var bodyStart = state.Graph.FindNext(loop.Id, LoopAction.BodyPort);
         var mode = ConfigValues.GetString(loop.Config, LoopAction.ModeKey, LoopAction.ModeCount);
         var indexVar = ConfigValues.GetString(loop.Config, LoopAction.IndexVariableKey);
         var itemVar = ConfigValues.GetString(loop.Config, LoopAction.ItemVariableKey);
@@ -206,7 +207,7 @@ public class BotExecutor
         var branchStarts = new List<BotAction>();
         for (var i = 1; i <= branchCount; i++)
         {
-            var start = FindNext(state.Bot, runParallel.Id, RunParallelAction.BranchPort(i));
+            var start = state.Graph.FindNext(runParallel.Id, RunParallelAction.BranchPort(i));
             if (start is not null)
             {
                 branchStarts.Add(start);
@@ -218,7 +219,7 @@ public class BotExecutor
             return (WalkOutcome.Failed("Run Parallel has no wired branch ports.", runParallel.Id), null, string.Empty);
         }
 
-        var joinId = FindConvergentJoin(state.Bot, branchStarts.Select(b => b.Id).ToList());
+        var joinId = FindConvergentJoin(state.Graph, branchStarts.Select(b => b.Id).ToList());
         if (joinId is null)
         {
             return (WalkOutcome.Failed("Run Parallel branches must converge on exactly one Join.", runParallel.Id), null, string.Empty);
@@ -255,7 +256,7 @@ public class BotExecutor
         }
 
         // A branch failed. If someFailed is wired, route to it (handled) regardless of strategy.
-        if (FindNext(state.Bot, joinId.Value, JoinAction.SomeFailedPort) is not null)
+        if (state.Graph.FindNext(joinId.Value, JoinAction.SomeFailedPort) is not null)
         {
             return (WalkOutcome.Completed(), joinId, JoinAction.SomeFailedPort);
         }
@@ -277,9 +278,9 @@ public class BotExecutor
 
     /// <summary>Finds the single Join node all branches converge on, choosing the nearest common Join when
     /// more than one is reachable from every branch. Returns null if zero, or an ambiguous tie.</summary>
-    private static Guid? FindConvergentJoin(Bot bot, IReadOnlyList<Guid> branchStartIds)
+    private static Guid? FindConvergentJoin(BotGraph graph, IReadOnlyList<Guid> branchStartIds)
     {
-        var perBranch = branchStartIds.Select(id => JoinDistances(bot, id)).ToList();
+        var perBranch = branchStartIds.Select(id => JoinDistances(graph, id)).ToList();
         if (perBranch.Count == 0)
         {
             return null;
@@ -325,7 +326,7 @@ public class BotExecutor
 
     /// <summary>BFS forward from <paramref name="startId"/> over all outgoing edges, returning the shortest
     /// distance to each reachable Join node.</summary>
-    private static Dictionary<Guid, int> JoinDistances(Bot bot, Guid startId)
+    private static Dictionary<Guid, int> JoinDistances(BotGraph graph, Guid startId)
     {
         var distances = new Dictionary<Guid, int>();
         var visited = new HashSet<Guid> { startId };
@@ -335,13 +336,13 @@ public class BotExecutor
         while (queue.Count > 0)
         {
             var (id, depth) = queue.Dequeue();
-            var node = bot.Actions.FirstOrDefault(a => a.Id == id);
+            var node = graph.Find(id);
             if (node is not null && node.TypeKey == JoinAction.JoinTypeKey && !distances.ContainsKey(id))
             {
                 distances[id] = depth;
             }
 
-            foreach (var edge in bot.Connections.Where(c => c.SourceActionId == id))
+            foreach (var edge in graph.Outgoing(id))
             {
                 if (visited.Add(edge.TargetActionId))
                 {
@@ -402,37 +403,24 @@ public class BotExecutor
         return result;
     }
 
-    private static BotAction? FindEntryPoint(Bot bot)
-    {
-        var withIncoming = bot.Connections.Select(c => c.TargetActionId).ToHashSet();
-        return bot.Actions.FirstOrDefault(a => !withIncoming.Contains(a.Id));
-    }
-
-    private static BotAction? FindNext(Bot bot, Guid fromActionId, string sourcePort)
-    {
-        var edge = bot.Connections.FirstOrDefault(
-            c => c.SourceActionId == fromActionId && c.SourcePort == sourcePort);
-        return edge is null ? null : bot.Actions.FirstOrDefault(a => a.Id == edge.TargetActionId);
-    }
-
     /// <summary>Mutable per-run state threaded through the recursive walk.</summary>
     private sealed class RunState
     {
         public RunState(
-            Bot bot,
+            BotGraph graph,
             ActionExecutorRegistry executors,
             BotExecutionContext context,
             Action<string> log,
             IProgress<ExecutionProgress>? progress)
         {
-            Bot = bot;
+            Graph = graph;
             Executors = executors;
             Context = context;
             Log = log;
             Progress = progress;
         }
 
-        public Bot Bot { get; }
+        public BotGraph Graph { get; }
         public ActionExecutorRegistry Executors { get; }
         public BotExecutionContext Context { get; }
         public Action<string> Log { get; }
