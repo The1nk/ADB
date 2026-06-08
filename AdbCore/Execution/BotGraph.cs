@@ -4,10 +4,12 @@ namespace AdbCore.Execution;
 
 /// <summary>An index over a <see cref="Bot"/>'s actions and connections, built once per run. Replaces the
 /// repeated linear <c>FirstOrDefault</c> scans the graph walk would otherwise perform on every hop.</summary>
+/// <remarks>If <see cref="Bot.Actions"/> contains duplicate <see cref="BotAction.Id"/> values, the last
+/// entry with that id wins in the id lookup; invalid bots are tolerated, not rejected.</remarks>
 public sealed class BotGraph
 {
     private readonly Dictionary<Guid, BotAction> _byId;
-    private readonly Dictionary<Guid, List<ActionConnection>> _outgoing;
+    private readonly Dictionary<Guid, IReadOnlyList<ActionConnection>> _outgoing;
 
     public BotGraph(Bot bot)
     {
@@ -19,17 +21,23 @@ public sealed class BotGraph
             _byId[action.Id] = action;
         }
 
-        _outgoing = new Dictionary<Guid, List<ActionConnection>>();
+        var outgoing = new Dictionary<Guid, List<ActionConnection>>();
         var withIncoming = new HashSet<Guid>();
         foreach (var connection in bot.Connections)
         {
-            if (!_outgoing.TryGetValue(connection.SourceActionId, out var edges))
+            if (!outgoing.TryGetValue(connection.SourceActionId, out var edges))
             {
                 edges = new List<ActionConnection>();
-                _outgoing[connection.SourceActionId] = edges;
+                outgoing[connection.SourceActionId] = edges;
             }
             edges.Add(connection);
             withIncoming.Add(connection.TargetActionId);
+        }
+
+        _outgoing = new Dictionary<Guid, IReadOnlyList<ActionConnection>>(outgoing.Count);
+        foreach (var kvp in outgoing)
+        {
+            _outgoing[kvp.Key] = kvp.Value.AsReadOnly();
         }
 
         EntryPoint = bot.Actions.FirstOrDefault(a => !withIncoming.Contains(a.Id));

@@ -99,4 +99,18 @@ public class BotGraphTests
         Assert.Single(graph.Outgoing(aId));
         Assert.Empty(graph.Outgoing(bId));
     }
+
+    [Fact]
+    public void FindNext_ReturnsNull_WhenTargetActionAbsentFromGraph()
+    {
+        var a = Node("a", out var aId);
+        var missingId = Guid.NewGuid();
+        var bot = new Bot();
+        bot.Actions.Add(a);
+        bot.Connections.Add(Edge(aId, "out", missingId));
+
+        var graph = new BotGraph(bot);
+
+        Assert.Null(graph.FindNext(aId, "out"));
+    }
 }
