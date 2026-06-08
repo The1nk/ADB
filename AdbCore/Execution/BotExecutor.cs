@@ -430,16 +430,4 @@ public class BotExecutor
         public void RecordActionExecuted() => Interlocked.Increment(ref _actionsExecuted);
     }
 
-    /// <summary>Result of walking a sub-path: completed, or failed at a specific action.</summary>
-    private sealed class WalkOutcome
-    {
-        public bool Success { get; private init; }
-        public string? ErrorMessage { get; private init; }
-        public Guid? FailedActionId { get; private init; }
-
-        public static WalkOutcome Completed() => new() { Success = true };
-
-        public static WalkOutcome Failed(string? errorMessage, Guid failedActionId)
-            => new() { Success = false, ErrorMessage = errorMessage, FailedActionId = failedActionId };
-    }
 }
