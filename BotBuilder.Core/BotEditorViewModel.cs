@@ -110,6 +110,28 @@ public partial class BotEditorViewModel : ObservableObject
         AfterEdit();
     }
 
+    /// <summary>Frames the viewport so every node is visible — the "I panned away and lost my graph" rescue.
+    /// No-op when there are no nodes. Node width is the canonical <see cref="NodeLayout.CardWidth"/>; height is
+    /// each node's own.</summary>
+    public void FitViewportToNodes(double viewportWidth, double viewportHeight)
+    {
+        if (Nodes.Count == 0)
+        {
+            return;
+        }
+
+        double minX = double.MaxValue, minY = double.MaxValue, maxX = double.MinValue, maxY = double.MinValue;
+        foreach (var n in Nodes)
+        {
+            minX = Math.Min(minX, n.X);
+            minY = Math.Min(minY, n.Y);
+            maxX = Math.Max(maxX, n.X + NodeLayout.CardWidth);
+            maxY = Math.Max(maxY, n.Y + n.Height);
+        }
+
+        Viewport.FitTo(minX, minY, maxX, maxY, viewportWidth, viewportHeight);
+    }
+
     /// <summary>Re-arranges all nodes into a tidy left-to-right layered layout, as one undoable step.</summary>
     public void AutoLayout()
     {

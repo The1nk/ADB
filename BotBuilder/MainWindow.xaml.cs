@@ -17,9 +17,6 @@ public partial class MainWindow : Window
 {
     private const string BotFilter = "Bot files (*.bot)|*.bot|All files (*.*)|*.*";
 
-    // Node cards are a fixed 160 wide in the canvas template; used to compute the graph bounds for Fit.
-    private const double NodeWidth = 160;
-
     private readonly BotEditorViewModel _editor;
     private readonly BotBuilder.Core.Integration.RunStatusTracker _runStatus = new();
     private readonly FrameCapturer _frameCapturer = new();
@@ -296,24 +293,7 @@ public partial class MainWindow : Window
     private void FitToWindow_Click(object sender, RoutedEventArgs e) => FitToNodes();
 
     // Reframe the view so every node is visible — the "I panned away and lost my graph" rescue.
-    private void FitToNodes()
-    {
-        if (_editor.Nodes.Count == 0)
-        {
-            return;
-        }
-
-        double minX = double.MaxValue, minY = double.MaxValue, maxX = double.MinValue, maxY = double.MinValue;
-        foreach (var n in _editor.Nodes)
-        {
-            minX = Math.Min(minX, n.X);
-            minY = Math.Min(minY, n.Y);
-            maxX = Math.Max(maxX, n.X + NodeWidth);
-            maxY = Math.Max(maxY, n.Y + n.Height);
-        }
-
-        _editor.Viewport.FitTo(minX, minY, maxX, maxY, ViewportHost.ActualWidth, ViewportHost.ActualHeight);
-    }
+    private void FitToNodes() => _editor.FitViewportToNodes(ViewportHost.ActualWidth, ViewportHost.ActualHeight);
 
     private void Connection_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
@@ -521,15 +501,10 @@ public partial class MainWindow : Window
     private void TestRun_Click(object sender, RoutedEventArgs e)
     {
         // 1. Serialize the current editor state to a temp .bot so the run never depends on a saved file.
-        var dir = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "adb-testrun");
-        System.IO.Directory.CreateDirectory(dir);
-        // BotName is free-form, so strip any characters that aren't valid in a filename (fall back to "bot").
-        var safeName = string.Concat(_editor.BotName.Split(System.IO.Path.GetInvalidFileNameChars()));
-        if (string.IsNullOrWhiteSpace(safeName))
-        {
-            safeName = "bot";
-        }
-        var botPath = System.IO.Path.Combine(dir, $"{safeName}.bot");
+        var botPath = BotBuilder.Core.Integration.TestRunArtifacts.TempBotPath(
+            System.IO.Path.GetTempPath(), _editor.BotName);
+        // non-null: TestRunArtifacts.TempBotPath always returns a path with a subdirectory (.../adb-testrun/x.bot).
+        System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(botPath)!);
         _editor.Save(botPath);
 
         // 2. Locate BotRunner.exe.
@@ -617,10 +592,7 @@ public partial class MainWindow : Window
         }
 
         // Resolve the action's bound target: explicit TargetId, else the first configured target.
-        var targets = _editor.TargetBar.Targets;
-        var target = node.TargetId is System.Guid id
-            ? targets.FirstOrDefault(t => t.Id == id)
-            : targets.FirstOrDefault();
+        var target = _editor.TargetBar.ResolveForNode(node.TargetId);
         if (target is null)
         {
             MessageBox.Show(
@@ -677,10 +649,7 @@ public partial class MainWindow : Window
             return;
         }
 
-        var targets = _editor.TargetBar.Targets;
-        var target = node.TargetId is System.Guid id
-            ? targets.FirstOrDefault(t => t.Id == id)
-            : targets.FirstOrDefault();
+        var target = _editor.TargetBar.ResolveForNode(node.TargetId);
         if (target is null)
         {
             MessageBox.Show(
