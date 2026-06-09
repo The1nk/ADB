@@ -503,6 +503,7 @@ public partial class MainWindow : Window
         // 1. Serialize the current editor state to a temp .bot so the run never depends on a saved file.
         var botPath = BotBuilder.Core.Integration.TestRunArtifacts.TempBotPath(
             System.IO.Path.GetTempPath(), _editor.BotName);
+        // non-null: TestRunArtifacts.TempBotPath always returns a path with a subdirectory (.../adb-testrun/x.bot).
         System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(botPath)!);
         _editor.Save(botPath);
 

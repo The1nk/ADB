@@ -41,7 +41,7 @@ public class FitViewportToNodesTests
         var minX = 0d;
         var minY = 0d;
         var maxX = 300 + NodeLayout.CardWidth;
-        var maxY = Math.Max(a.Height, 200 + b.Height);
+        var maxY = Math.Max(0 + a.Height, 200 + b.Height);
         var expectedCentreX = (minX + maxX) / 2;
         var expectedCentreY = (minY + maxY) / 2;
 

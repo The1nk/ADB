@@ -51,4 +51,44 @@ public class ControlFlowExecutorRegistryTests
         Assert.True(registry.TryGet(AdbCore.Actions.BuiltIn.RunParallelAction.RunParallelTypeKey, out var parallel));
         Assert.IsType<AdbCore.Execution.ControlFlow.ParallelControlFlowExecutor>(parallel);
     }
+
+    [Fact]
+    public async Task BotExecutor_DispatchesControlFlowNodeThroughInjectedRegistry()
+    {
+        // A control-flow node with a custom TypeKey that no ActionExecutor handles. If BotExecutor consulted
+        // only the action registry it would fail ("No executor registered"); dispatching through the injected
+        // control-flow registry proves the registry-driven path is live and the ctor param is wired.
+        var ran = false;
+        var customKey = "control.custom-test";
+
+        var cfRegistry = new ControlFlowExecutorRegistry();
+        cfRegistry.Register(new RecordingControlFlow
+        {
+            TypeKey = customKey,
+            OnExecute = () => ran = true,
+        });
+
+        var node = new BotAction { Id = Guid.NewGuid(), TypeKey = customKey, Label = customKey };
+        var bot = new Bot { Name = "cf-dispatch" };
+        bot.Actions.Add(node);
+
+        var result = await new BotExecutor(new ActionExecutorRegistry(), cfRegistry)
+            .RunAsync(bot, new ExecutionOptions(), null, default);
+
+        Assert.True(ran);
+        Assert.True(result.Success);
+    }
+
+    private sealed class RecordingControlFlow : IControlFlowExecutor
+    {
+        public required string TypeKey { get; init; }
+        public required Action OnExecute { get; init; }
+
+        public Task<ControlFlowResult> ExecuteAsync(ControlFlowContext context, CancellationToken ct)
+        {
+            OnExecute();
+            // No wired output → end the walk successfully.
+            return Task.FromResult(ControlFlowResult.Continue(null));
+        }
+    }
 }

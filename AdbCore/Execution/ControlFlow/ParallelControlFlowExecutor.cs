@@ -83,7 +83,7 @@ public sealed class ParallelControlFlowExecutor : IControlFlowExecutor
         // (the someFailed route simply dead-ends, hence null); the Halt strategies fail the run.
         if (strategy == ParallelErrorStrategy.Continue)
         {
-            return ControlFlowResult.Continue(someFailedNext);
+            return ControlFlowResult.Continue(someFailedNext); // someFailed unwired here, so next is null — the walk ends.
         }
 
         return ControlFlowResult.Halt(WalkOutcome.Failed(firstFailure.ErrorMessage, firstFailure.FailedActionId ?? runParallel.Id));
