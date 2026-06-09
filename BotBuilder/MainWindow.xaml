@@ -3,6 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="clr-namespace:BotBuilder"
         xmlns:targets="clr-namespace:BotBuilder.Core.Targets;assembly=BotBuilder.Core"
+        xmlns:core="clr-namespace:BotBuilder.Core;assembly=BotBuilder.Core"
         Title="ADB Bot Builder" Height="720" Width="1100"
         KeyDown="Window_KeyDown" Background="{DynamicResource WindowBackgroundBrush}">
     <Window.Resources>
@@ -258,7 +259,7 @@
                         </ItemsControl.ItemContainerStyle>
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
-                                <Border Width="160" Height="{Binding Height}" CornerRadius="6" Background="{DynamicResource SurfaceBackgroundBrush}"
+                                <Border Width="{x:Static core:NodeLayout.CardWidth}" Height="{Binding Height}" CornerRadius="6" Background="{DynamicResource SurfaceBackgroundBrush}"
                                         BorderThickness="2"
                                         MouseLeftButtonDown="Node_MouseLeftButtonDown">
                                     <Border.BorderBrush>
