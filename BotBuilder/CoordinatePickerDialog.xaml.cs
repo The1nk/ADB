@@ -62,8 +62,13 @@ public partial class CoordinatePickerDialog : Window
             StrokeThickness = 2,
             Fill = new SolidColorBrush(System.Windows.Media.Color.FromArgb(80, 0, 255, 0)),
         };
-        Canvas.SetLeft(dot, at.X - 7);
-        Canvas.SetTop(dot, at.Y - 7);
+        // `at` is relative to FrameImage, whose Stretch=Uniform content is letterbox-centred within the host
+        // Grid that MarkerCanvas fills — so translate the image's origin into the canvas before placing the dot,
+        // otherwise the marker is offset by the letterbox margin (it would land in the black bars). Mirrors the
+        // origin translation RegionPickerDialog applies to its rubber-band.
+        var origin = FrameImage.TranslatePoint(new System.Windows.Point(0, 0), MarkerCanvas);
+        Canvas.SetLeft(dot, origin.X + at.X - 7);
+        Canvas.SetTop(dot, origin.Y + at.Y - 7);
         MarkerCanvas.Children.Add(dot);
     }
 
