@@ -203,4 +203,78 @@ public class LoopBreakExecutionTests
         Assert.False(result.Success);
         Assert.Contains("converge on exactly one Join", result.ErrorMessage);
     }
+
+    [Fact]
+    public async Task LoopBreak_InParallelBranch_HaltsEvenUnderContinueStrategy()
+    {
+        // Even with the Continue error strategy and no someFailed wiring (the config that downgrades normal
+        // branch failures to warnings), a Loop-Break crossing the Parallel boundary is a graph authoring
+        // error and must halt the run — it must NOT be downgraded to success.
+        var rp = Node(RunParallelAction.RunParallelTypeKey, out var rpId);
+        rp.Config[RunParallelAction.BranchesKey] = 2;
+        rp.Config[RunParallelAction.OnBranchFailureKey] = ParallelErrorStrategy.Continue.ToString();
+        var gate = Node("gate", out var gateId);
+        var brk = Node(LoopBreakAction.LoopBreakTypeKey, out var brkId);
+        var b = Node("b", out var bId);
+        var join = Node(JoinAction.JoinTypeKey, out var joinId);
+        var done = Node("done", out var doneId);
+
+        var bot = new Bot { Name = "loopbreak-branch-continue" };
+        bot.Actions.AddRange(new[] { rp, gate, brk, b, join, done });
+        bot.Connections.Add(Edge(rpId, RunParallelAction.BranchPort(1), gateId));
+        bot.Connections.Add(Edge(gateId, "ok", joinId));
+        bot.Connections.Add(Edge(gateId, "brk", brkId));
+        bot.Connections.Add(Edge(rpId, RunParallelAction.BranchPort(2), bId));
+        bot.Connections.Add(Edge(bId, "out", joinId));
+        bot.Connections.Add(Edge(joinId, JoinAction.AllSucceededPort, doneId));
+        // NOTE: someFailed deliberately left unwired
+
+        var doneReached = false;
+        var registry = new ActionExecutorRegistry();
+        registry.Register(new FakeExecutor { TypeKey = "gate", Behavior = c => ActionResult.Ok("brk") });
+        registry.Register(new FakeExecutor { TypeKey = "b", Behavior = c => ActionResult.Ok("out") });
+        registry.Register(new FakeExecutor { TypeKey = "done", Behavior = c => { doneReached = true; return ActionResult.Ok(string.Empty); } });
+
+        var result = await new BotExecutor(registry).RunAsync(bot, new ExecutionOptions(), null, default);
+
+        Assert.False(result.Success);
+        Assert.Contains("Loop-Break cannot cross a Run Parallel branch boundary", result.ErrorMessage);
+        Assert.False(doneReached);
+    }
+
+    [Fact]
+    public async Task LoopBreak_ConditionallyReachedInParallelBranch_FailsNotSwallowed()
+    {
+        // A gate node routes branch 1 to a Loop-Break on one port while the Join stays reachable via its
+        // other port, so the graph passes Parallel convergence and the branch actually runs. The break has
+        // no enclosing loop inside the branch, so it must surface as a failure — never be silently swallowed.
+        var rp = Node(RunParallelAction.RunParallelTypeKey, out var rpId);
+        rp.Config[RunParallelAction.BranchesKey] = 2;
+        var gate = Node("gate", out var gateId);
+        var brk = Node(LoopBreakAction.LoopBreakTypeKey, out var brkId);
+        var b = Node("b", out var bId);
+        var join = Node(JoinAction.JoinTypeKey, out var joinId);
+        var done = Node("done", out var doneId);
+
+        var bot = new Bot { Name = "loopbreak-gated-in-branch" };
+        bot.Actions.AddRange(new[] { rp, gate, brk, b, join, done });
+        bot.Connections.Add(Edge(rpId, RunParallelAction.BranchPort(1), gateId));
+        bot.Connections.Add(Edge(gateId, "ok", joinId));   // keeps the Join reachable from branch 1 (convergence passes)
+        bot.Connections.Add(Edge(gateId, "brk", brkId));   // runtime route: gate -> Loop-Break (no enclosing loop)
+        bot.Connections.Add(Edge(rpId, RunParallelAction.BranchPort(2), bId));
+        bot.Connections.Add(Edge(bId, "out", joinId));
+        bot.Connections.Add(Edge(joinId, JoinAction.AllSucceededPort, doneId));
+
+        var doneReached = false;
+        var registry = new ActionExecutorRegistry();
+        registry.Register(new FakeExecutor { TypeKey = "gate", Behavior = c => ActionResult.Ok("brk") }); // takes the break path
+        registry.Register(new FakeExecutor { TypeKey = "b", Behavior = c => ActionResult.Ok("out") });
+        registry.Register(new FakeExecutor { TypeKey = "done", Behavior = c => { doneReached = true; return ActionResult.Ok(string.Empty); } });
+
+        var result = await new BotExecutor(registry).RunAsync(bot, new ExecutionOptions(), null, default);
+
+        Assert.False(result.Success);                                              // not silently swallowed
+        Assert.Contains("Loop-Break cannot cross a Run Parallel branch boundary", result.ErrorMessage);
+        Assert.False(doneReached);                                                 // AllSucceeded path not taken
+    }
 }
