@@ -82,6 +82,10 @@ public class BotExecutor
                 {
                     return cfResult.Outcome;
                 }
+                if (cfResult.IsBreak)
+                {
+                    return WalkOutcome.Break(); // unwind this sub-walk; the innermost loop consumes it
+                }
                 current = cfResult.Next;
                 continue;
             }

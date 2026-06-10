@@ -83,6 +83,8 @@ public static class BuiltInActions
 
         // Loop is engine-native: register its definition only (no executor).
         definitions.Register(new LoopAction());
+        // Loop-Break is engine-native: definition only (no executor).
+        definitions.Register(new LoopBreakAction());
 
         // Run Parallel and Join are engine-native: register their definitions only (no executors).
         definitions.Register(new RunParallelAction());

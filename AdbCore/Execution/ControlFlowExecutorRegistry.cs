@@ -23,11 +23,12 @@ public sealed class ControlFlowExecutorRegistry
     public bool TryGet(string typeKey, out IControlFlowExecutor? executor)
         => _byKey.TryGetValue(typeKey, out executor);
 
-    /// <summary>The default set wired into <see cref="BotExecutor"/>: Loop and Run Parallel.</summary>
+    /// <summary>The default set wired into <see cref="BotExecutor"/>: Loop, Loop-Break, and Run Parallel.</summary>
     public static ControlFlowExecutorRegistry CreateDefault()
     {
         var registry = new ControlFlowExecutorRegistry();
         registry.Register(new LoopControlFlowExecutor());
+        registry.Register(new LoopBreakControlFlowExecutor());
         registry.Register(new ParallelControlFlowExecutor());
         return registry;
     }

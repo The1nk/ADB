@@ -47,6 +47,10 @@ public sealed class LoopControlFlowExecutor : IControlFlowExecutor
             }
 
             var bodyOutcome = await context.WalkAsync(bodyStart, ct);
+            if (bodyOutcome.IsBreak)
+            {
+                break; // Loop-Break consumed here (innermost loop) -> follow Done
+            }
             if (!bodyOutcome.Success)
             {
                 return ControlFlowResult.Halt(bodyOutcome);
