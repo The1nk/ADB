@@ -319,4 +319,101 @@ public class LoopExecutionTests
         Assert.Equal(1, bodyCalls);
         Assert.True(doneReached);
     }
+
+    [Fact]
+    public async Task Loop_Forever_IteratesUntilCancelled()
+    {
+        var loop = Node(LoopAction.LoopTypeKey, out var loopId);
+        loop.Config[LoopAction.ModeKey] = LoopAction.ModeForever;
+        var body = Node("body", out var bodyId);
+
+        var bot = new Bot { Name = "loop-forever" };
+        bot.Actions.AddRange(new[] { loop, body });
+        bot.Connections.Add(Edge(loopId, LoopAction.BodyPort, bodyId));
+
+        using var cts = new CancellationTokenSource();
+        var calls = 0;
+        var registry = new ActionExecutorRegistry();
+        registry.Register(new FakeExecutor
+        {
+            TypeKey = "body",
+            Behavior = c => { if (++calls >= 4) { cts.Cancel(); } return ActionResult.Ok(string.Empty); },
+        });
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(
+            () => new BotExecutor(registry).RunAsync(bot, new ExecutionOptions(), null, cts.Token));
+        Assert.Equal(4, calls); // 4th call cancels; the loop's next ct check throws before a 5th body run — deterministic: cancel-in-body is synchronous, so no race between the ct write and the top-of-loop check
+    }
+
+    [Fact]
+    public async Task Loop_Forever_NoBody_FailsFast()
+    {
+        var loop = Node(LoopAction.LoopTypeKey, out var loopId);
+        loop.Config[LoopAction.ModeKey] = LoopAction.ModeForever;
+        var done = Node("done", out var doneId);
+
+        var bot = new Bot { Name = "loop-forever-empty" };
+        bot.Actions.AddRange(new[] { loop, done });
+        bot.Connections.Add(Edge(loopId, LoopAction.DonePort, doneId)); // no body edge
+
+        var result = await new BotExecutor(new ActionExecutorRegistry()).RunAsync(bot, new ExecutionOptions(), null, default);
+
+        Assert.False(result.Success);
+        Assert.Contains("Forever", result.ErrorMessage);
+        Assert.Equal(loopId, result.FailedActionId);
+    }
+
+    [Fact]
+    public async Task Loop_Forever_IndexVariableIsLongAndIncrements()
+    {
+        var loop = Node(LoopAction.LoopTypeKey, out var loopId);
+        loop.Config[LoopAction.ModeKey] = LoopAction.ModeForever;
+        loop.Config[LoopAction.IndexVariableKey] = "i";
+        var body = Node("body", out var bodyId);
+
+        var bot = new Bot { Name = "loop-forever-index" };
+        bot.Actions.AddRange(new[] { loop, body });
+        bot.Connections.Add(Edge(loopId, LoopAction.BodyPort, bodyId));
+
+        using var cts = new CancellationTokenSource();
+        var seen = new List<object>();
+        var registry = new ActionExecutorRegistry();
+        registry.Register(new FakeExecutor
+        {
+            TypeKey = "body",
+            Behavior = c => { seen.Add(c.Context.Variables["i"]); if (seen.Count >= 3) { cts.Cancel(); } return ActionResult.Ok(string.Empty); },
+        });
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(
+            () => new BotExecutor(registry).RunAsync(bot, new ExecutionOptions(), null, cts.Token));
+        Assert.Equal(new object[] { 0L, 1L, 2L }, seen); // boxed long values, not int
+    }
+
+    [Fact]
+    public async Task Loop_Forever_LoopBreakExitsViaDone()
+    {
+        var loop = Node(LoopAction.LoopTypeKey, out var loopId);
+        loop.Config[LoopAction.ModeKey] = LoopAction.ModeForever;
+        var body = Node("body", out var bodyId);
+        var brk = Node(LoopBreakAction.LoopBreakTypeKey, out var brkId);
+        var done = Node("done", out var doneId);
+
+        var bot = new Bot { Name = "loop-forever-break" };
+        bot.Actions.AddRange(new[] { loop, body, brk, done });
+        bot.Connections.Add(Edge(loopId, LoopAction.BodyPort, bodyId));
+        bot.Connections.Add(Edge(bodyId, "out", brkId)); // body always routes to Loop-Break
+        bot.Connections.Add(Edge(loopId, LoopAction.DonePort, doneId));
+
+        var bodyCalls = 0;
+        var doneReached = false;
+        var registry = new ActionExecutorRegistry();
+        registry.Register(new FakeExecutor { TypeKey = "body", Behavior = c => { bodyCalls++; return ActionResult.Ok("out"); } });
+        registry.Register(new FakeExecutor { TypeKey = "done", Behavior = c => { doneReached = true; return ActionResult.Ok(string.Empty); } });
+
+        var result = await new BotExecutor(registry).RunAsync(bot, new ExecutionOptions(), null, default);
+
+        Assert.True(result.Success);
+        Assert.Equal(1, bodyCalls); // first iteration breaks
+        Assert.True(doneReached);
+    }
 }

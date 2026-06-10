@@ -1,8 +1,8 @@
 namespace AdbCore.Actions.BuiltIn;
 
-/// <summary>Repeats its Body sub-path N times (count) or once per item (for-each), then follows Done.
-/// Execution is engine-native (see <c>BotExecutor.ExecuteLoopAsync</c>); this type supplies palette
-/// and properties-panel metadata only and has no executor.</summary>
+/// <summary>Repeats its Body sub-path N times (count), once per item (for-each), or indefinitely (forever),
+/// then follows Done. Execution is engine-native (see <c>LoopControlFlowExecutor</c>); this type supplies
+/// palette and properties-panel metadata only and has no executor.</summary>
 public sealed class LoopAction : IActionDefinition
 {
     public const string LoopTypeKey = "control.loop";
@@ -17,11 +17,12 @@ public sealed class LoopAction : IActionDefinition
 
     public const string ModeCount = "Count";
     public const string ModeForEach = "ForEach";
+    public const string ModeForever = "Forever";
 
     public string TypeKey => LoopTypeKey;
     public string DisplayName => "Loop";
     public string Category => "Control Flow";
-    public string Description => "Repeats the Body path by count or for each item, then follows Done.";
+    public string Description => "Repeats the Body path by count, for each item, or forever, then follows Done.";
     public List<PortDefinition> InputPorts { get; } = new() { new PortDefinition { Name = "in", Label = "In" } };
     public List<PortDefinition> OutputPorts { get; } = new()
     {
@@ -33,7 +34,7 @@ public sealed class LoopAction : IActionDefinition
         new ConfigField
         {
             Key = ModeKey, Label = "Mode", Type = ConfigFieldType.Enum,
-            DefaultValue = ModeCount, Options = new() { ModeCount, ModeForEach },
+            DefaultValue = ModeCount, Options = new() { ModeCount, ModeForEach, ModeForever },
         },
         new ConfigField { Key = CountKey, Label = "Count", Type = ConfigFieldType.Number, DefaultValue = 1 },
         new ConfigField { Key = CollectionVariableKey, Label = "Collection Variable", Type = ConfigFieldType.String },

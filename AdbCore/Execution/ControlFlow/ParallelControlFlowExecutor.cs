@@ -44,12 +44,24 @@ public sealed class ParallelControlFlowExecutor : IControlFlowExecutor
 
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(ct);
         var outcomes = new WalkOutcome[branchStarts.Count];
+        WalkOutcome? branchBreakViolation = null;
 
         async Task RunBranchAsync(int index)
         {
             try
             {
                 var outcome = await context.WalkAsync(branchStarts[index], linked.Token, joinId.Value);
+                if (outcome.IsBreak)
+                {
+                    // A Loop-Break with no enclosing loop inside the branch has unwound to the Parallel
+                    // boundary. Breaks cannot cross a Run Parallel branch; surface it as a failure rather
+                    // than silently swallowing it (which would falsely report success and skip an outer loop's break).
+                    outcome = WalkOutcome.Failed(
+                        "Loop-Break cannot cross a Run Parallel branch boundary; place Loop-Break after the Join.",
+                        branchStarts[index].Id);
+                    branchBreakViolation = outcome;   // a boundary-crossing break halts the run unconditionally (see aggregation)
+                    linked.Cancel();                  // stop siblings; the run is failing regardless of strategy
+                }
                 outcomes[index] = outcome;
                 if (!outcome.Success && strategy == ParallelErrorStrategy.HaltAll)
                 {
@@ -65,6 +77,13 @@ public sealed class ParallelControlFlowExecutor : IControlFlowExecutor
 
         var tasks = Enumerable.Range(0, branchStarts.Count).Select(RunBranchAsync).ToArray();
         await Task.WhenAll(tasks); // a genuine user cancellation (outer ct) surfaces as OperationCanceledException
+
+        if (branchBreakViolation is not null)
+        {
+            // A Loop-Break unwound to a Parallel branch boundary. This is an invalid graph, not a handleable
+            // branch failure — halt regardless of ParallelErrorStrategy or someFailed wiring.
+            return ControlFlowResult.Halt(branchBreakViolation);
+        }
 
         var firstFailure = outcomes.FirstOrDefault(o => o is not null && !o.Success);
         if (firstFailure is null)

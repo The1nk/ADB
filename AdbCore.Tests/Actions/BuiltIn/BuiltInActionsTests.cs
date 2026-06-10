@@ -32,13 +32,13 @@ public class BuiltInActionsTests
         }
 
         // Engine-native nodes: definitions only, no executors.
-        foreach (var key in new[] { "control.loop", "control.runParallel", "control.join" })
+        foreach (var key in new[] { "control.loop", "control.loopBreak", "control.runParallel", "control.join" })
         {
             Assert.True(defs.TryGet(key, out _));
             Assert.False(execs.TryGet(key, out _));
         }
 
-        Assert.Equal(45, defs.Count);
+        Assert.Equal(46, defs.Count);
         Assert.Equal(42, execs.Count);
     }
 

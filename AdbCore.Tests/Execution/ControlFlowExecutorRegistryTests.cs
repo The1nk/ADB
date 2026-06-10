@@ -45,9 +45,11 @@ public class ControlFlowExecutorRegistryTests
     {
         var registry = ControlFlowExecutorRegistry.CreateDefault();
 
-        Assert.Equal(2, registry.Count);
+        Assert.Equal(3, registry.Count);
         Assert.True(registry.TryGet(AdbCore.Actions.BuiltIn.LoopAction.LoopTypeKey, out var loop));
         Assert.IsType<AdbCore.Execution.ControlFlow.LoopControlFlowExecutor>(loop);
+        Assert.True(registry.TryGet(AdbCore.Actions.BuiltIn.LoopBreakAction.LoopBreakTypeKey, out var loopBreak));
+        Assert.IsType<AdbCore.Execution.ControlFlow.LoopBreakControlFlowExecutor>(loopBreak);
         Assert.True(registry.TryGet(AdbCore.Actions.BuiltIn.RunParallelAction.RunParallelTypeKey, out var parallel));
         Assert.IsType<AdbCore.Execution.ControlFlow.ParallelControlFlowExecutor>(parallel);
     }
