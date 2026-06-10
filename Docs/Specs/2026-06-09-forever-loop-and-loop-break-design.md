@@ -102,7 +102,7 @@ current = cfResult.Next;                                       // continue (exis
 
 - **All loop modes.** Loop-Break exits `Count`, `ForEach`, and `Forever` loops uniformly — the consume-break check lives in the shared loop executor.
 - **No enclosing loop (lenient).** If a `Break` reaches the top-level `RunAsync` walk (no loop ever consumed it), it is treated as normal completion — the path just ends, like `End`. `RunAsync` already reports on `outcome.Success`, which is `true` for a break, so no special handling is required there; the run ends successfully.
-- **Inside a Parallel branch (branch-only).** `ParallelControlFlowExecutor` runs each branch as a sub-walk; a branch that returns `WalkOutcome.Break()` has `Success == true`, so it is aggregated as a completed branch — the break ends *that branch* (like `End`) and does **not** cross the parallel boundary to break an outer loop. This keeps concurrent semantics unsurprising and requires no change to the Parallel executor. Documented as intended behaviour.
+- **Inside a Parallel branch (unsupported — terminal).** Loop-Break has no output port, so a branch ending in it cannot reach its Join. `ParallelControlFlowExecutor` requires every branch to converge on exactly one Join (`FindConvergentJoin` BFS-walks each branch's outgoing edges *before* running them), so such a graph fails at runtime with the existing "branches must converge on exactly one Join" error — identical to placing `End` terminally in a branch. This needs no change to the Parallel executor. **Supported pattern:** to break a loop based on a parallel outcome, set a variable inside the branch and place Loop-Break *after* the Join (in the sequential body). Both the failure boundary and the after-Join pattern are covered by tests (§5).
 
 ## 3. Index variable overflow (Forever)
 
@@ -128,7 +128,8 @@ Fix: **the Forever iteration counter is a `long`** (`Int64`, max ~9.22e18 — un
 - Loop-Break exits a `Forever` loop (the primary always-on stop-from-within path).
 - Nested loops: a Loop-Break in the inner body breaks only the inner loop; the outer loop continues.
 - Loop-Break with no enclosing loop ends the path and the run completes successfully.
-- Loop-Break inside a Parallel branch ends that branch only; the enclosing loop is not broken (documented behaviour).
+- Loop-Break *after* a Join inside a loop body breaks the enclosing loop (the supported parallel-aware pattern).
+- Loop-Break terminal inside a Parallel branch fails with the existing "must converge on exactly one Join" error (documents the boundary).
 
 Registry/metadata:
 - `LoopBreakAction` is discoverable via the registry and resolves to its control-flow executor.
