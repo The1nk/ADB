@@ -92,7 +92,8 @@ public class PreviewConfirmViewModelTests
 
                 vm.TestMatch();
 
-                Assert.False(vm.LastOutcome!.Matched);
+                Assert.Null(vm.LastOutcome!.Error); // surface a real (e.g. GDI+) failure clearly instead of an NRE on Score below
+                Assert.False(vm.LastOutcome.Matched);
                 Assert.Equal(0.61, vm.LastOutcome.Score!.Value, 3);
             }
         }
