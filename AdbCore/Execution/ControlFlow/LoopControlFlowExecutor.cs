@@ -17,6 +17,31 @@ public sealed class LoopControlFlowExecutor : IControlFlowExecutor
         var indexVar = ConfigValues.GetString(loop.Config, LoopAction.IndexVariableKey);
         var itemVar = ConfigValues.GetString(loop.Config, LoopAction.ItemVariableKey);
 
+        if (string.Equals(mode, LoopAction.ModeForever, StringComparison.OrdinalIgnoreCase))
+        {
+            if (bodyStart is null)
+            {
+                return ControlFlowResult.Halt(WalkOutcome.Failed(
+                    "Loop in Forever mode requires a Body path (an unwired Forever loop would spin forever doing nothing).",
+                    loop.Id));
+            }
+
+            for (long iteration = 0; ; iteration++)
+            {
+                ct.ThrowIfCancellationRequested();
+                if (!string.IsNullOrEmpty(indexVar))
+                {
+                    context.RunContext.Variables[indexVar] = iteration; // long — never overflows in a real run
+                }
+
+                var bodyOutcome = await context.WalkAsync(bodyStart, ct);
+                if (bodyOutcome.IsBreak) { break; }                       // Loop-Break -> exit via Done
+                if (!bodyOutcome.Success) { return ControlFlowResult.Halt(bodyOutcome); }
+            }
+
+            return ControlFlowResult.Continue(context.Graph.FindNext(loop.Id, LoopAction.DonePort));
+        }
+
         IReadOnlyList<string?> items;
         if (string.Equals(mode, LoopAction.ModeForEach, StringComparison.OrdinalIgnoreCase))
         {
