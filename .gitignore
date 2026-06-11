@@ -625,3 +625,8 @@ $RECYCLE.BIN/
 
 # End of https://www.toptal.com/developers/gitignore/api/csharp,windows,dotnetcore,visualstudio,visualstudiocode
 .claude/.worktrees/
+
+### ADB ###
+# Release workflow staging: zips are assembled here before being attached to a
+# GitHub Release. (The publish/ output folder is already ignored above.)
+dist/
