@@ -86,6 +86,8 @@
                 <MenuItem x:Name="OpenMenuItem" Header="_Open..." Click="Open_Click" InputGestureText="Ctrl+O" />
                 <MenuItem Header="_Save" Click="Save_Click" InputGestureText="Ctrl+S" />
                 <MenuItem x:Name="SaveAsMenuItem" Header="Save _As..." Click="SaveAs_Click" InputGestureText="Ctrl+Shift+S" />
+                <Separator />
+                <MenuItem Header="P_roperties..." Click="Properties_Click" />
             </MenuItem>
             <MenuItem Header="_Edit">
                 <MenuItem Header="_Undo" Click="Undo_Click" InputGestureText="Ctrl+Z" />
