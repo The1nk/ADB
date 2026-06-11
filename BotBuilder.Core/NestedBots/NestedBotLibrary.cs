@@ -36,6 +36,20 @@ public sealed class NestedBotLibrary
         return false;
     }
 
+    /// <summary>Replaces the entry whose id matches <paramref name="updated"/>, preserving its position. No-op
+    /// if no entry has that id.</summary>
+    public void Replace(Bot updated)
+    {
+        for (var i = 0; i < _entries.Count; i++)
+        {
+            if (_entries[i].Id == updated.Id)
+            {
+                _entries[i] = updated;
+                return;
+            }
+        }
+    }
+
     /// <summary>Replaces all entries (used when loading a document).</summary>
     public void Load(IEnumerable<Bot> entries)
     {
