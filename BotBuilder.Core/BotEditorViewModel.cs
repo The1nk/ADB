@@ -20,11 +20,23 @@ public partial class BotEditorViewModel : ObservableObject
     private readonly BotSerializer _serializer = new();
     private readonly UndoStack _undo = new();
 
-    [ObservableProperty] private string _botName = "Untitled";
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(WindowTitle))]
+    private string _botName = "Untitled Bot";
     [ObservableProperty] private NodeViewModel? _selectedNode;
     [ObservableProperty] private ConnectionViewModel? _selectedConnection;
-    [ObservableProperty] private bool _isDirty;
-    [ObservableProperty] private string? _filePath;
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(WindowTitle))]
+    private bool _isDirty;
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(WindowTitle))]
+    private string? _filePath;
+
+    /// <summary>The main-window title: "ADB Bot Builder: [*]Name[.bot]". The dirty marker is shown for
+    /// unsaved changes; the ".bot" suffix only once the document has a file (so a fresh doc reads
+    /// "Untitled Bot", a saved one "Name.bot").</summary>
+    public string WindowTitle =>
+        $"ADB Bot Builder: {(IsDirty ? "*" : "")}{BotName}{(FilePath != null ? ".bot" : "")}";
 
     public BotEditorViewModel(ActionRegistry registry)
     {
@@ -327,7 +339,7 @@ public partial class BotEditorViewModel : ObservableObject
     public void New()
     {
         BotId = Guid.NewGuid();
-        BotName = "Untitled";
+        BotName = "Untitled Bot";
         DetachAllConnections();
         Connections.Clear();
         Nodes.Clear();
