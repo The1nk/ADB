@@ -35,6 +35,19 @@ public static class PortCenteringTransform
     public static readonly System.Windows.Media.TranslateTransform Instance = new(-5, -5);
 }
 
+/// <summary>TypeKey -> Visible for NestedBotTypeKey; Collapsed for everything else.</summary>
+public sealed class NestedBotGlyphVisibilityConverter : IValueConverter
+{
+    public static readonly NestedBotGlyphVisibilityConverter Instance = new();
+
+    public object Convert(object value, Type targetType, object? parameter, CultureInfo culture)
+        => value as string == AdbCore.Actions.BuiltIn.NestedBotAction.NestedBotTypeKey
+            ? Visibility.Visible : Visibility.Collapsed;
+
+    public object ConvertBack(object value, Type targetType, object? parameter, CultureInfo culture)
+        => throw new NotSupportedException();
+}
+
 /// <summary>[IsSelected (bool), RunState (NodeRunState)] -> node-card border brush. Run outcome wins over
 /// selection: Failed = red, Succeeded = green, else the selection colour (blue selected / grey not).</summary>
 public sealed class NodeBorderConverter : System.Windows.Data.IMultiValueConverter
