@@ -21,4 +21,8 @@ public class ExecutionOptions
     /// <summary>When set, the run uses this flat library instead of building one from the bot's own NestedBots
     /// (so a child run inherits the root library unchanged).</summary>
     public IReadOnlyDictionary<Guid, Bot>? NestedBotLibrary { get; set; }
+
+    /// <summary>Binds a nested bot's own targets on demand. Null at the top level (top-level targets are
+    /// pre-resolved into <see cref="ResolvedTargets"/>); supplied by the runner so nested runs can bind theirs.</summary>
+    public ITargetBinder? TargetBinder { get; set; }
 }

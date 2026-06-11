@@ -21,4 +21,7 @@ public class BotExecutionContext
 
     /// <summary>This bot's target id -> name, so a nested run can match shared targets by name.</summary>
     public IReadOnlyDictionary<Guid, string> TargetNames { get; set; } = new Dictionary<Guid, string>();
+
+    /// <summary>On-demand binder for a nested bot's own targets (null when none was supplied).</summary>
+    public ITargetBinder? TargetBinder { get; set; }
 }
