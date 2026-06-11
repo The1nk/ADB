@@ -406,6 +406,32 @@ public partial class MainWindow : Window
         }
     }
 
+    // Right-button drag from a card's BODY behaves like dragging from the card's first output port — a larger,
+    // easier grab target than the small port dot, for imprecise aim. Starts only when the press lands on a card;
+    // a plain right-click (no real move) resolves back to the same card and is rejected as a self-connection by
+    // the ConnectionValidator, so it does nothing.
+    private void NodeHost_RightConnectStart(object sender, MouseButtonEventArgs e)
+    {
+        var hit = System.Windows.Media.VisualTreeHelper.HitTest(NodeHost, e.GetPosition(NodeHost))?.VisualHit;
+        if (hit is { } h && NodeOf(h) is { } node && node.OutputPorts.FirstOrDefault() is { } port)
+        {
+            _connectSourceNode = node;
+            _connectSourcePort = port;
+            NodeHost.CaptureMouse();
+            NodeHost.MouseRightButtonUp += FinishRightConnectionDrag;
+            e.Handled = true; // claim the gesture so it doesn't fall through to selection / a future context menu
+        }
+    }
+
+    private void FinishRightConnectionDrag(object sender, MouseButtonEventArgs e)
+    {
+        var dropPosition = e.GetPosition(NodeHost);
+        NodeHost.MouseRightButtonUp -= FinishRightConnectionDrag;
+        Mouse.Capture(null);
+        CompleteConnectionDrag(dropPosition);
+        e.Handled = true;
+    }
+
     private static NodeViewModel? NodeOf(DependencyObject start)
     {
         var current = start;

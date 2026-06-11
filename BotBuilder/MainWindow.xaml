@@ -248,7 +248,8 @@
                     </ItemsControl>
 
                     <!-- Node layer -->
-                    <ItemsControl x:Name="NodeHost" ItemsSource="{Binding Nodes}">
+                    <ItemsControl x:Name="NodeHost" ItemsSource="{Binding Nodes}"
+                                  PreviewMouseRightButtonDown="NodeHost_RightConnectStart">
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate><Canvas /></ItemsPanelTemplate>
                         </ItemsControl.ItemsPanel>
