@@ -3,6 +3,8 @@ using System.ComponentModel;
 using System.Linq;
 using AdbCore.Actions;
 using AdbCore.Actions.BuiltIn;
+using AdbCore.Models;
+using BotBuilder.Core.NestedBots;
 using BotBuilder.Core.Picker;
 using BotBuilder.Core.Targets;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -42,6 +44,72 @@ public partial class PropertiesViewModel : ObservableObject
         Node is not null
         && _registry.TryGet(Node.TypeKey, out var def) && def is not null
         && def.ConfigFields.Any(f => f.Key == TemplateMatchCore.RegionWidthKey);
+
+    /// <summary>Whether the selected node is a Nested Bot card (drives the panel's nested-bot section).</summary>
+    public bool IsNestedBotCard => Node is not null && Node.TypeKey == NestedBotAction.NestedBotTypeKey;
+
+    /// <summary>The library entries for the picker dropdown. A fresh list each get so a rename re-renders.</summary>
+    public IReadOnlyList<Bot> NestedBotEntries => _editor.NestedBotLibrary.Entries.ToList();
+
+    /// <summary>The selected card's referenced library bot id (null = unassigned).</summary>
+    public Guid? SelectedNestedBotId
+    {
+        get => Node is not null
+            && Node.Config.TryGetValue(NestedBotAction.NestedBotIdKey, out var raw)
+            && Guid.TryParse(raw?.ToString(), out var id) ? id : null;
+        set
+        {
+            if (Node is null) { return; }
+            if (value is Guid id) { Node.Config[NestedBotAction.NestedBotIdKey] = id.ToString(); }
+            else { Node.Config.Remove(NestedBotAction.NestedBotIdKey); }
+            _editor.MarkDirty();
+            _editor.RefreshNestedBotSubtitles();
+            OnPropertyChanged(nameof(SelectedNestedBotName));
+            OnPropertyChanged(nameof(SelectedNestedBotEditableName));
+        }
+    }
+
+    /// <summary>The referenced bot's name (or a placeholder) — read-only display.</summary>
+    public string SelectedNestedBotName =>
+        Node is null ? string.Empty : NestedBotCardInfo.Resolve(Node.Config, _editor.NestedBotLibrary);
+
+    /// <summary>Two-way name of the selected entry: setting it renames the library entry live (and every card
+    /// that references it). Empty/whitespace is ignored.</summary>
+    public string SelectedNestedBotEditableName
+    {
+        get => SelectedNestedBotId is Guid id ? (_editor.NestedBotLibrary.Get(id)?.Name ?? string.Empty) : string.Empty;
+        set
+        {
+            if (SelectedNestedBotId is Guid id && !string.IsNullOrWhiteSpace(value))
+            {
+                _editor.NestedBotLibrary.Rename(id, value);
+                _editor.RefreshNestedBotSubtitles();
+                OnPropertyChanged(nameof(SelectedNestedBotName));
+                OnPropertyChanged(nameof(NestedBotEntries));
+            }
+        }
+    }
+
+    /// <summary>Imports an external bot as a new library entry and assigns it to the selected card.</summary>
+    public Bot ImportNestedBot(Bot external)
+    {
+        var entry = _editor.NestedBotLibrary.Import(external);
+        SelectedNestedBotId = entry.Id; // assigns + refreshes subtitle
+        OnPropertyChanged(nameof(NestedBotEntries));
+        OnPropertyChanged(nameof(SelectedNestedBotEditableName));
+        return entry;
+    }
+
+    /// <summary>Removes the selected entry from the library and unassigns the card.</summary>
+    public void RemoveSelectedNestedBot()
+    {
+        if (SelectedNestedBotId is Guid id)
+        {
+            _editor.NestedBotLibrary.Remove(id);
+            SelectedNestedBotId = null;
+            OnPropertyChanged(nameof(NestedBotEntries));
+        }
+    }
 
     /// <summary>The selected node's assigned target id (null = the default first target).</summary>
     public Guid? SelectedTargetId
@@ -97,5 +165,10 @@ public partial class PropertiesViewModel : ObservableObject
         OnPropertyChanged(nameof(Targets));
         OnPropertyChanged(nameof(SupportsCoordinatePicking));
         OnPropertyChanged(nameof(SupportsRegionPicking));
+        OnPropertyChanged(nameof(IsNestedBotCard));
+        OnPropertyChanged(nameof(NestedBotEntries));
+        OnPropertyChanged(nameof(SelectedNestedBotId));
+        OnPropertyChanged(nameof(SelectedNestedBotName));
+        OnPropertyChanged(nameof(SelectedNestedBotEditableName));
     }
 }
