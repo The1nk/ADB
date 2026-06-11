@@ -6,6 +6,9 @@ public static class CategoryColors
     /// <summary>Colour used for categories with no explicit mapping.</summary>
     public const string Default = "#9B9B9B";
 
+    /// <summary>Distinct accent for Nested Bot cards (so they read apart from other Control Flow nodes).</summary>
+    public const string NestedBot = "#00838F";
+
     private static readonly Dictionary<string, string> Map = new(StringComparer.OrdinalIgnoreCase)
     {
         ["Control Flow"] = "#4A90D9",

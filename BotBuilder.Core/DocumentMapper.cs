@@ -80,6 +80,7 @@ public static class DocumentMapper
 
         editor.NestedBotLibrary.Load(bot.NestedBots);
         editor.RefreshTargetBadges();
+        editor.RefreshNestedBotSubtitles();
     }
 
     private static IEnumerable<ConnectionViewModel> BuildConnections(Bot bot, IReadOnlyList<NodeViewModel> nodes)
