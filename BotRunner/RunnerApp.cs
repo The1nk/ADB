@@ -28,7 +28,8 @@ public sealed class RunnerApp
         try
         {
             // Resolve Window target selectors to live HWNDs before execution (Input/Screen need them).
-            WindowTargetBinder.Bind(resolvedTargets, new Win32WindowResolver());
+            var windowResolver = new Win32WindowResolver();
+            WindowTargetBinder.Bind(resolvedTargets, windowResolver);
 
             // Resolve Android target selectors to bound IAndroidDevice handles before execution.
             AndroidTargetBinder.Bind(resolvedTargets);
@@ -48,6 +49,8 @@ public sealed class RunnerApp
             {
                 ResolvedTargets = resolvedTargets,
                 Log = logger.Message,
+                // Lets nested bots bind their own (non-shared) targets on demand when their card runs.
+                TargetBinder = new RunnerTargetBinder(windowResolver),
             };
             var progress = new InlineProgress<ExecutionProgress>(logger.ActionExecuted);
 

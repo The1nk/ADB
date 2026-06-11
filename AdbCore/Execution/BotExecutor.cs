@@ -37,6 +37,7 @@ public class BotExecutor
         context.TargetNames = bot.Targets.ToDictionary(t => t.Id, t => t.Name);
         context.NestedBots = options.NestedBotLibrary ?? bot.NestedBots.ToDictionary(b => b.Id);
         context.NestedAncestry = options.NestedAncestry;
+        context.TargetBinder = options.TargetBinder;
         if (options.InitialVariables is not null)
         {
             foreach (var kv in options.InitialVariables)
