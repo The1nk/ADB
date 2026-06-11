@@ -14,6 +14,9 @@ public static class DocumentMapper
     public static Bot ToBot(BotEditorViewModel editor, bool includeLibrary = true)
     {
         var bot = new Bot { Id = editor.BotId, Name = editor.BotName };
+        bot.Description = editor.BotDescription;
+        bot.CreatedAt = editor.CreatedAt;
+        bot.UpdatedAt = editor.UpdatedAt;
 
         foreach (var node in editor.Nodes)
         {
@@ -68,6 +71,9 @@ public static class DocumentMapper
     {
         var nodes = bot.Actions.Select(a => BuildNode(a, registry)).ToList();
         editor.LoadFrom(bot.Id, bot.Name, nodes, placedNodes => BuildConnections(bot, placedNodes));
+        editor.BotDescription = bot.Description;
+        editor.CreatedAt = bot.CreatedAt;
+        editor.UpdatedAt = bot.UpdatedAt;
 
         editor.TargetBar.Targets.Clear();
         foreach (var t in bot.Targets)

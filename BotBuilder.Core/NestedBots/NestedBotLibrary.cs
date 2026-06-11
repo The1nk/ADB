@@ -18,7 +18,8 @@ public sealed class NestedBotLibrary
     /// <summary>Creates an empty nested bot (fresh id) and adds it to the library.</summary>
     public Bot AddNew(string name = "Untitled Bot")
     {
-        var bot = new Bot { Id = Guid.NewGuid(), Name = name };
+        var now = DateTime.UtcNow;
+        var bot = new Bot { Id = Guid.NewGuid(), Name = name, CreatedAt = now, UpdatedAt = now };
         _entries.Add(bot);
         return bot;
     }
