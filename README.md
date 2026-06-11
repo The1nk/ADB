@@ -27,10 +27,12 @@ Why click 10,000 times when a damn bot will click 10,001 and never complain? ADB
   - **Browser** — `browser:<engine>` where engine is `chromium`, `firefox`, or `webkit`
 
   Type-specific actions snap to the right target on their own, and the editor's target picker writes the selectors for you — because nobody has memorized a selector syntax willingly, ever.
+- **Nested bot** — a whole bot stuffed *inside* another bot. Build a gnarly sub-routine once (the classic: "claw your way back to the main menu from wherever the game dumped me"), and it lives in this file's reusable library. Drop a single **Nested Bot** card (Control Flow) wherever you need it instead of copy-pasting forty nodes — double-click the card to edit the sub-bot in its own window, and rename it once to update every card that points at it. Optionally **send** your variables and targets in and **receive** its variables back; the parent bot takes a coffee break while the nested one runs. (It won't let a bot reference itself in a loop, so no infinite turtles.)
 
 ## The arsenal
 
-- **Visual node-graph editor** — drag/drop palette, multi-select, copy/paste, undo/redo, and **"Tidy Up"** auto-layout for when your masterpiece looks like a plate of spaghetti.
+- **Visual node-graph editor** — drag/drop palette, multi-select, copy/paste, undo/redo, **right-drag from a card's body to wire it up** (for those of us cursed with bad aim), and **"Tidy Up"** auto-layout for when your masterpiece looks like a plate of spaghetti.
+- **Nested bots** — encapsulate a chunk of logic as a reusable sub-bot and drop it in as one **Nested Bot** card. Share it across as many cards as you like, edit it in its own window, optionally pass variables/targets in and pull variables back, and **import** an existing `.bot` to fold a copy into the parent file. Keeps a sprawling graph from collapsing into a 200-node hairball.
 - **Image matching** (OpenCvSharp) — find / wait-for / assert-absent template images on Screen *and* Android, with a coordinate & region picker. Show it the loot button once; it clicks it until the heat death of the universe.
 - **OCR** (Tesseract, bundled `eng`) — read / find / wait-for / assert-absent text. Reads your gold counter, your cooldowns, and the "YOU DIED" screen so the bot knows when to ragequit gracefully.
 - **Lua scripting** (MoonSharp) — a "Run Lua Script" action with `http`, `json`, `fs`, `process`, and `log` host APIs for whenever the visual blocks aren't enough and you need to go full mad scientist.
