@@ -375,14 +375,21 @@ public partial class MainWindow : Window
 
     private void FinishConnectionDrag(object sender, MouseButtonEventArgs e)
     {
-        // Capture the drop position BEFORE releasing capture. (While the mouse is captured
-        // to the source port, Mouse.DirectlyOver reports the captured element, not the element
-        // actually under the pointer — so we resolve the drop target geometrically instead.)
+        // Capture the drop position BEFORE releasing capture (while captured, Mouse.DirectlyOver reports the
+        // captured element, so the drop target is resolved geometrically in CompleteConnectionDrag).
         var dropPosition = e.GetPosition(NodeHost);
 
         NodeHost.MouseLeftButtonUp -= FinishConnectionDrag;
         Mouse.Capture(null);
 
+        CompleteConnectionDrag(dropPosition);
+    }
+
+    /// <summary>Resolves the node under <paramref name="dropPosition"/> and connects the pending source output to
+    /// its input port. Shared by the output-port (left) drag and the right-button card-body drag. Invalid drops
+    /// (self, duplicate, occupied source, cycle, or empty canvas) are no-ops via the editor's ConnectionValidator.</summary>
+    private void CompleteConnectionDrag(Point dropPosition)
+    {
         var source = _connectSourceNode;
         var sourcePort = _connectSourcePort;
         _connectSourceNode = null;
@@ -392,9 +399,6 @@ public partial class MainWindow : Window
             return;
         }
 
-        // Dropping anywhere on a node connects the dragged output to that node's input port; the editor's
-        // ConnectionValidator no-ops invalid drops (self, duplicate, occupied source port, cycle). A drop on
-        // empty canvas resolves to no node and does nothing.
         var hit = System.Windows.Media.VisualTreeHelper.HitTest(NodeHost, dropPosition)?.VisualHit;
         if (hit is { } h && NodeOf(h) is { } targetNode && targetNode.InputPorts.FirstOrDefault() is { } targetPort)
         {
