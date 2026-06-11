@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using AdbCore.Models;
 
 namespace AdbCore.Execution;
 
@@ -11,4 +12,13 @@ public class BotExecutionContext
 
     /// <summary>Targets resolved at run start, keyed by <c>BotTarget.Id</c>.</summary>
     public Dictionary<Guid, ResolvedTarget> Targets { get; } = new();
+
+    /// <summary>The root bot's flat nested-bot library (id -> definition), threaded unchanged into child runs.</summary>
+    public IReadOnlyDictionary<Guid, Bot> NestedBots { get; set; } = new Dictionary<Guid, Bot>();
+
+    /// <summary>Ids of nested bots currently executing in this call chain, for cycle detection.</summary>
+    public IReadOnlyList<Guid> NestedAncestry { get; set; } = Array.Empty<Guid>();
+
+    /// <summary>This bot's target id -> name, so a nested run can match shared targets by name.</summary>
+    public IReadOnlyDictionary<Guid, string> TargetNames { get; set; } = new Dictionary<Guid, string>();
 }
