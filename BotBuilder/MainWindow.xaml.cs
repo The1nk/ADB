@@ -82,7 +82,13 @@ public partial class MainWindow : Window
 
     private void Save_Click(object sender, RoutedEventArgs e)
     {
-        var dialog = new SaveFileDialog { Filter = BotFilter, DefaultExt = ".bot", FileName = _editor.BotName };
+        var dialog = new SaveFileDialog
+        {
+            Filter = BotFilter,
+            DefaultExt = ".bot",
+            AddExtension = true,        // append ".bot" when the user types a bare name
+            FileName = _editor.BotName, // pre-fill with the current bot name (e.g. "Untitled Bot")
+        };
         if (dialog.ShowDialog(this) == true)
         {
             _editor.Save(dialog.FileName);
