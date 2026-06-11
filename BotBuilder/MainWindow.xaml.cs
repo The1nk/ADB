@@ -291,6 +291,24 @@ public partial class MainWindow : Window
             FitToNodes();
             e.Handled = true;
         }
+        else if (e.Key == Key.N && Keyboard.Modifiers == ModifierKeys.Control)
+        {
+            if (e.OriginalSource is TextBox) return;
+            New_Click(this, new RoutedEventArgs());
+            e.Handled = true;
+        }
+        else if (e.Key == Key.O && Keyboard.Modifiers == ModifierKeys.Control)
+        {
+            if (e.OriginalSource is TextBox) return;
+            Open_Click(this, new RoutedEventArgs());
+            e.Handled = true;
+        }
+        else if (e.Key == Key.S && Keyboard.Modifiers == ModifierKeys.Control)
+        {
+            if (e.OriginalSource is TextBox) return;
+            Save_Click(this, new RoutedEventArgs());
+            e.Handled = true;
+        }
     }
 
     private void ResetZoom_Click(object sender, RoutedEventArgs e)
