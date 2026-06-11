@@ -21,6 +21,7 @@ public partial class BotEditorViewModel : ObservableObject
     private readonly ActionRegistry _registry;
     private readonly BotSerializer _serializer = new();
     private readonly UndoStack _undo = new();
+    private readonly bool _ownsLibrary;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(WindowTitle))]
@@ -43,6 +44,7 @@ public partial class BotEditorViewModel : ObservableObject
     public BotEditorViewModel(ActionRegistry registry, NestedBotLibrary? nestedBotLibrary = null)
     {
         _registry = registry;
+        _ownsLibrary = nestedBotLibrary is null;
         NestedBotLibrary = nestedBotLibrary ?? new NestedBotLibrary();
         Palette = new PaletteViewModel(registry);
         Nodes = new ObservableCollection<NodeViewModel>();
@@ -350,7 +352,10 @@ public partial class BotEditorViewModel : ObservableObject
         Connections.Clear();
         Nodes.Clear();
         TargetBar.Targets.Clear();
-        NestedBotLibrary.Load(Array.Empty<Bot>());
+        if (_ownsLibrary)
+        {
+            NestedBotLibrary.Load(Array.Empty<Bot>());
+        }
         SelectedNode = null;
         SelectedConnection = null;
         _undo.Clear();

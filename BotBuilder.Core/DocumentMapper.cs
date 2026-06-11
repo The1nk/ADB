@@ -11,7 +11,7 @@ public static class DocumentMapper
 {
     private const string UnknownCategory = "Unknown";
 
-    public static Bot ToBot(BotEditorViewModel editor)
+    public static Bot ToBot(BotEditorViewModel editor, bool includeLibrary = true)
     {
         var bot = new Bot { Id = editor.BotId, Name = editor.BotName };
 
@@ -56,12 +56,15 @@ public static class DocumentMapper
             });
         }
 
-        bot.NestedBots = editor.NestedBotLibrary.Entries.ToList();
+        if (includeLibrary)
+        {
+            bot.NestedBots = editor.NestedBotLibrary.Entries.ToList();
+        }
 
         return bot;
     }
 
-    public static void Populate(BotEditorViewModel editor, Bot bot, ActionRegistry registry)
+    public static void Populate(BotEditorViewModel editor, Bot bot, ActionRegistry registry, bool includeLibrary = true)
     {
         var nodes = bot.Actions.Select(a => BuildNode(a, registry)).ToList();
         editor.LoadFrom(bot.Id, bot.Name, nodes, placedNodes => BuildConnections(bot, placedNodes));
@@ -78,7 +81,10 @@ public static class DocumentMapper
             });
         }
 
-        editor.NestedBotLibrary.Load(bot.NestedBots);
+        if (includeLibrary)
+        {
+            editor.NestedBotLibrary.Load(bot.NestedBots);
+        }
         editor.RefreshTargetBadges();
         editor.RefreshNestedBotSubtitles();
     }
