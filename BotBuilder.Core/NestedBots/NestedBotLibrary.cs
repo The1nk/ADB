@@ -79,4 +79,76 @@ public sealed class NestedBotLibrary
             }
         }
     }
+
+    /// <summary>Imports an external bot as a new library entry, deep-copied and detached from the source. The
+    /// external's own nested library is flattened into this library; every imported bot gets a fresh id and all
+    /// <c>nestedBotId</c> references are remapped. Returns the new top-level entry.</summary>
+    public Bot Import(Bot external)
+    {
+        ArgumentNullException.ThrowIfNull(external);
+
+        var sources = new List<Bot> { external };
+        sources.AddRange(external.NestedBots);
+        var idMap = sources.ToDictionary(b => b.Id, _ => Guid.NewGuid());
+
+        Bot top = null!;
+        foreach (var src in sources)
+        {
+            var clone = CloneBot(src, idMap);
+            _entries.Add(clone);
+            if (ReferenceEquals(src, external)) { top = clone; }
+        }
+        return top;
+    }
+
+    private static Bot CloneBot(Bot src, IReadOnlyDictionary<Guid, Guid> idMap) => new()
+    {
+        Id = idMap[src.Id],
+        Name = src.Name,
+        Description = src.Description,
+        Targets = src.Targets.Select(CloneTarget).ToList(),
+        Actions = src.Actions.Select(a => CloneAction(a, idMap)).ToList(),
+        Connections = src.Connections.Select(CloneConnection).ToList(),
+        // NestedBots intentionally left empty — flattened into the library.
+    };
+
+    private static BotAction CloneAction(BotAction a, IReadOnlyDictionary<Guid, Guid> idMap)
+    {
+        var config = new Dictionary<string, object>(a.Config);
+        if (a.TypeKey == NestedBotAction.NestedBotTypeKey
+            && config.TryGetValue(NestedBotAction.NestedBotIdKey, out var raw)
+            && Guid.TryParse(raw?.ToString(), out var oldRef)
+            && idMap.TryGetValue(oldRef, out var newRef))
+        {
+            config[NestedBotAction.NestedBotIdKey] = newRef.ToString();
+        }
+
+        return new BotAction
+        {
+            Id = a.Id, // kept — scoped to this bot's graph
+            TypeKey = a.TypeKey,
+            Label = a.Label,
+            TargetId = a.TargetId,
+            Config = config,
+            Retry = a.Retry is null ? null : new RetryPolicy { MaxAttempts = a.Retry.MaxAttempts, DelayMs = a.Retry.DelayMs },
+            CanvasPosition = new Position { X = a.CanvasPosition.X, Y = a.CanvasPosition.Y },
+        };
+    }
+
+    private static ActionConnection CloneConnection(ActionConnection c) => new()
+    {
+        Id = c.Id,
+        SourceActionId = c.SourceActionId,
+        SourcePort = c.SourcePort,
+        TargetActionId = c.TargetActionId,
+        TargetPort = c.TargetPort,
+    };
+
+    private static BotTarget CloneTarget(BotTarget t) => new()
+    {
+        Id = t.Id,
+        Name = t.Name,
+        Type = t.Type,
+        Config = new Dictionary<string, string>(t.Config),
+    };
 }
