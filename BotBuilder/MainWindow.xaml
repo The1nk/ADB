@@ -4,7 +4,7 @@
         xmlns:local="clr-namespace:BotBuilder"
         xmlns:targets="clr-namespace:BotBuilder.Core.Targets;assembly=BotBuilder.Core"
         xmlns:core="clr-namespace:BotBuilder.Core;assembly=BotBuilder.Core"
-        Title="ADB Bot Builder" Height="720" Width="1100"
+        Title="{Binding WindowTitle}" Height="720" Width="1100"
         KeyDown="Window_KeyDown" Background="{DynamicResource WindowBackgroundBrush}">
     <Window.Resources>
         <local:CategoryColorToBrushConverter x:Key="CategoryBrush" />
