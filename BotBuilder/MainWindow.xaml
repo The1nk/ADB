@@ -84,7 +84,8 @@
             <MenuItem Header="_File">
                 <MenuItem Header="_New" Click="New_Click" InputGestureText="Ctrl+N" />
                 <MenuItem Header="_Open..." Click="Open_Click" InputGestureText="Ctrl+O" />
-                <MenuItem Header="_Save..." Click="Save_Click" InputGestureText="Ctrl+S" />
+                <MenuItem Header="_Save" Click="Save_Click" InputGestureText="Ctrl+S" />
+                <MenuItem Header="Save _As..." Click="SaveAs_Click" InputGestureText="Ctrl+Shift+S" />
             </MenuItem>
             <MenuItem Header="_Edit">
                 <MenuItem Header="_Undo" Click="Undo_Click" InputGestureText="Ctrl+Z" />

@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.IO;
 using AdbCore.Actions;
 using AdbCore.Actions.BuiltIn;
 using AdbCore.Models;
@@ -374,6 +375,24 @@ public partial class BotEditorViewModel : ObservableObject
         FilePath = path;
         IsDirty = false;
     }
+
+    /// <summary>Saves to the current file. Requires a prior save/open (<see cref="FilePath"/> set).</summary>
+    public void Save()
+        => Save(FilePath ?? throw new InvalidOperationException("No file path set; use Save(path) or SaveAsNew(path)."));
+
+    /// <summary>First-time save: derives the bot <see cref="BotName"/> from the file name so it persists in this
+    /// very save, then writes to <paramref name="path"/>.</summary>
+    public void SaveAsNew(string path)
+    {
+        BotName = Path.GetFileNameWithoutExtension(path);
+        Save(path);
+    }
+
+    /// <summary>Serializes the document to <paramref name="path"/> WITHOUT changing <see cref="FilePath"/> or
+    /// <see cref="IsDirty"/>. Used to write a throwaway copy (e.g. a Test Run temp file) without making the editor
+    /// believe it has been saved there.</summary>
+    public void ExportTo(string path)
+        => _serializer.Save(DocumentMapper.ToBot(this), path);
 
     // ---- internal mutation helpers used by commands and the mapper ----
 
