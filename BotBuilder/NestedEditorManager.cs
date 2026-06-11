@@ -34,6 +34,7 @@ public sealed class NestedEditorManager
 
         var session = NestedBotEditorSession.Open(nestedBotId, _registry, _rootEditor.NestedBotLibrary);
         var child = new MainWindow(session, _rootEditor.BotName, this, _saveRoot, () => OnChildClosed(nestedBotId, session));
+        child.Owner = _rootWindow;
         _open[nestedBotId] = child;
         child.Show();
     }
