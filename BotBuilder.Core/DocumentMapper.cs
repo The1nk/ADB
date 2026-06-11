@@ -56,6 +56,8 @@ public static class DocumentMapper
             });
         }
 
+        bot.NestedBots = editor.NestedBotLibrary.Entries.ToList();
+
         return bot;
     }
 
@@ -76,6 +78,7 @@ public static class DocumentMapper
             });
         }
 
+        editor.NestedBotLibrary.Load(bot.NestedBots);
         editor.RefreshTargetBadges();
     }
 
