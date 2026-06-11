@@ -95,21 +95,19 @@ jobs:
           $version = '${{ steps.version.outputs.version }}'
           $assets  = Get-ChildItem dist/*.zip | ForEach-Object { $_.FullName }
 
-          $notes = @"
-Self-contained **win-x64** build — unzip and run, no .NET install required.
+          $notes = @"Self-contained **win-x64** build — unzip and run, no .NET install required.
 
-All three apps live in one folder and share a single embedded .NET runtime:
+          All three apps live in one folder and share a single embedded .NET runtime:
 
-| Run this | What it is |
-|----------|------------|
-| ``BotBuilder.exe`` | Visual node-graph bot editor |
-| ``BotCapture.exe`` | Template-image capture tool |
-| ``BotRunner.exe`` | Headless command-line runner |
+          | Run this | What it is |
+          |----------|------------|
+          | ``BotBuilder.exe`` | Visual node-graph bot editor |
+          | ``BotCapture.exe`` | Template-image capture tool |
+          | ``BotRunner.exe`` | Headless command-line runner |
 
-**Optional external tools** (only needed for those action categories):
-- **Android actions** require ``adb`` (Android platform-tools) on your PATH.
-- **Browser actions** require Playwright browsers: run ``playwright install`` once after unzipping.
-"@
+          **Optional external tools** (only needed for those action categories):
+          - **Android actions** require ``adb`` (Android platform-tools) on your PATH.
+          - **Browser actions** require Playwright browsers: run ``playwright install`` once after unzipping."@
 
           $ghArgs = @($version) + $assets + @(
             '--title', $version,
@@ -121,3 +119,4 @@ All three apps live in one folder and share a single embedded .NET runtime:
             $ghArgs += '--prerelease'
           }
           gh release create @ghArgs
+          
