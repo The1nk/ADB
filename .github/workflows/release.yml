@@ -1,0 +1,123 @@
+name: Release
+
+# Builds the three ADB apps (BotBuilder, BotCapture, BotRunner) as self-contained
+# win-x64 bundles and attaches them to a GitHub Release.
+#
+#   * Push a tag like  v1.2.3   -> creates a published Release named after the tag.
+#   * Run manually from the Actions tab -> creates a DRAFT release (for testing;
+#     no git tag is created until you publish the draft).
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version for this manual build (e.g. v1.2.3). Manual runs produce a DRAFT release.'
+        required: true
+        default: v0.0.0-test
+
+# Cancel an in-progress release run if the same ref is pushed again.
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write   # required to create releases (and the tag for manual draft runs)
+
+jobs:
+  release:
+    # WPF (net10.0-windows) can only be built on Windows.
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Determine version
+        id: version
+        shell: pwsh
+        run: |
+          if ($env:GITHUB_REF -like 'refs/tags/*') {
+            $v = $env:GITHUB_REF -replace '^refs/tags/', ''
+            $draft = 'false'   # tag pushes publish immediately
+          } else {
+            $v = '${{ github.event.inputs.version }}'
+            $draft = 'true'    # manual runs stay as drafts
+          }
+          "version=$v" >> $env:GITHUB_OUTPUT
+          "draft=$draft" >> $env:GITHUB_OUTPUT
+          Write-Host "Release version: $v  (draft=$draft)"
+
+      - name: Restore
+        run: dotnet restore ADB.slnx
+
+      - name: Test
+        run: dotnet test ADB.slnx --configuration Release --no-restore
+
+      - name: Publish (self-contained win-x64)
+        shell: pwsh
+        run: |
+          $version = '${{ steps.version.outputs.version }}'
+          # Publish all three apps into ONE folder so they sit side by side and share a
+          # single embedded .NET runtime + native libs. Each app keeps its own uniquely
+          # named .deps.json / .runtimeconfig.json, so there are no collisions; the runtime
+          # (coreclr, WPF), OpenCV/Tesseract natives, and eng.traineddata exist only once.
+          # This is ~366MB combined vs ~900MB for three separate self-contained bundles.
+          $appDir = 'publish/ADB'
+          foreach ($app in 'BotBuilder', 'BotCapture', 'BotRunner') {
+            Write-Host "::group::Publishing $app"
+            # No --no-restore here: --runtime triggers a RID-specific restore that the
+            # solution-level restore above did not produce.
+            dotnet publish "$app/$app.csproj" `
+              --configuration Release `
+              --runtime win-x64 `
+              --self-contained true `
+              -p:PublishSingleFile=false `
+              --output $appDir
+            if ($LASTEXITCODE -ne 0) { throw "Publish failed for $app" }
+            Write-Host "::endgroup::"
+          }
+          New-Item -ItemType Directory -Force -Path dist | Out-Null
+          Compress-Archive -Path "$appDir/*" -DestinationPath "dist/ADB-$version-win-x64.zip" -Force
+          Get-ChildItem dist
+
+      - name: Create GitHub Release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $version = '${{ steps.version.outputs.version }}'
+          $assets  = Get-ChildItem dist/*.zip | ForEach-Object { $_.FullName }
+
+          $notes = @"
+Self-contained **win-x64** build — unzip and run, no .NET install required.
+
+All three apps live in one folder and share a single embedded .NET runtime:
+
+| Run this | What it is |
+|----------|------------|
+| ``BotBuilder.exe`` | Visual node-graph bot editor |
+| ``BotCapture.exe`` | Template-image capture tool |
+| ``BotRunner.exe`` | Headless command-line runner |
+
+**Optional external tools** (only needed for those action categories):
+- **Android actions** require ``adb`` (Android platform-tools) on your PATH.
+- **Browser actions** require Playwright browsers: run ``playwright install`` once after unzipping.
+"@
+
+          $ghArgs = @($version) + $assets + @(
+            '--title', $version,
+            '--notes', $notes,
+            '--target', '${{ github.sha }}'
+          )
+          if ('${{ steps.version.outputs.draft }}' -eq 'true') {
+            $ghArgs += '--draft'
+            $ghArgs += '--prerelease'
+          }
+          gh release create @ghArgs
