@@ -40,6 +40,13 @@ The window title reflects the open bot, and Save pre-fills a sensible filename.
   `FileName = _editor.BotName`. (`DefaultExt`+`AddExtension` already append `.bot`
   when the user types a bare name; this just makes it explicit and pre-fills the name.)
 
+**File-menu keyboard shortcuts**
+- Add `Ctrl+N` (New), `Ctrl+O` (Open), `Ctrl+S` (Save). Wire them as `InputGestures`
+  on the menu items / a `RoutedUICommand` (so the gesture is shown in the menu and
+  handled centrally), consistent with how the editor already routes keys in
+  `Window_KeyDown`. Guard against stealing the gesture while a TextBox is focused
+  where it would conflict, matching the existing `e.OriginalSource is TextBox` pattern.
+
 ### The open-bot name source
 The title uses the bot's **editable `Name`** field (what the VM tracks and Save
 pre-fills), not the on-disk file name. Opening `foo.bot` whose internal `Name` is
@@ -125,6 +132,18 @@ State matrix for this section: unassigned (empty picker + hint), assigned, missi
 reference (id not in library → inline warning + "reassign"), empty library (only
 New/Import available).
 
+**Theming (applies to every new UI surface in Feature B):** all new controls — the
+properties-panel section, the library dropdown, the distinct card chrome, the child
+editor window, and any new dialogs — must use the established theme system: top-level
+`Background="{DynamicResource WindowBackgroundBrush}"`, `DynamicResource` theme brushes
+(`SurfaceBackgroundBrush`, `PanelBackgroundBrush`, `SecondaryTextBrush`, `BorderBrush`,
+etc.) rather than hard-coded colors, and — critically — any new `ComboBox`/`ListBox`/
+`Menu`/`MenuItem` must carry the **full control templates** already used in this project
+(setters/property bindings alone don't theme WPF popups, dropdown item containers, or
+menu popups; this was fixed in prior theming PRs). The new card accent color is added
+to the existing category-color mapping so it themes consistently. Verified against
+Light, Dark, and High-Contrast.
+
 ### B5. Child editor — modeless, deduped, distinct title
 
 - Reuse the BotBuilder editor in a **modeless** window. Small refactor: the editor
@@ -140,6 +159,16 @@ New/Import available).
 - Edits apply back into the shared library entry **in memory**; the **root document
   becomes dirty** until the user saves the `.bot`. (Nested bots have no independent
   file save; they persist only inside the root file.)
+- **File menu in child (nested) mode** — driven by a `mode` flag (root vs child) on
+  the editor window:
+  - **New** and **Open** are **disabled (greyed) with an explanatory tooltip**
+    ("Available in the main bot window — nested bots live inside the parent file").
+    They are root-document operations; leaving New enabled would silently wipe the
+    library entry being edited.
+  - **Save / Ctrl+S** delegates to the **root document's save** (saves the whole
+    parent stack: root + entire library), using the root's existing `FilePath` or
+    prompting for one if the root was never saved. So nested edits persist in place
+    without switching to the root window.
 - The child editor's nested-bot picker shows the **same root library**.
 - **Edit-time cycle guard**: assigning/importing an entry that would make the bot
   currently being edited reachable from itself (transitively) is blocked with a clear
