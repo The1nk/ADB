@@ -21,6 +21,7 @@ public partial class PropertiesViewModel : ObservableObject
     [ObservableProperty] private NodeViewModel? _node;
     [ObservableProperty] private bool _supportsRetry;
     [ObservableProperty] private string _actionTitle = string.Empty;
+    [ObservableProperty] private string? _cycleWarning;
 
     public PropertiesViewModel(BotEditorViewModel editor, ActionRegistry registry)
     {
@@ -60,8 +61,21 @@ public partial class PropertiesViewModel : ObservableObject
         set
         {
             if (Node is null) { return; }
-            if (value is Guid id) { Node.Config[NestedBotAction.NestedBotIdKey] = id.ToString(); }
-            else { Node.Config.Remove(NestedBotAction.NestedBotIdKey); }
+            if (value is Guid id)
+            {
+                if (_editor.NestedBotLibrary.WouldCreateCycle(_editor.BotId, id))
+                {
+                    CycleWarning = "That would make this bot run itself (a nested-bot cycle).";
+                    OnPropertyChanged(nameof(SelectedNestedBotId)); // snap the picker back
+                    return;
+                }
+                Node.Config[NestedBotAction.NestedBotIdKey] = id.ToString();
+            }
+            else
+            {
+                Node.Config.Remove(NestedBotAction.NestedBotIdKey);
+            }
+            CycleWarning = null;
             _editor.MarkDirty();
             _editor.RefreshNestedBotSubtitles();
             OnPropertyChanged(nameof(SelectedNestedBotName));
@@ -100,6 +114,16 @@ public partial class PropertiesViewModel : ObservableObject
         return entry;
     }
 
+    /// <summary>Creates a new empty library entry and assigns it to the selected card. Returns the entry so the
+    /// caller can open a child editor for it.</summary>
+    public AdbCore.Models.Bot NewNestedBot()
+    {
+        var entry = _editor.NestedBotLibrary.AddNew();
+        SelectedNestedBotId = entry.Id;
+        OnPropertyChanged(nameof(NestedBotEntries));
+        return entry;
+    }
+
     /// <summary>Removes the selected entry from the library and unassigns the card.</summary>
     public void RemoveSelectedNestedBot()
     {
@@ -135,6 +159,7 @@ public partial class PropertiesViewModel : ObservableObject
     private void Rebuild()
     {
         Node = _editor.SelectedNode;
+        CycleWarning = null;
         Fields.Clear();
 
         if (Node is null)

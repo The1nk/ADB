@@ -70,6 +70,9 @@ public partial class BotEditorViewModel : ObservableObject
     /// <summary>Marks the document dirty (used by property edits that don't go through the undo stack).</summary>
     public void MarkDirty() => IsDirty = true;
 
+    /// <summary>Clears the dirty flag (e.g. just after populating a child editor from a library entry).</summary>
+    public void MarkSavedClean() => IsDirty = false;
+
     public bool CanUndo => _undo.CanUndo;
     public bool CanRedo => _undo.CanRedo;
 
