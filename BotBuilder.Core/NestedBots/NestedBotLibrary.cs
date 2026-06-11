@@ -91,12 +91,11 @@ public sealed class NestedBotLibrary
         sources.AddRange(external.NestedBots);
         var idMap = sources.ToDictionary(b => b.Id, _ => Guid.NewGuid());
 
-        Bot top = null!;
-        foreach (var src in sources)
+        var top = CloneBot(external, idMap);
+        _entries.Add(top);
+        foreach (var nested in external.NestedBots)
         {
-            var clone = CloneBot(src, idMap);
-            _entries.Add(clone);
-            if (ReferenceEquals(src, external)) { top = clone; }
+            _entries.Add(CloneBot(nested, idMap));
         }
         return top;
     }
@@ -109,6 +108,8 @@ public sealed class NestedBotLibrary
         Targets = src.Targets.Select(CloneTarget).ToList(),
         Actions = src.Actions.Select(a => CloneAction(a, idMap)).ToList(),
         Connections = src.Connections.Select(CloneConnection).ToList(),
+        CreatedAt = src.CreatedAt,
+        UpdatedAt = src.UpdatedAt,
         // NestedBots intentionally left empty — flattened into the library.
     };
 

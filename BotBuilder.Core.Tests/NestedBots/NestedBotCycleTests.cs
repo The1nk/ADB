@@ -54,4 +54,31 @@ public class NestedBotCycleTests
         var b = lib.AddNew("B");
         Assert.False(lib.WouldCreateCycle(a.Id, b.Id)); // B doesn't reference A
     }
+
+    [Fact]
+    public void UnknownHost_IsNotCycle()
+    {
+        // A host id that is not a library entry (e.g. the root bot) is never reachable
+        // from any candidate, so no cycle can be formed.
+        var lib = new NestedBotLibrary();
+        var someEntry = lib.AddNew("SomeEntry");
+        var unknownHostId = Guid.NewGuid();
+        Assert.False(lib.WouldCreateCycle(unknownHostId, someEntry.Id));
+    }
+
+    [Fact]
+    public void PreExistingDataCycle_Terminates()
+    {
+        // Simulate data that already contains an A<->B loop (should not happen in practice,
+        // but the visited-set guard must prevent an infinite traversal).
+        var lib = new NestedBotLibrary();
+        var a = lib.AddNew("A");
+        var b = lib.AddNew("B");
+        a.Actions.Add(Ref(b.Id)); // A -> B
+        b.Actions.Add(Ref(a.Id)); // B -> A  (pre-existing cycle in data)
+
+        // WouldCreateCycle must return true (A is reachable from B) AND simply complete
+        // (the visited set prevents an infinite loop through the A<->B data cycle).
+        Assert.True(lib.WouldCreateCycle(a.Id, b.Id));
+    }
 }
