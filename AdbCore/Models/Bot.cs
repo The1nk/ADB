@@ -13,6 +13,10 @@ public class Bot
     public List<BotAction> Actions { get; set; } = new();
     public List<ActionConnection> Connections { get; set; } = new();
 
+    /// <summary>Reusable sub-bot definitions embedded in this (root) bot. Nested Bot action cards reference
+    /// an entry by id; the library is flat — only the root bot populates this list.</summary>
+    public List<Bot> NestedBots { get; set; } = new();
+
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 }

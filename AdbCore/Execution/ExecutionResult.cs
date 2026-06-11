@@ -7,4 +7,7 @@ public class ExecutionResult
     public string? ErrorMessage { get; set; }
     public Guid? FailedActionId { get; set; }
     public int ActionsExecuted { get; set; }
+
+    /// <summary>Snapshot of run variables at completion (used by a parent run to receive a nested run's vars).</summary>
+    public IReadOnlyDictionary<string, object> FinalVariables { get; set; } = new Dictionary<string, object>();
 }

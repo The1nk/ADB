@@ -34,6 +34,16 @@ public class BotExecutor
         {
             context.Targets[kvp.Key] = kvp.Value;
         }
+        context.TargetNames = bot.Targets.ToDictionary(t => t.Id, t => t.Name);
+        context.NestedBots = options.NestedBotLibrary ?? bot.NestedBots.ToDictionary(b => b.Id);
+        context.NestedAncestry = options.NestedAncestry;
+        if (options.InitialVariables is not null)
+        {
+            foreach (var kv in options.InitialVariables)
+            {
+                context.Variables[kv.Key] = kv.Value;
+            }
+        }
 
         var graph = new BotGraph(bot);
         var entry = graph.EntryPoint;
@@ -43,6 +53,7 @@ public class BotExecutor
             {
                 Success = false,
                 ErrorMessage = "No entry point: every action has an incoming connection.",
+                FinalVariables = new Dictionary<string, object>(context.Variables),
             };
         }
 
@@ -55,6 +66,7 @@ public class BotExecutor
             ErrorMessage = outcome.ErrorMessage,
             FailedActionId = outcome.FailedActionId,
             ActionsExecuted = state.ActionsExecuted,
+            FinalVariables = new Dictionary<string, object>(context.Variables),
         };
     }
 

@@ -90,6 +90,11 @@ public static class BuiltInActions
         definitions.Register(new RunParallelAction());
         definitions.Register(new JoinAction());
 
+        // Nested Bot: a leaf card that runs another bot from the library as a child executor. The executor
+        // captures the executor registry so it can build child BotExecutors (including for deeper nesting).
+        definitions.Register(new NestedBotAction());
+        executors.Register(new NestedBotExecutor(executors));
+
         return ocrEngine;
     }
 
