@@ -5,6 +5,7 @@ using AdbCore.Models;
 using AdbCore.Serialization;
 using BotBuilder.Core.Canvas;
 using BotBuilder.Core.Connections;
+using BotBuilder.Core.NestedBots;
 using BotBuilder.Core.Palette;
 using BotBuilder.Core.Properties;
 using BotBuilder.Core.Targets;
@@ -38,9 +39,10 @@ public partial class BotEditorViewModel : ObservableObject
     public string WindowTitle =>
         $"ADB Bot Builder: {(IsDirty ? "*" : "")}{BotName}{(FilePath != null ? ".bot" : "")}";
 
-    public BotEditorViewModel(ActionRegistry registry)
+    public BotEditorViewModel(ActionRegistry registry, NestedBotLibrary? nestedBotLibrary = null)
     {
         _registry = registry;
+        NestedBotLibrary = nestedBotLibrary ?? new NestedBotLibrary();
         Palette = new PaletteViewModel(registry);
         Nodes = new ObservableCollection<NodeViewModel>();
         Connections = new ObservableCollection<ConnectionViewModel>();
@@ -58,6 +60,9 @@ public partial class BotEditorViewModel : ObservableObject
     public TargetBarViewModel TargetBar { get; }
     public PropertiesViewModel Properties { get; }
     public Guid BotId { get; private set; }
+
+    /// <summary>The root nested-bot library (shared with any child editors editing entries of it).</summary>
+    public NestedBotLibrary NestedBotLibrary { get; }
 
     /// <summary>Marks the document dirty (used by property edits that don't go through the undo stack).</summary>
     public void MarkDirty() => IsDirty = true;
@@ -344,6 +349,7 @@ public partial class BotEditorViewModel : ObservableObject
         Connections.Clear();
         Nodes.Clear();
         TargetBar.Targets.Clear();
+        NestedBotLibrary.Load(Array.Empty<Bot>());
         SelectedNode = null;
         SelectedConnection = null;
         _undo.Clear();
