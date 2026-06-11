@@ -196,6 +196,20 @@ public partial class MainWindow : Window
         }
     }
 
+    private void Properties_Click(object sender, RoutedEventArgs e)
+    {
+        var vm = new BotBuilder.Core.BotPropertiesViewModel(
+            _editor.BotName, _editor.BotDescription, _editor.CreatedAt, _editor.UpdatedAt);
+        var dialog = new PropertiesDialog(vm) { Owner = this };
+        if (dialog.ShowDialog() == true)
+        {
+            _editor.BotName = vm.Name;
+            _editor.BotDescription = vm.Description;
+            _editor.MarkDirty();
+            // Root title is bound to WindowTitle; child breadcrumb updates via its BotName subscription.
+        }
+    }
+
     private string? PromptForBotPath()
     {
         var dialog = new SaveFileDialog

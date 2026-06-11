@@ -31,5 +31,9 @@ public sealed class NestedBotEditorSession
     }
 
     /// <summary>Writes the child editor's current graph back into its library entry (in place).</summary>
-    public void SyncBack() => _library.Replace(DocumentMapper.ToBot(Editor, includeLibrary: false));
+    public void SyncBack()
+    {
+        Editor.UpdatedAt = DateTime.UtcNow;
+        _library.Replace(DocumentMapper.ToBot(Editor, includeLibrary: false));
+    }
 }

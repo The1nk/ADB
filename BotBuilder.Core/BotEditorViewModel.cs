@@ -34,6 +34,9 @@ public partial class BotEditorViewModel : ObservableObject
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(WindowTitle))]
     private string? _filePath;
+    [ObservableProperty] private DateTime _createdAt;
+    [ObservableProperty] private DateTime _updatedAt;
+    [ObservableProperty] private string _botDescription = string.Empty;
 
     /// <summary>The main-window title: "ADB Bot Builder: [*]Name[.bot]". The dirty marker is shown for
     /// unsaved changes; the ".bot" suffix only once the document has a file (so a fresh doc reads
@@ -351,6 +354,9 @@ public partial class BotEditorViewModel : ObservableObject
     {
         BotId = Guid.NewGuid();
         BotName = "Untitled Bot";
+        BotDescription = string.Empty;
+        CreatedAt = DateTime.UtcNow;
+        UpdatedAt = DateTime.UtcNow;
         DetachAllConnections();
         Connections.Clear();
         Nodes.Clear();
@@ -379,6 +385,8 @@ public partial class BotEditorViewModel : ObservableObject
 
     public void Save(string path)
     {
+        UpdatedAt = DateTime.UtcNow;
+        if (CreatedAt == default) { CreatedAt = UpdatedAt; } // safety for bots loaded from old files
         _serializer.Save(DocumentMapper.ToBot(this), path);
         FilePath = path;
         IsDirty = false;
