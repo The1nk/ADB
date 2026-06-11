@@ -80,7 +80,32 @@ public partial class MainWindow : Window
         }
     }
 
+    // Ctrl+S / File>Save: rewrite the current file in place once the document has one; on a first save, prompt
+    // and adopt the chosen filename as the bot's Name (persisted in that save).
     private void Save_Click(object sender, RoutedEventArgs e)
+    {
+        if (_editor.FilePath is not null)
+        {
+            _editor.Save();
+            return;
+        }
+
+        if (PromptForBotPath() is string path)
+        {
+            _editor.SaveAsNew(path);
+        }
+    }
+
+    // Ctrl+Shift+S / File>Save As: always prompt; does NOT change the bot's Name.
+    private void SaveAs_Click(object sender, RoutedEventArgs e)
+    {
+        if (PromptForBotPath() is string path)
+        {
+            _editor.Save(path);
+        }
+    }
+
+    private string? PromptForBotPath()
     {
         var dialog = new SaveFileDialog
         {
@@ -89,10 +114,7 @@ public partial class MainWindow : Window
             AddExtension = true,        // append ".bot" when the user types a bare name
             FileName = _editor.BotName, // pre-fill with the current bot name (e.g. "Untitled Bot")
         };
-        if (dialog.ShowDialog(this) == true)
-        {
-            _editor.Save(dialog.FileName);
-        }
+        return dialog.ShowDialog(this) == true ? dialog.FileName : null;
     }
 
     private void PaletteItem_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -301,6 +323,12 @@ public partial class MainWindow : Window
         {
             if (e.OriginalSource is TextBox) return;
             Open_Click(this, new RoutedEventArgs());
+            e.Handled = true;
+        }
+        else if (e.Key == Key.S && Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift))
+        {
+            if (e.OriginalSource is TextBox) return;
+            SaveAs_Click(this, new RoutedEventArgs());
             e.Handled = true;
         }
         else if (e.Key == Key.S && Keyboard.Modifiers == ModifierKeys.Control)
@@ -529,7 +557,7 @@ public partial class MainWindow : Window
             System.IO.Path.GetTempPath(), _editor.BotName);
         // non-null: TestRunArtifacts.TempBotPath always returns a path with a subdirectory (.../adb-testrun/x.bot).
         System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(botPath)!);
-        _editor.Save(botPath);
+        _editor.ExportTo(botPath);
 
         // 2. Locate BotRunner.exe.
         var exe = ResolveRunner();
