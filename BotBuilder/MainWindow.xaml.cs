@@ -1,5 +1,7 @@
+using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Data;
 using System.Windows.Input;
 using AdbCore.Actions;
 using AdbUi.Theme;
@@ -7,6 +9,7 @@ using AdbCore.Actions.BuiltIn;
 using AdbCore.Execution;
 using BotBuilder.Core;
 using BotBuilder.Core.Connections;
+using BotBuilder.Core.NestedBots;
 using BotBuilder.Core.Palette;
 using BotBuilder.Core.Properties;
 using Microsoft.Win32;
@@ -36,6 +39,15 @@ public partial class MainWindow : Window
     private bool _isMarqueeing;
     private Point _marqueeStartWorld;
 
+    // Child-mode state — null/false for root windows
+    private NestedEditorManager? _nestedEditors;
+    private bool _isChild;
+    private NestedBotEditorSession? _childSession;
+    private string? _rootName;
+    private Action? _saveParent;
+    private Action? _onClosed;
+
+    /// <summary>Root-window constructor: builds the registry, root editor, and nested-editor manager.</summary>
     public MainWindow()
     {
         InitializeComponent();
@@ -43,8 +55,75 @@ public partial class MainWindow : Window
         var registry = new ActionRegistry();
         BuiltInActions.Register(registry, new ActionExecutorRegistry());
         _editor = new BotEditorViewModel(registry);
-        DataContext = _editor;
+        Wire(_editor);
+        _nestedEditors = new NestedEditorManager(registry, _editor, this, () => Save_Click(this, new RoutedEventArgs()));
+    }
+
+    /// <summary>Child-window constructor: reuses an already-built session and the root's manager.</summary>
+    public MainWindow(NestedBotEditorSession session, string rootName, NestedEditorManager manager,
+                      Action saveParent, Action onClosed)
+    {
+        InitializeComponent();
+
+        _editor = session.Editor;
+        Wire(_editor);
+        _nestedEditors = manager;
+
+        _isChild = true;
+        _childSession = session;
+        _rootName = rootName;
+        _saveParent = saveParent;
+        _onClosed = onClosed;
+
+        ApplyChildMode();
+    }
+
+    /// <summary>Shared wiring for both root and child constructors: DataContext + theme checks.</summary>
+    private void Wire(BotEditorViewModel editor)
+    {
+        DataContext = editor;
         SyncThemeChecks();
+    }
+
+    private void ApplyChildMode()
+    {
+        // Disable New and Open — nested bots live inside the parent file
+        NewMenuItem.IsEnabled = false;
+        NewMenuItem.ToolTip = "Available in the main bot window — nested bots live inside the parent file.";
+        OpenMenuItem.IsEnabled = false;
+        OpenMenuItem.ToolTip = "Available in the main bot window — nested bots live inside the parent file.";
+
+        // Hide Save As — a nested entry has no independent file
+        SaveAsMenuItem.Visibility = Visibility.Collapsed;
+
+        // Replace the WindowTitle binding with a breadcrumb title
+        BindingOperations.ClearBinding(this, TitleProperty);
+        UpdateChildTitle();
+        _editor.PropertyChanged += OnChildEditorPropertyChanged;
+
+        // Wire the Closed event to call _onClosed (which is the manager's OnChildClosed — the single SyncBack point)
+        Closed += OnChildWindowClosed;
+    }
+
+    private void UpdateChildTitle()
+    {
+        var dirty = _editor.IsDirty ? "*" : "";
+        Title = $"ADB Bot Builder — {_rootName} ▸ {dirty}{_editor.BotName}";
+    }
+
+    private void OnChildEditorPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName is nameof(BotEditorViewModel.IsDirty) or nameof(BotEditorViewModel.BotName))
+        {
+            UpdateChildTitle();
+        }
+    }
+
+    private void OnChildWindowClosed(object? sender, EventArgs e)
+    {
+        // The manager's OnChildClosed is the SINGLE SyncBack point — delegate entirely to it
+        _onClosed?.Invoke();
+        _editor.PropertyChanged -= OnChildEditorPropertyChanged;
     }
 
     private void ThemeSystem_Click(object sender, RoutedEventArgs e) => SetTheme(ThemeSelection.System);
@@ -69,10 +148,15 @@ public partial class MainWindow : Window
         ThemeHighContrastItem.IsChecked = selection == ThemeSelection.HighContrast;
     }
 
-    private void New_Click(object sender, RoutedEventArgs e) => _editor.New();
+    private void New_Click(object sender, RoutedEventArgs e)
+    {
+        if (_isChild) { return; } // disabled in child mode; menu item is also IsEnabled=false
+        _editor.New();
+    }
 
     private void Open_Click(object sender, RoutedEventArgs e)
     {
+        if (_isChild) { return; } // disabled in child mode; menu item is also IsEnabled=false
         var dialog = new OpenFileDialog { Filter = BotFilter };
         if (dialog.ShowDialog(this) == true)
         {
@@ -80,10 +164,16 @@ public partial class MainWindow : Window
         }
     }
 
-    // Ctrl+S / File>Save: rewrite the current file in place once the document has one; on a first save, prompt
-    // and adopt the chosen filename as the bot's Name (persisted in that save).
+    // Ctrl+S / File>Save: child mode syncs the entry then saves the parent stack; root saves the file normally.
     private void Save_Click(object sender, RoutedEventArgs e)
     {
+        if (_isChild)
+        {
+            _childSession!.SyncBack();
+            _saveParent!.Invoke();
+            return;
+        }
+
         if (_editor.FilePath is not null)
         {
             _editor.Save();
@@ -96,9 +186,10 @@ public partial class MainWindow : Window
         }
     }
 
-    // Ctrl+Shift+S / File>Save As: always prompt; does NOT change the bot's Name.
+    // Ctrl+Shift+S / File>Save As: always prompt; does NOT change the bot's Name. Disabled in child mode.
     private void SaveAs_Click(object sender, RoutedEventArgs e)
     {
+        if (_isChild) { return; } // hidden in child mode
         if (PromptForBotPath() is string path)
         {
             _editor.Save(path);
@@ -176,6 +267,20 @@ public partial class MainWindow : Window
     {
         if (sender is FrameworkElement { DataContext: NodeViewModel node })
         {
+            // Double-click on a Nested Bot card with an assigned id opens its child editor.
+            // Border does not inherit from Control (which has MouseDoubleClick), so we detect
+            // double-click via ClickCount in the standard MouseLeftButtonDown handler.
+            if (e.ClickCount == 2
+                && node.TypeKey == NestedBotAction.NestedBotTypeKey
+                && node.Config.TryGetValue(NestedBotAction.NestedBotIdKey, out var raw)
+                && Guid.TryParse(raw?.ToString(), out var nestedBotId)
+                && _nestedEditors is not null)
+            {
+                _nestedEditors.OpenOrFocus(nestedBotId);
+                e.Handled = true;
+                return;
+            }
+
             // Grabbing a node that's already part of a multi-selection keeps the whole group (so the drag
             // moves all of them); grabbing an unselected node selects just it.
             if (!node.IsSelected)
@@ -316,19 +421,19 @@ public partial class MainWindow : Window
         else if (e.Key == Key.N && Keyboard.Modifiers == ModifierKeys.Control)
         {
             if (e.OriginalSource is TextBox) return;
-            New_Click(this, new RoutedEventArgs());
+            if (!_isChild) New_Click(this, new RoutedEventArgs()); // disabled in child mode
             e.Handled = true;
         }
         else if (e.Key == Key.O && Keyboard.Modifiers == ModifierKeys.Control)
         {
             if (e.OriginalSource is TextBox) return;
-            Open_Click(this, new RoutedEventArgs());
+            if (!_isChild) Open_Click(this, new RoutedEventArgs()); // disabled in child mode
             e.Handled = true;
         }
         else if (e.Key == Key.S && Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift))
         {
             if (e.OriginalSource is TextBox) return;
-            SaveAs_Click(this, new RoutedEventArgs());
+            if (!_isChild) SaveAs_Click(this, new RoutedEventArgs()); // disabled in child mode
             e.Handled = true;
         }
         else if (e.Key == Key.S && Keyboard.Modifiers == ModifierKeys.Control)
@@ -831,4 +936,10 @@ public partial class MainWindow : Window
 
     private void RemoveNestedBot_Click(object sender, RoutedEventArgs e)
         => _editor.Properties.RemoveSelectedNestedBot();
+
+    private void NewNestedBot_Click(object sender, RoutedEventArgs e)
+    {
+        var entry = _editor.Properties.NewNestedBot();
+        _nestedEditors!.OpenOrFocus(entry.Id);
+    }
 }

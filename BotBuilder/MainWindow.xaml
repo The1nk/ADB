@@ -82,10 +82,10 @@
     <DockPanel>
         <Menu DockPanel.Dock="Top">
             <MenuItem Header="_File">
-                <MenuItem Header="_New" Click="New_Click" InputGestureText="Ctrl+N" />
-                <MenuItem Header="_Open..." Click="Open_Click" InputGestureText="Ctrl+O" />
+                <MenuItem x:Name="NewMenuItem" Header="_New" Click="New_Click" InputGestureText="Ctrl+N" />
+                <MenuItem x:Name="OpenMenuItem" Header="_Open..." Click="Open_Click" InputGestureText="Ctrl+O" />
                 <MenuItem Header="_Save" Click="Save_Click" InputGestureText="Ctrl+S" />
-                <MenuItem Header="Save _As..." Click="SaveAs_Click" InputGestureText="Ctrl+Shift+S" />
+                <MenuItem x:Name="SaveAsMenuItem" Header="Save _As..." Click="SaveAs_Click" InputGestureText="Ctrl+Shift+S" />
             </MenuItem>
             <MenuItem Header="_Edit">
                 <MenuItem Header="_Undo" Click="Undo_Click" InputGestureText="Ctrl+Z" />
@@ -386,9 +386,14 @@
                                 <TextBox Text="{Binding SelectedNestedBotEditableName, UpdateSourceTrigger=LostFocus}" Margin="0,0,0,4"
                                          ToolTip="Rename this nested bot (updates every card that uses it)" />
                                 <StackPanel Orientation="Horizontal">
+                                    <Button Content="New" Click="NewNestedBot_Click" Padding="6,2" Margin="0,0,4,0"
+                                            ToolTip="Create a new empty nested bot and open its editor" />
                                     <Button Content="Import .bot…" Click="ImportNestedBot_Click" Padding="6,2" Margin="0,0,4,0" />
                                     <Button Content="Remove" Click="RemoveNestedBot_Click" Padding="6,2" />
                                 </StackPanel>
+                                <TextBlock Text="{Binding CycleWarning}" FontSize="11" TextWrapping="Wrap" Margin="0,2,0,0"
+                                           Foreground="{DynamicResource ErrorBrush}"
+                                           Visibility="{Binding CycleWarning, Converter={x:Static local:NullToCollapsedConverter.Instance}}" />
                             </StackPanel>
 
                             <ItemsControl ItemsSource="{Binding Fields}"
