@@ -18,6 +18,7 @@ public partial class NodeViewModel : ObservableObject
     [ObservableProperty] private int _retryDelayMs;
     [ObservableProperty] private NodeRunState _runState;
     [ObservableProperty] private double _height;
+    [ObservableProperty] private string? _subtitle;
 
     public NodeViewModel(
         Guid id,
@@ -45,7 +46,8 @@ public partial class NodeViewModel : ObservableObject
 
     /// <summary>Action-specific settings, keyed by config-field key.</summary>
     public Dictionary<string, object> Config { get; } = new();
-    public string CategoryColor => CategoryColors.ColorFor(Category);
+    public string CategoryColor =>
+        TypeKey == NestedBotAction.NestedBotTypeKey ? CategoryColors.NestedBot : CategoryColors.ColorFor(Category);
     public IReadOnlyList<PortViewModel> InputPorts { get; }
     public ObservableCollection<PortViewModel> OutputPorts { get; }
 

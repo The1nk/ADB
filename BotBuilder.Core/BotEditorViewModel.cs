@@ -483,6 +483,18 @@ public partial class BotEditorViewModel : ObservableObject
         AfterEdit();
     }
 
+    /// <summary>Sets each Nested Bot node's Subtitle to its referenced bot's name (or a placeholder).</summary>
+    public void RefreshNestedBotSubtitles()
+    {
+        foreach (var node in Nodes)
+        {
+            if (node.TypeKey == AdbCore.Actions.BuiltIn.NestedBotAction.NestedBotTypeKey)
+            {
+                node.Subtitle = NestedBotCardInfo.Resolve(node.Config, NestedBotLibrary);
+            }
+        }
+    }
+
     /// <summary>Recomputes every node's target badge: shown (the resolved target's name) only when the
     /// bot has more than one target; an unassigned or dangling node resolves to the first target.</summary>
     public void RefreshTargetBadges()
@@ -512,6 +524,7 @@ public partial class BotEditorViewModel : ObservableObject
         IsDirty = true;
         RaiseUndoState();
         RefreshTargetBadges();
+        RefreshNestedBotSubtitles();
     }
 
     private void RaiseUndoState()

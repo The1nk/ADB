@@ -805,4 +805,30 @@ public partial class MainWindow : Window
         => BotBuilder.Core.Integration.ExeLocator.Locate(
             BotBuilder.Core.Integration.ExeLocator.Candidates(System.AppContext.BaseDirectory, "BotRunner.exe"),
             System.IO.File.Exists);
+
+    private void ImportNestedBot_Click(object sender, RoutedEventArgs e)
+    {
+        var dialog = new OpenFileDialog { Filter = BotFilter };
+        if (dialog.ShowDialog(this) != true)
+        {
+            return;
+        }
+
+        AdbCore.Models.Bot external;
+        try
+        {
+            external = new AdbCore.Serialization.BotSerializer().Load(dialog.FileName);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Couldn't import that .bot file: {ex.Message}", "Import nested bot",
+                MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        _editor.Properties.ImportNestedBot(external);
+    }
+
+    private void RemoveNestedBot_Click(object sender, RoutedEventArgs e)
+        => _editor.Properties.RemoveSelectedNestedBot();
 }

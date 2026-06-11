@@ -19,4 +19,9 @@ public class Bot
 
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
+
+    /// <summary>The bot's name, used as the display string when a <see cref="Bot"/> is bound directly in the UI
+    /// (e.g. the nested-bot picker ComboBox, whose templated selection box renders <c>ToString()</c> rather than
+    /// honouring DisplayMemberPath). Falls back to a placeholder for an unnamed bot.</summary>
+    public override string ToString() => string.IsNullOrWhiteSpace(Name) ? "(unnamed bot)" : Name;
 }

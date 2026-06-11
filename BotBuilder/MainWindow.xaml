@@ -261,8 +261,17 @@
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
                                 <Border Width="{x:Static core:NodeLayout.CardWidth}" Height="{Binding Height}" CornerRadius="6" Background="{DynamicResource SurfaceBackgroundBrush}"
-                                        BorderThickness="2"
                                         MouseLeftButtonDown="Node_MouseLeftButtonDown">
+                                    <Border.Style>
+                                        <Style TargetType="Border">
+                                            <Setter Property="BorderThickness" Value="2" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding TypeKey}" Value="control.nestedBot">
+                                                    <Setter Property="BorderThickness" Value="3" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
                                     <Border.BorderBrush>
                                         <MultiBinding Converter="{x:Static local:NodeBorderConverter.Instance}">
                                             <Binding Path="IsSelected" />
@@ -273,10 +282,19 @@
                                         <StackPanel>
                                             <Border Background="{Binding CategoryColor, Converter={StaticResource CategoryBrush}}"
                                                     CornerRadius="6,6,0,0" Padding="6,3" MinHeight="28">
-                                                <TextBlock Text="{Binding Label}" Foreground="White" FontWeight="Bold" />
+                                                <DockPanel>
+                                                    <TextBlock DockPanel.Dock="Right" Text="&#x29C9;" Foreground="White" FontWeight="Bold" Margin="4,0,0,0"
+                                                               ToolTip="Nested bot"
+                                                               Visibility="{Binding TypeKey, Converter={x:Static local:NestedBotGlyphVisibilityConverter.Instance}}" />
+                                                    <TextBlock Text="{Binding Label}" Foreground="White" FontWeight="Bold" />
+                                                </DockPanel>
                                             </Border>
                                             <TextBlock Text="{Binding TargetBadge}" FontSize="10" Foreground="{DynamicResource SecondaryTextBrush}" Margin="6,2"
                                                        Visibility="{Binding TargetBadge, Converter={x:Static local:NullToCollapsedConverter.Instance}}" />
+                                            <TextBlock Text="{Binding Subtitle}" FontSize="11" FontStyle="Italic"
+                                                       Foreground="{DynamicResource SecondaryTextBrush}" Margin="6,0,6,3"
+                                                       TextTrimming="CharacterEllipsis"
+                                                       Visibility="{Binding Subtitle, Converter={x:Static local:NullToCollapsedConverter.Instance}}" />
                                         </StackPanel>
                                         <ItemsControl ItemsSource="{Binding InputPorts}">
                                             <ItemsControl.ItemsPanel><ItemsPanelTemplate><Canvas /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
@@ -358,6 +376,20 @@
                             <ComboBox ItemsSource="{Binding Targets}" DisplayMemberPath="Name"
                                       SelectedValuePath="Id" SelectedValue="{Binding SelectedTargetId}"
                                       Margin="0,0,0,8" ToolTip="Unset = the first target" />
+
+                            <StackPanel Margin="0,4,0,8" Visibility="{Binding IsNestedBotCard, Converter={StaticResource BoolToVis}}">
+                                <TextBlock Text="Nested bot" FontSize="11" Foreground="{DynamicResource SecondaryTextBrush}" />
+                                <ComboBox ItemsSource="{Binding NestedBotEntries}" DisplayMemberPath="Name"
+                                          SelectedValuePath="Id" SelectedValue="{Binding SelectedNestedBotId}"
+                                          Margin="0,0,0,4" ToolTip="The library bot this card runs" />
+                                <TextBlock Text="Name" FontSize="11" Foreground="{DynamicResource SecondaryTextBrush}" />
+                                <TextBox Text="{Binding SelectedNestedBotEditableName, UpdateSourceTrigger=LostFocus}" Margin="0,0,0,4"
+                                         ToolTip="Rename this nested bot (updates every card that uses it)" />
+                                <StackPanel Orientation="Horizontal">
+                                    <Button Content="Import .bot…" Click="ImportNestedBot_Click" Padding="6,2" Margin="0,0,4,0" />
+                                    <Button Content="Remove" Click="RemoveNestedBot_Click" Padding="6,2" />
+                                </StackPanel>
+                            </StackPanel>
 
                             <ItemsControl ItemsSource="{Binding Fields}"
                                           ItemTemplateSelector="{StaticResource FieldSelector}" />
