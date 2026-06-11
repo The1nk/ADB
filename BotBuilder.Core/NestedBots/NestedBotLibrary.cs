@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using AdbCore.Actions.BuiltIn;
 using AdbCore.Models;
 
 namespace BotBuilder.Core.NestedBots;
@@ -40,5 +41,42 @@ public sealed class NestedBotLibrary
     {
         _entries.Clear();
         foreach (var b in entries) { _entries.Add(b); }
+    }
+
+    /// <summary>Would a card inside <paramref name="hostId"/> referencing <paramref name="candidateId"/> create a
+    /// reference cycle? True for a self-reference, or when <paramref name="hostId"/> is reachable from
+    /// <paramref name="candidateId"/> through existing nested-bot references.</summary>
+    public bool WouldCreateCycle(Guid hostId, Guid candidateId)
+    {
+        if (candidateId == hostId) { return true; }
+
+        var visited = new HashSet<Guid>();
+        var stack = new Stack<Guid>();
+        stack.Push(candidateId);
+        while (stack.Count > 0)
+        {
+            var current = stack.Pop();
+            if (current == hostId) { return true; }
+            if (!visited.Add(current)) { continue; }
+            if (Get(current) is { } bot)
+            {
+                foreach (var referenced in ReferencedIds(bot)) { stack.Push(referenced); }
+            }
+        }
+        return false;
+    }
+
+    /// <summary>The nested-bot ids referenced by a bot's Nested Bot action cards.</summary>
+    private static IEnumerable<Guid> ReferencedIds(Bot bot)
+    {
+        foreach (var action in bot.Actions)
+        {
+            if (action.TypeKey != NestedBotAction.NestedBotTypeKey) { continue; }
+            if (action.Config.TryGetValue(NestedBotAction.NestedBotIdKey, out var raw)
+                && Guid.TryParse(raw?.ToString(), out var id))
+            {
+                yield return id;
+            }
+        }
     }
 }
