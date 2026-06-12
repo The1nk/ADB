@@ -1,5 +1,7 @@
 # ADB: A Damn Bot 🤖
 
+![ADB: A Damn Bot](Docs/Assets/Logo.png)
+
 *You've got games to NOT play. Let a damn bot do the grinding.*
 
 Why click 10,000 times when a damn bot will click 10,001 and never complain? ADB is a Windows desktop toolkit for building UI-automation bots that grind **Windows games**, **Android devices** (over `adb`), and **web browsers** (via Playwright) while you go touch grass. Drag actions onto a canvas, wire 'em up, point them at a target, and walk away a richer person (in-game currency only — we make no promises).

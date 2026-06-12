@@ -1,6 +1,10 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
+    <Content Include="ADB_BotBuilder_v2.ico" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\BotBuilder.Core\BotBuilder.Core.csproj" />
     <ProjectReference Include="..\AdbCore\AdbCore.csproj" />
     <ProjectReference Include="..\AdbUi.Theme\AdbUi.Theme.csproj" />
@@ -16,6 +20,7 @@
     <!-- Per-Monitor-V2 DPI awareness: the in-process coordinate picker captures target windows via Win32,
          so BotBuilder must see true device pixels (matching the PerMonitorV2 BotRunner) on scaled displays. -->
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>ADB_BotBuilder_v2.ico</ApplicationIcon>
   </PropertyGroup>
 
 </Project>

@@ -1,6 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
+    <Content Include="ADB_BotCapture_v2.ico" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\BotCapture.Core\BotCapture.Core.csproj" />
     <ProjectReference Include="..\AdbCore\AdbCore.csproj" />
     <ProjectReference Include="..\AdbUi.Theme\AdbUi.Theme.csproj" />
@@ -14,6 +18,7 @@
     <UseWPF>true</UseWPF>
     <RootNamespace>BotCapture</RootNamespace>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>ADB_BotCapture_v2.ico</ApplicationIcon>
   </PropertyGroup>
 
 </Project>

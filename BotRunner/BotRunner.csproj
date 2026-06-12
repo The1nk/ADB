@@ -6,7 +6,12 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>BotRunner</RootNamespace>
+    <ApplicationIcon>ADB_BotRunner_v2.ico</ApplicationIcon>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Content Include="ADB_BotRunner_v2.ico" />
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\AdbCore\AdbCore.csproj" />
