@@ -50,13 +50,17 @@ The "Run Lua Script" action has an **Edit** button that opens your script in an 
 | `.luarc.json` | LuaLS workspace config — sets Lua 5.2 runtime, points at `library/`, declares all six ADB globals. |
 | `library\adb.lua` | `---@meta` annotation file with full type signatures for `log`, `vars`, `json`, `fs`, `process`, and `http`. |
 
-To get autocomplete in **VS Code** (with the [Lua extension](https://marketplace.visualstudio.com/items?itemName=sumneko.lua) installed):
+To get autocomplete in **VS Code** (with the [Lua extension](https://marketplace.visualstudio.com/items?itemName=sumneko.lua) installed), the catch is that LuaLS only reads `.luarc.json` when a **folder** is open — not a lone file. So set your editor command to open the folder:
 
-1. Hit **Edit** in BotBuilder — this writes the scaffold.
-2. In VS Code, open the **folder** `%TEMP%\ADB\LuaEdit` (File › Open Folder…), not just the individual `.lua` file. LuaLS reads `.luarc.json` from the workspace root, so opening the folder is what activates it.
-3. Open your script from that folder — `log(...)`, `vars`, `http.get(...)`, etc. all get signatures and docs.
+```
+code --wait $directory $filename
+```
 
-> **Tip:** The scaffold is overwritten on every Edit press, so definitions stay current after upgrades. No VS Code restart needed; the extension picks up `.luarc.json` automatically when you open the folder.
+`$directory` expands to `%TEMP%\ADB\LuaEdit` (where the scaffold lives) and `$filename` to the script, so VS Code opens the folder as the workspace **and** your script as a tab — LuaLS activates and `log(...)`, `vars`, `http.get(...)`, etc. all get signatures and docs. (Set this once in **Settings**; `--wait` lets process-exit end the edit session, though the **Done** button works regardless.)
+
+Prefer not to use `$directory`? You can still use `code --wait $filename` and then **File › Open Folder…** on `%TEMP%\ADB\LuaEdit` yourself — opening the folder is the part that activates LuaLS.
+
+> **Tip:** The scaffold is overwritten on every Edit press, so definitions stay current after upgrades. No VS Code restart needed; the extension picks up `.luarc.json` automatically when the folder is open.
 
 Reusing the defs elsewhere: the `library\adb.lua` file is a standalone LuaLS annotation file. If you have other Lua projects that call ADB-style APIs, point `workspace.library` in their own `.luarc.json` at the same file (or copy it into their `library/` folder).
 

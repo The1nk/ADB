@@ -155,6 +155,34 @@ public class ExternalEditSessionTests
         Assert.Equal(@"""C:\my scripts\a.lua""", args);
     }
 
+    [Fact]
+    public void ParseCommand_DirectoryToken_SubstitutesQuotedContainingFolder()
+    {
+        var (exe, args) = ExternalEditSession.ParseCommand(@"code --wait $directory", @"C:\tmp\LuaEdit\a.lua");
+
+        Assert.Equal("code", exe);
+        Assert.Equal(@"--wait ""C:\tmp\LuaEdit""", args);
+    }
+
+    [Fact]
+    public void ParseCommand_DirectoryAndFilenameTokens_SubstitutesBoth()
+    {
+        var (exe, args) = ExternalEditSession.ParseCommand(@"code --wait $directory $filename", @"C:\tmp\LuaEdit\a.lua");
+
+        Assert.Equal("code", exe);
+        Assert.Equal(@"--wait ""C:\tmp\LuaEdit"" ""C:\tmp\LuaEdit\a.lua""", args);
+    }
+
+    [Fact]
+    public void ParseCommand_DirectoryTokenOnly_DoesNotAppendFilename()
+    {
+        // When the user opts into $directory, respect the command as-is — don't also append the file path.
+        var (_, args) = ExternalEditSession.ParseCommand(@"code $directory", @"C:\tmp\LuaEdit\a.lua");
+
+        Assert.Equal(@"""C:\tmp\LuaEdit""", args);
+        Assert.DoesNotContain("a.lua", args);
+    }
+
     // ---------------------------------------------------------------------------
     // TryStart tests
     // ---------------------------------------------------------------------------
