@@ -5,6 +5,19 @@ using System.Windows.Media;
 
 namespace BotBuilder;
 
+/// <summary>True -> False, False -> True. Used to invert IsExternallyEditing for the Edit button's
+/// IsEnabled binding.</summary>
+public sealed class NegateBoolConverter : IValueConverter
+{
+    public static readonly NegateBoolConverter Instance = new();
+
+    public object Convert(object value, Type targetType, object? parameter, CultureInfo culture)
+        => value is bool b ? !b : true;
+
+    public object ConvertBack(object value, Type targetType, object? parameter, CultureInfo culture)
+        => value is bool b ? !b : true;
+}
+
 /// <summary>True -> blue selection border; false -> light grey.</summary>
 public sealed class SelectionBorderConverter : IValueConverter
 {

@@ -1,0 +1,31 @@
+<Window x:Class="BotBuilder.SettingsDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Settings" Height="220" Width="460"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        Background="{DynamicResource WindowBackgroundBrush}">
+    <DockPanel Margin="12">
+        <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
+            <Button Content="OK" Width="90" Click="Ok_Click" IsDefault="True"
+                    AutomationProperties.Name="OK" />
+            <Button Content="Cancel" Width="90" Margin="8,0,0,0" Click="Cancel_Click" IsCancel="True"
+                    AutomationProperties.Name="Cancel" />
+        </StackPanel>
+        <StackPanel>
+            <TextBlock Text="External editor command" FontSize="11"
+                       Foreground="{DynamicResource SecondaryTextBrush}" />
+            <TextBox x:Name="CommandBox"
+                     Text="{Binding ExternalEditorCommand, UpdateSourceTrigger=PropertyChanged}"
+                     Margin="0,2,0,4"
+                     AutomationProperties.Name="External editor command"
+                     AutomationProperties.HelpText="Command to open Lua scripts in an external editor" />
+            <TextBlock Text="Use $filename as a placeholder for the script path."
+                       FontSize="11" Foreground="{DynamicResource SecondaryTextBrush}"
+                       TextWrapping="Wrap" Margin="0,0,0,2" />
+            <TextBlock Text="Examples:  notepad $filename   ·   code --wait $filename   ·   vim $filename"
+                       FontSize="11" Foreground="{DynamicResource SecondaryTextBrush}"
+                       TextWrapping="Wrap" />
+        </StackPanel>
+    </DockPanel>
+</Window>
