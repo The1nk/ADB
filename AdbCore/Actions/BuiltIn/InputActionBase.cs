@@ -1,6 +1,7 @@
 using AdbCore.Execution;
 using AdbCore.Input;
 using AdbCore.Models;
+using AdbCore.Targets;
 
 namespace AdbCore.Actions.BuiltIn;
 
@@ -65,7 +66,11 @@ public abstract class InputActionBase : IActionDefinition, IActionExecutor
         return await PerformAsync(_senders.Resolve(method), hwnd, context, ct);
     }
 
-    /// <summary>Resolves the action's target HWND: the explicit TargetId, or the sole target if unset.</summary>
+    /// <summary>Resolves the action's target HWND (explicit TargetId or the sole target).
+    /// Calls <see cref="IWindowHandle.GetLiveHandle"/> so a stale HWND is refreshed automatically.</summary>
     private static IntPtr? ResolveWindow(ActionExecutionContext context)
-        => TargetResolution.ResolveHandle<IntPtr>(context);
+    {
+        var wh = TargetResolution.ResolveHandle<IWindowHandle>(context);
+        return wh?.GetLiveHandle();
+    }
 }

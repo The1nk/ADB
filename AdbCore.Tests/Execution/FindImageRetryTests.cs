@@ -3,6 +3,7 @@ using AdbCore.Actions.BuiltIn;
 using AdbCore.Execution;
 using AdbCore.Models;
 using AdbCore.Screen;
+using AdbCore.Tests.Targets;
 using Xunit;
 
 namespace AdbCore.Tests.Execution;
@@ -49,7 +50,7 @@ public class FindImageRetryTests
         {
             ResolvedTargets = new Dictionary<Guid, ResolvedTarget>
             {
-                [targetId] = new ResolvedTarget { Type = BotTargetType.Window, Selector = "hwnd:1", Handle = (IntPtr)5 },
+                [targetId] = new ResolvedTarget { Type = BotTargetType.Window, Selector = "hwnd:1", Handle = new FakeWindowHandle((IntPtr)5) },
             },
         };
 

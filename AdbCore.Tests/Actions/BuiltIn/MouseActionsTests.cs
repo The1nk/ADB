@@ -4,6 +4,7 @@ using AdbCore.Execution;
 using AdbCore.Input;
 using AdbCore.Models;
 using AdbCore.Tests.Input;
+using AdbCore.Tests.Targets;
 using Xunit;
 
 namespace AdbCore.Tests.Actions.BuiltIn;
@@ -21,7 +22,7 @@ public class MouseActionsTests
     {
         var id = Guid.NewGuid();
         var ctx = new BotExecutionContext();
-        ctx.Targets[id] = new ResolvedTarget { Type = BotTargetType.Window, Selector = "hwnd:1", Handle = handle };
+        ctx.Targets[id] = new ResolvedTarget { Type = BotTargetType.Window, Selector = "hwnd:1", Handle = new FakeWindowHandle(handle) };
         var action = new BotAction { TargetId = id };
         action.Config[PointerActionBase.XKey] = x;
         action.Config[PointerActionBase.YKey] = y;

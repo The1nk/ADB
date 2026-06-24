@@ -13,6 +13,10 @@ public sealed class Win32WindowResolver : IWindowResolver
     private delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
 
     [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool IsWindow(IntPtr hWnd);
+
+    [DllImport("user32.dll")]
     private static extern bool EnumWindows(EnumWindowsProc callback, IntPtr lParam);
 
     [DllImport("user32.dll")]
@@ -23,6 +27,9 @@ public sealed class Win32WindowResolver : IWindowResolver
 
     [DllImport("user32.dll", CharSet = CharSet.Unicode)]
     private static extern int GetWindowTextLength(IntPtr hWnd);
+
+    /// <inheritdoc/>
+    public bool IsAlive(IntPtr handle) => handle != IntPtr.Zero && IsWindow(handle);
 
     public IntPtr Resolve(string selector)
     {

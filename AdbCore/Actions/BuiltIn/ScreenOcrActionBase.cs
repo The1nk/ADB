@@ -2,6 +2,7 @@ using AdbCore.Execution;
 using AdbCore.Models;
 using AdbCore.Ocr;
 using AdbCore.Screen;
+using AdbCore.Targets;
 
 namespace AdbCore.Actions.BuiltIn;
 
@@ -42,9 +43,13 @@ public abstract class ScreenOcrActionBase : IActionDefinition, IActionExecutor
 
     public abstract Task<ActionResult> ExecuteAsync(ActionExecutionContext context, CancellationToken ct);
 
-    /// <summary>Resolves the action's target HWND (explicit TargetId or the sole target).</summary>
+    /// <summary>Resolves the action's target HWND (explicit TargetId or the sole target).
+    /// Calls <see cref="IWindowHandle.GetLiveHandle"/> so a stale HWND is refreshed automatically.</summary>
     protected static IntPtr? ResolveWindow(ActionExecutionContext context)
-        => TargetResolution.ResolveHandle<IntPtr>(context);
+    {
+        var wh = TargetResolution.ResolveHandle<IWindowHandle>(context);
+        return wh?.GetLiveHandle();
+    }
 
     /// <summary>Captures the client area (Auto) and OCRs the configured region (full-frame word coords).</summary>
     protected OcrResult RecognizeWindow(ActionExecutionContext context, IntPtr hwnd)

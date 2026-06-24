@@ -14,11 +14,13 @@ public class WindowTargetBinderTests
         public string? LastSelector { get; private set; }
         public FakeWindowResolver(IntPtr result) => _result = result;
         public IntPtr Resolve(string selector) { LastSelector = selector; return _result; }
+        public bool IsAlive(IntPtr handle) => handle != IntPtr.Zero;
     }
 
     private sealed class ThrowingWindowResolver : IWindowResolver
     {
         public IntPtr Resolve(string selector) => throw new FormatException("bad selector");
+        public bool IsAlive(IntPtr handle) => handle != IntPtr.Zero;
     }
 
     [Fact]
@@ -47,7 +49,8 @@ public class WindowTargetBinderTests
 
         WindowTargetBinder.Bind(targets, resolver);
 
-        Assert.Equal((IntPtr)777, targets[id].Handle);
+        var wh = Assert.IsAssignableFrom<AdbCore.Targets.IWindowHandle>(targets[id].Handle);
+        Assert.Equal((IntPtr)777, wh.GetLiveHandle());
         Assert.Equal("process:Notepad", resolver.LastSelector);
     }
 

@@ -28,16 +28,42 @@ public sealed class PlaywrightBrowserPage : IBrowserPage, IAsyncDisposable
         return new PlaywrightBrowserPage(playwright, browser, page);
     }
 
-    public Task GotoAsync(string url) => _page.GotoAsync(url);                       // Task<IResponse?> is-a Task
-    public Task ClickAsync(string selector) => _page.ClickAsync(selector);
-    public Task TypeAsync(string selector, string text) => _page.FillAsync(selector, text);
+    public Task GotoAsync(string url) => Translate(() => _page.GotoAsync(url));
+    public Task ClickAsync(string selector) => Translate(() => _page.ClickAsync(selector));
+    public Task TypeAsync(string selector, string text) => Translate(() => _page.FillAsync(selector, text));
     public Task WaitForSelectorAsync(string selector, int timeoutMs)
-        => _page.WaitForSelectorAsync(selector, new PageWaitForSelectorOptions { Timeout = timeoutMs });
-    public Task<string> GetTextAsync(string selector) => _page.InnerTextAsync(selector);
+        => Translate(() => _page.WaitForSelectorAsync(selector, new PageWaitForSelectorOptions { Timeout = timeoutMs }));
+    public Task<string> GetTextAsync(string selector) => Translate(() => _page.InnerTextAsync(selector));
 
     public async ValueTask DisposeAsync()
     {
         await _browser.CloseAsync();
         _playwright.Dispose();
+    }
+
+    /// <summary>Runs <paramref name="op"/> and, if it throws a closed-page Playwright exception, rethrows
+    /// as <see cref="InvalidOperationException"/> with a clear actionable message. Other exceptions pass through.</summary>
+    private static async Task Translate(Func<Task> op)
+    {
+        try
+        {
+            await op();
+        }
+        catch (Exception ex) when (BrowserErrors.Translate(ex) is string msg)
+        {
+            throw new InvalidOperationException(msg, ex);
+        }
+    }
+
+    private static async Task<T> Translate<T>(Func<Task<T>> op)
+    {
+        try
+        {
+            return await op();
+        }
+        catch (Exception ex) when (BrowserErrors.Translate(ex) is string msg)
+        {
+            throw new InvalidOperationException(msg, ex);
+        }
     }
 }

@@ -37,7 +37,7 @@ public static class WindowTargetBinder
                     $"Could not resolve Window target selector '{target.Selector}' to a window.");
             }
 
-            target.Handle = handle;
+            target.Handle = new Win32WindowHandle(resolver, target.Selector, handle);
         }
     }
 }
