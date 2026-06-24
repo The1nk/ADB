@@ -1112,6 +1112,11 @@ public partial class MainWindow : Window
     {
         try
         {
+            // Ensure the base dir exists — this runs before the session writes its temp file, so on a
+            // first-ever run (or after a temp cleanup) the dir would otherwise be missing and the scaffold
+            // would be silently skipped.
+            Directory.CreateDirectory(tempBase);
+
             // .luarc.json in the edit base dir
             var luaRcPath = Path.Combine(tempBase, BotBuilder.Core.ExternalEdit.LuaWorkspaceScaffold.LuaRcJsonRelativePath);
             File.WriteAllText(luaRcPath, BotBuilder.Core.ExternalEdit.LuaWorkspaceScaffold.LuaRcJson, System.Text.Encoding.UTF8);
