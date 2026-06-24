@@ -181,6 +181,28 @@ public partial class BotEditorViewModel : ObservableObject
         CommitMoves(moves);   // records a single MoveNodesCommand (no-op-safe)
     }
 
+    /// <summary>Recomputes back-route lanes for all connections so return/loop wires don't overlap, then
+    /// applies each lane (or clears it) on its connection. Derived display state — not undoable, not saved.</summary>
+    public void RerouteBackEdges()
+    {
+        if (Connections.Count == 0) return;
+
+        double leftX = Nodes.Count == 0 ? 0 : Nodes.Min(n => n.X);
+        double rightX = Nodes.Count == 0 ? 0 : Nodes.Max(n => n.X + NodeLayout.CardWidth);
+
+        var inputs = Connections.Select(c =>
+        {
+            var s = (c.Source.X + c.SourcePort.AnchorOffset.X, c.Source.Y + c.SourcePort.AnchorOffset.Y);
+            var t = (c.Target.X + c.TargetPort.AnchorOffset.X, c.Target.Y + c.TargetPort.AnchorOffset.Y);
+            return new BackRouteInput(c.Id, s.Item1, s.Item2, t.Item1, t.Item2);
+        }).ToList();
+
+        var plans = BackRoutePlanner.Plan(inputs, leftX, rightX);
+
+        foreach (var c in Connections)
+            c.SetLane(plans.TryGetValue(c.Id, out var p) ? p : (BackRoutePlan?)null);
+    }
+
     public ConnectionError Connect(NodeViewModel source, PortViewModel sourcePort, NodeViewModel target, PortViewModel targetPort)
     {
         var error = ConnectionValidator.Validate(Connections, source, sourcePort, target, targetPort);
@@ -543,6 +565,7 @@ public partial class BotEditorViewModel : ObservableObject
         RaiseUndoState();
         RefreshTargetBadges();
         RefreshNestedBotSubtitles();
+        RerouteBackEdges();
     }
 
     private void RaiseUndoState()
