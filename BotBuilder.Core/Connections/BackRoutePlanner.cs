@@ -55,7 +55,11 @@ public static class BackRoutePlanner
                 var local = perBand.TryGetValue(bandIdx, out var c) ? c : 0;
                 perBand[bandIdx] = local + 1;
                 var center = (band.Top + band.Bottom) / 2;
-                gutterY = Math.Clamp(center + local * GutterStep, band.Top + 2, band.Bottom - 2);
+                var lo = band.Top + 2;
+                var hi = band.Bottom - 2;
+                gutterY = hi <= lo
+                    ? (band.Top + band.Bottom) / 2          // band too thin to stagger -> use its center
+                    : Math.Clamp(center + local * GutterStep, lo, hi);
             }
             result[r.Id] = new BackRoutePlan(rightX, leftX, gutterY);
         }
@@ -63,8 +67,8 @@ public static class BackRoutePlanner
         return result;
     }
 
-    /// <summary>Index of the clear band nearest <paramref name="y"/> (0 if y is inside a band), or -1 if
-    /// none were supplied. Bands are disjoint, so at most one contains y.</summary>
+    /// <summary>The index of the band containing <paramref name="y"/> if any, else the nearest by edge
+    /// distance; -1 if none supplied. Bands are disjoint, so at most one contains y.</summary>
     private static int NearestBand(IReadOnlyList<(double Top, double Bottom)> bands, double y)
     {
         var best = -1;

@@ -84,4 +84,21 @@ public class BackRoutePlannerTests
         Assert.True(inAClearBand, $"gutter {gutterY} should lie within a clear band");
         Assert.False(gutterY > 180 && gutterY < 260, $"gutter {gutterY} must not cut through the occupied row");
     }
+
+    [Fact]
+    public void Plan_DoesNotThrow_OnSubFourPixelBand()
+    {
+        // A clear band thinner than 4px (Top+2 > Bottom-2) must not crash the clamp; it falls back to
+        // the band center. Freely drag-positioned rows can land 2-3px apart and produce such gaps.
+        var id = Guid.NewGuid();
+        var clearBands = new (double, double)[] { (200, 203) };   // 3px band near the route midpoint
+        var plans = BackRoutePlanner.Plan(
+            new[] { In(id, 500, 180, 40, 220) },   // midpoint = 200, nearest the thin band
+            nodesLeftX: 40, nodesRightX: 660,
+            clearBands: clearBands);
+
+        var gutterY = plans[id].GutterY;
+        Assert.True(double.IsFinite(gutterY), "gutter Y must be finite");
+        Assert.InRange(gutterY, 200, 203);   // snapped to the thin band's center
+    }
 }

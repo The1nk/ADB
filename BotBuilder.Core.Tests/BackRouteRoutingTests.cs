@@ -1,3 +1,4 @@
+using System;
 using System.Globalization;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -69,7 +70,7 @@ public class BackRouteRoutingTests
             .ToList();
         var gutterY = Enumerable.Range(0, pts.Count - 1)
             .Where(i => pts[i].Y == pts[i + 1].Y)                 // horizontal segments only
-            .OrderByDescending(i => System.Math.Abs(pts[i + 1].X - pts[i].X))
+            .OrderByDescending(i => Math.Abs(pts[i + 1].X - pts[i].X))
             .Select(i => pts[i].Y)
             .First();
         Assert.All(editor.Nodes, n =>

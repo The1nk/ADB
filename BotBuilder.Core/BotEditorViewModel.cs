@@ -209,14 +209,14 @@ public partial class BotEditorViewModel : ObservableObject
     {
         const double pad = 80;   // height of the synthetic gap above the first / below the last row
         var intervals = Nodes.Select(n => (Top: n.Y, Bottom: n.Y + n.Height)).OrderBy(t => t.Top).ToList();
-        if (intervals.Count == 0) return System.Array.Empty<(double, double)>();
+        if (intervals.Count == 0) return Array.Empty<(double Top, double Bottom)>();
 
         // merge overlapping/touching node Y-extents into occupied row bands
         var occupied = new List<(double Top, double Bottom)>();
         foreach (var iv in intervals)
         {
             if (occupied.Count > 0 && iv.Top <= occupied[^1].Bottom + 1)
-                occupied[^1] = (occupied[^1].Top, System.Math.Max(occupied[^1].Bottom, iv.Bottom));
+                occupied[^1] = (occupied[^1].Top, Math.Max(occupied[^1].Bottom, iv.Bottom));
             else
                 occupied.Add(iv);
         }
