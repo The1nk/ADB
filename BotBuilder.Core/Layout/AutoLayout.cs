@@ -1,5 +1,3 @@
-using BotBuilder.Core;
-
 namespace BotBuilder.Core.Layout;
 
 /// <summary>Layered left-to-right graph layout ("Tidy Up"). Assigns each node a layer by longest path
