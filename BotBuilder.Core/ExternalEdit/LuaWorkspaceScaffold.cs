@@ -47,6 +47,10 @@ public static class LuaWorkspaceScaffold
         {
           "$schema": "https://raw.githubusercontent.com/LuaLS/vscode-lua/master/setting/schema.json",
           "runtime.version": "Lua 5.2",
+          "runtime.builtin": {
+            "io": "disable",
+            "debug": "disable"
+          },
           "workspace.library": ["library"],
           "workspace.checkThirdParty": false,
           "diagnostics.globals": ["log", "vars", "json", "fs", "process", "http"]

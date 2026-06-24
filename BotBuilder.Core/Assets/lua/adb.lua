@@ -93,3 +93,69 @@ function http.get(url, headers) end
 ---@param headers? table<string, string>  # optional request headers
 ---@return HttpResponse
 function http.post(url, body, headers) end
+
+--- ============================================================================
+--- NOT available in ADB's sandbox
+--- ----------------------------------------------------------------------------
+--- Scripts run in MoonSharp's soft sandbox, so several standard-library features
+--- that exist in normal Lua are removed here (they evaluate to nil at runtime).
+--- They are re-declared below as @deprecated so editors strike them through; the
+--- generated .luarc.json additionally disables the `io` and `debug` libraries
+--- outright. Use the ADB modules above instead:
+---   io.*       -> fs                 os.execute -> process.run
+---   os.remove  -> fs.delete          os.rename  -> fs.move
+---   load / loadstring / loadfile / dofile / require -> (no dynamic code or modules)
+--- STILL AVAILABLE from the standard library: os.time, os.date, os.clock,
+--- os.difftime, plus the string / table / math / coroutine libraries, pcall, print.
+--- ============================================================================
+
+--- **Unavailable in ADB's sandbox.** Run external programs with `process.run` instead.
+---@deprecated
+---@return integer
+function os.execute(command) end
+
+--- **Unavailable in ADB's sandbox.**
+---@deprecated
+function os.exit(code) end
+
+--- **Unavailable in ADB's sandbox.**
+---@deprecated
+---@return string?
+function os.getenv(varname) end
+
+--- **Unavailable in ADB's sandbox.** Delete files with `fs.delete` instead.
+---@deprecated
+function os.remove(filename) end
+
+--- **Unavailable in ADB's sandbox.** Move files with `fs.move` instead.
+---@deprecated
+function os.rename(oldname, newname) end
+
+--- **Unavailable in ADB's sandbox.**
+---@deprecated
+---@return string
+function os.tmpname() end
+
+--- **Unavailable in ADB's sandbox.**
+---@deprecated
+function os.setlocale(locale, category) end
+
+--- **Unavailable in ADB's sandbox.** No dynamic code loading.
+---@deprecated
+function load(chunk, chunkname, mode, env) end
+
+--- **Unavailable in ADB's sandbox.** No dynamic code loading.
+---@deprecated
+function loadstring(text, chunkname) end
+
+--- **Unavailable in ADB's sandbox.** No file-based code loading; read with `fs.read`.
+---@deprecated
+function loadfile(filename, mode, env) end
+
+--- **Unavailable in ADB's sandbox.** No file-based code loading.
+---@deprecated
+function dofile(filename) end
+
+--- **Unavailable in ADB's sandbox.** No module system.
+---@deprecated
+function require(modname) end

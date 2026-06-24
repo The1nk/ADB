@@ -47,8 +47,10 @@ The "Run Lua Script" action has an **Edit** button that opens your script in an 
 
 | File | What it is |
 | --- | --- |
-| `.luarc.json` | LuaLS workspace config — sets Lua 5.2 runtime, points at `library/`, declares all six ADB globals. |
+| `.luarc.json` | LuaLS workspace config — sets Lua 5.2 runtime, points at `library/`, declares all six ADB globals, and disables the `io` and `debug` libraries (gone in the sandbox). |
 | `library\adb.lua` | `---@meta` annotation file with full type signatures for `log`, `vars`, `json`, `fs`, `process`, and `http`. |
+
+It also tells you what's **not** there. ADB runs scripts in MoonSharp's soft sandbox, so the dangerous standard-library bits are stripped — `os.execute`, `os.getenv`, `os.remove`/`os.rename`, `load`/`loadfile`/`dofile`, `require`, and all of `io` and `debug`. Those are annotated `@deprecated` (editors strike them through, with a "use `process.run` / `fs` instead" hint), so you find out in the editor rather than at run time. The harmless bits stay: `os.time`/`os.date`/`os.clock`, and the `string`/`table`/`math`/`coroutine` libraries.
 
 To get autocomplete in **VS Code** (with the [Lua extension](https://marketplace.visualstudio.com/items?itemName=sumneko.lua) installed), the catch is that LuaLS only reads `.luarc.json` when a **folder** is open — not a lone file. So set your editor command to open the folder:
 

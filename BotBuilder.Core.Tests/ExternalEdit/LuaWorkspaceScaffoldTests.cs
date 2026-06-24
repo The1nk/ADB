@@ -29,9 +29,36 @@ public class LuaWorkspaceScaffoldTests
         Assert.Contains(expectedFragment, LuaWorkspaceScaffold.Definitions, StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData("function os.execute")]   // sandbox-removed funcs are re-declared as @deprecated
+    [InlineData("function require")]
+    [InlineData("function loadfile")]
+    [InlineData("---@deprecated")]
+    [InlineData("NOT available in ADB's sandbox")]  // human-readable header
+    public void Definitions_DocumentSandboxRemovals(string expectedFragment)
+    {
+        Assert.Contains(expectedFragment, LuaWorkspaceScaffold.Definitions, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Definitions_KeepAvailableOsTimeFunctions_NotDeprecated()
+    {
+        // os.time et al. ARE available in the soft sandbox, so they must NOT be re-declared/deprecated here.
+        Assert.DoesNotContain("function os.time", LuaWorkspaceScaffold.Definitions, StringComparison.Ordinal);
+    }
+
     // ---------------------------------------------------------------------------
     // LuaRcJson
     // ---------------------------------------------------------------------------
+
+    [Theory]
+    [InlineData("io")]
+    [InlineData("debug")]
+    public void LuaRcJson_DisablesFullyAbsentBuiltinLibraries(string library)
+    {
+        // The fully-removed libraries are hard-disabled via runtime.builtin so LuaLS flags their use.
+        Assert.Contains($"\"{library}\": \"disable\"", LuaWorkspaceScaffold.LuaRcJson, StringComparison.Ordinal);
+    }
 
     [Fact]
     public void LuaRcJson_ContainsLibraryWorkspaceEntry()
