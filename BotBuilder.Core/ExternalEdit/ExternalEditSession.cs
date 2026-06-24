@@ -179,15 +179,29 @@ public sealed class ExternalEditSession : IDisposable
         Stopped?.Invoke(this, new ExternalEditStoppedArgs(finalText, userRequested));
     }
 
-    /// <summary>Parses an editor command string into an executable and arguments, substituting
-    /// <c>$filename</c> with a quoted version of <paramref name="tempPath"/>. If <c>$filename</c> is
-    /// absent from the command, the quoted temp path is appended as a final argument.</summary>
+    /// <summary>Parses an editor command string into an executable and arguments. Substitutes
+    /// <c>$filename</c> with a quoted version of <paramref name="tempPath"/> and <c>$directory</c> with a
+    /// quoted version of its containing folder (e.g. <c>code --wait $directory $filename</c> opens the
+    /// whole edit folder so the Lua Language Server picks up the <c>.luarc.json</c> there). If NEITHER
+    /// token appears, the quoted temp path is appended as a final argument (so a bare <c>notepad</c> still
+    /// works).</summary>
     public static (string Exe, string Args) ParseCommand(string command, string tempPath)
     {
         var quotedPath = $"\"{tempPath}\"";
-        var withFile = command.Contains("$filename", StringComparison.OrdinalIgnoreCase)
-            ? command.Replace("$filename", quotedPath, StringComparison.OrdinalIgnoreCase)
-            : command.TrimEnd() + " " + quotedPath;
+        var quotedDir = $"\"{Path.GetDirectoryName(tempPath)}\"";
+
+        var hasFileToken = command.Contains("$filename", StringComparison.OrdinalIgnoreCase);
+        var hasDirToken = command.Contains("$directory", StringComparison.OrdinalIgnoreCase);
+
+        var withFile = command
+            .Replace("$filename", quotedPath, StringComparison.OrdinalIgnoreCase)
+            .Replace("$directory", quotedDir, StringComparison.OrdinalIgnoreCase);
+
+        // No placeholder at all → append the file path so a bare command (e.g. "notepad") still opens it.
+        if (!hasFileToken && !hasDirToken)
+        {
+            withFile = command.TrimEnd() + " " + quotedPath;
+        }
 
         // Split on the first whitespace run to separate the executable from its arguments.
         var trimmed = withFile.TrimStart();

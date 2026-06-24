@@ -1,7 +1,7 @@
 <Window x:Class="BotBuilder.SettingsDialog"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Settings" Height="220" Width="460"
+        Title="Settings" Height="250" Width="480"
         WindowStartupLocation="CenterOwner"
         ResizeMode="NoResize"
         Background="{DynamicResource WindowBackgroundBrush}">
@@ -20,10 +20,10 @@
                      Margin="0,2,0,4"
                      AutomationProperties.Name="External editor command"
                      AutomationProperties.HelpText="Command to open Lua scripts in an external editor" />
-            <TextBlock Text="Use $filename as a placeholder for the script path."
+            <TextBlock Text="Use $filename for the script path, or $directory for its folder. Opening the folder (e.g. with VS Code) gives Lua autocomplete for log/vars/process/http/fs/json."
                        FontSize="11" Foreground="{DynamicResource SecondaryTextBrush}"
                        TextWrapping="Wrap" Margin="0,0,0,2" />
-            <TextBlock Text="Examples:  notepad $filename   ·   code --wait $filename   ·   vim $filename"
+            <TextBlock Text="Examples:  notepad $filename   ·   code --wait $directory $filename   ·   vim $filename"
                        FontSize="11" Foreground="{DynamicResource SecondaryTextBrush}"
                        TextWrapping="Wrap" />
         </StackPanel>

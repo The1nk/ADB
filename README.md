@@ -41,6 +41,31 @@ Why click 10,000 times when a damn bot will click 10,001 and never complain? ADB
 - **Input & windows** — mouse/keyboard actions, activate window. The clicky-clicky.
 - **Theming** — Light / Dark / High-Contrast, following the OS by default (`View ▸ Theme` in BotBuilder).
 
+## Lua IntelliSense (VS Code autocomplete)
+
+The "Run Lua Script" action has an **Edit** button that opens your script in an external editor. Every time you hit Edit, BotBuilder drops two files into `%TEMP%\ADB\LuaEdit`:
+
+| File | What it is |
+| --- | --- |
+| `.luarc.json` | LuaLS workspace config — sets Lua 5.2 runtime, points at `library/`, declares all six ADB globals, and disables the `io` and `debug` libraries (gone in the sandbox). |
+| `library\adb.lua` | `---@meta` annotation file with full type signatures for `log`, `vars`, `json`, `fs`, `process`, and `http`. |
+
+It also tells you what's **not** there. ADB runs scripts in MoonSharp's soft sandbox, so the dangerous standard-library bits are stripped — `os.execute`, `os.getenv`, `os.remove`/`os.rename`, `load`/`loadfile`/`dofile`, `require`, and all of `io` and `debug`. Those are annotated `@deprecated` (editors strike them through, with a "use `process.run` / `fs` instead" hint), so you find out in the editor rather than at run time. The harmless bits stay: `os.time`/`os.date`/`os.clock`, and the `string`/`table`/`math`/`coroutine` libraries.
+
+To get autocomplete in **VS Code** (with the [Lua extension](https://marketplace.visualstudio.com/items?itemName=sumneko.lua) installed), the catch is that LuaLS only reads `.luarc.json` when a **folder** is open — not a lone file. So set your editor command to open the folder:
+
+```
+code --wait $directory $filename
+```
+
+`$directory` expands to `%TEMP%\ADB\LuaEdit` (where the scaffold lives) and `$filename` to the script, so VS Code opens the folder as the workspace **and** your script as a tab — LuaLS activates and `log(...)`, `vars`, `http.get(...)`, etc. all get signatures and docs. (Set this once in **Settings**; `--wait` lets process-exit end the edit session, though the **Done** button works regardless.)
+
+Prefer not to use `$directory`? You can still use `code --wait $filename` and then **File › Open Folder…** on `%TEMP%\ADB\LuaEdit` yourself — opening the folder is the part that activates LuaLS.
+
+> **Tip:** The scaffold is overwritten on every Edit press, so definitions stay current after upgrades. No VS Code restart needed; the extension picks up `.luarc.json` automatically when the folder is open.
+
+Reusing the defs elsewhere: the `library\adb.lua` file is a standalone LuaLS annotation file. If you have other Lua projects that call ADB-style APIs, point `workspace.library` in their own `.luarc.json` at the same file (or copy it into their `library/` folder).
+
 ## Summoning requirements
 
 - Windows 10/11

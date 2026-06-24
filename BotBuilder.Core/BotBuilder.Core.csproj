@@ -1,6 +1,10 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
+    <EmbeddedResource Include="Assets\lua\adb.lua" LogicalName="BotBuilder.Core.Assets.lua.adb.lua" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\AdbCore\AdbCore.csproj" />
     <ProjectReference Include="..\AdbUi.Theme\AdbUi.Theme.csproj" />
   </ItemGroup>
