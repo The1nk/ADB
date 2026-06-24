@@ -93,6 +93,7 @@ public static class DocumentMapper
         }
         editor.RefreshTargetBadges();
         editor.RefreshNestedBotSubtitles();
+        editor.RerouteBackEdges();
     }
 
     private static IEnumerable<ConnectionViewModel> BuildConnections(Bot bot, IReadOnlyList<NodeViewModel> nodes)
