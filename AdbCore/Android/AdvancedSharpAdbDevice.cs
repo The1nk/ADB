@@ -11,16 +11,40 @@ namespace AdbCore.Android;
 public sealed class AdvancedSharpAdbDevice : IAndroidDevice
 {
     private readonly AdbClient _client;
-    private readonly DeviceData _device;
+    private readonly string _serial;
+    private DeviceData _device;
 
     public AdvancedSharpAdbDevice(AdbClient client, DeviceData device)
     {
         _client = client;
         _device = device;
+        // Serial is the stable device identity; the transport id captured in DeviceData is not — a reboot
+        // makes the ADB server reassign transport ids, orphaning the cached handle. Keep the serial so we
+        // can re-resolve a fresh DeviceData when a command fails on a stale handle (see Invoke).
+        _serial = device.Serial;
     }
 
+    /// <summary>Runs an operation against the bound device, re-resolving the live <see cref="DeviceData"/>
+    /// by serial and retrying once if the cached handle is stale (e.g. after a reboot reassigned the ADB
+    /// transport id — "no device with transport id 'N'"). Keeps the no-reboot fast path allocation-free.</summary>
+    private T Invoke<T>(Func<DeviceData, T> op)
+    {
+        try
+        {
+            return op(_device);
+        }
+        catch
+        {
+            _device = _client.GetDevices().FirstOrDefault(d => d.Serial == _serial)
+                ?? throw new InvalidOperationException($"ADB device '{_serial}' is not currently connected.");
+            return op(_device);
+        }
+    }
+
+    private void Invoke(Action<DeviceData> op) => Invoke<object?>(d => { op(d); return null; });
+
     // 3.6.16: AdbClient.ExecuteRemoteCommand(string, DeviceData) — synchronous, no receiver needed.
-    private void Shell(string command) => _client.ExecuteRemoteCommand(command, _device);
+    private void Shell(string command) => Invoke(d => _client.ExecuteRemoteCommand(command, d));
 
     public void Tap(int x, int y) => Shell($"input tap {x} {y}");
 
@@ -37,7 +61,7 @@ public sealed class AdvancedSharpAdbDevice : IAndroidDevice
     {
         // 3.6.16: AdbClient.GetFrameBuffer(DeviceData) returns a Framebuffer already populated with
         // Header (Width, Height, Bpp, Red/Green/Blue/Alpha channel info) and Data (raw pixel bytes).
-        using Framebuffer fb = _client.GetFrameBuffer(_device);
+        using Framebuffer fb = Invoke(d => _client.GetFrameBuffer(d));
 
         FramebufferHeader hdr = fb.Header;
         byte[] raw = fb.Data ?? throw new InvalidOperationException("ADB framebuffer returned no pixel data.");
@@ -113,6 +137,7 @@ public sealed class AdvancedSharpAdbDevice : IAndroidDevice
     {
         // 3.6.16: AdbClient.Install(DeviceData, Stream, Action<InstallProgressEventArgs>?, string[])
         using var apk = File.OpenRead(apkPath);
-        _client.Install(_device, apk, callback: null);
+        // Reset to the start on a retry so a re-resolve after a stale-handle failure re-reads the full APK.
+        Invoke(d => { apk.Position = 0; _client.Install(d, apk, callback: null); });
     }
 }
