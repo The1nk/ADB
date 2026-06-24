@@ -61,6 +61,23 @@ public class AutoLayoutTests
     }
 
     [Fact]
+    public void Barycenter_UncrossesParallelEdges()
+    {
+        // Two roots a(top), x(bottom) feed two layer-1 nodes. Edges a->q and x->p would, under
+        // naive input-order placement of layer 1 ([p, q]), cross. Barycenter must reorder layer 1
+        // to [q, p] so a(top)->q(top) and x(bottom)->p(bottom) run parallel (no crossing).
+        var a = Guid.NewGuid(); var x = Guid.NewGuid();   // order 0,1  -> a above x
+        var p = Guid.NewGuid(); var q = Guid.NewGuid();   // order 2,3  -> p above q (naive)
+        var pos = AutoLayout.Arrange(
+            new[] { N(a), N(x), N(p), N(q) },
+            new[] { (a, q), (x, p) });
+
+        Assert.True(pos[a].Y < pos[x].Y);                 // roots keep input order in layer 0
+        Assert.Equal(pos[p].X, pos[q].X);                 // p, q share layer 1 (same column)
+        Assert.True(pos[q].Y < pos[p].Y);                 // reordered so q is above p -> uncrossed
+    }
+
+    [Fact]
     public void IsolatedNode_AtOriginColumn()
     {
         var a = Guid.NewGuid();

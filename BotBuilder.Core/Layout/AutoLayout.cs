@@ -1,13 +1,18 @@
 namespace BotBuilder.Core.Layout;
 
-/// <summary>Pure layered left-to-right graph layout ("Tidy Up"). Assigns each node a layer by longest path
-/// on the back-edge-removed DAG (so cycles are safe), then packs each layer's column top-to-bottom by height.</summary>
+/// <summary>Layered left-to-right graph layout ("Tidy Up"). Assigns each node a layer by longest path
+/// on the back-edge-removed DAG (cycles are safe), reduces edge crossings with alternating barycenter
+/// sweeps, then packs each layer's column top-to-bottom by height. (Wrapping into stacked rows is added
+/// in a later step.)</summary>
 public static class AutoLayout
 {
     public const double ColGap = 240;
     public const double RowGap = 30;
+    public const double BandGap = 80;     // vertical gap between wrapped row-bands (> RowGap: gutter for return wires)
     public const double OriginX = 40;
     public const double OriginY = 40;
+
+    private const int BarycenterPasses = 4;
 
     public static IReadOnlyDictionary<Guid, (double X, double Y)> Arrange(
         IReadOnlyList<(Guid Id, double Height)> nodes,
@@ -48,24 +53,84 @@ public static class AutoLayout
         var indeg = ids.ToDictionary(id => id, _ => 0);
         foreach (var u in ids) foreach (var v in forward[u]) indeg[v]++;
         var layer = ids.ToDictionary(id => id, _ => 0);
-        var queue = new Queue<Guid>(ids.Where(id => indeg[id] == 0).OrderBy(i => order[i]));
+        var work = indeg.ToDictionary(kv => kv.Key, kv => kv.Value);
+        var queue = new Queue<Guid>(ids.Where(id => work[id] == 0).OrderBy(i => order[i]));
         while (queue.Count > 0)
         {
             var u = queue.Dequeue();
             foreach (var v in forward[u])
             {
                 if (layer[v] < layer[u] + 1) layer[v] = layer[u] + 1;
-                if (--indeg[v] == 0) queue.Enqueue(v);
+                if (--work[v] == 0) queue.Enqueue(v);
             }
         }
 
-        // 3) group by layer, stable order within layer; 4) pack columns by height
-        var byLayer = ids.GroupBy(id => layer[id]).OrderBy(g => g.Key);
-        foreach (var group in byLayer)
+        // 3) group nodes by layer in stable input order
+        var maxLayer = layer.Values.Max();
+        var layers = new List<List<Guid>>();
+        for (var l = 0; l <= maxLayer; l++)
+            layers.Add(ids.Where(id => layer[id] == l).OrderBy(i => order[i]).ToList());
+
+        // predecessors over the forward DAG (for up-sweeps)
+        var preds = ids.ToDictionary(id => id, _ => new List<Guid>());
+        foreach (var u in ids) foreach (var v in forward[u]) preds[v].Add(u);
+
+        var posInLayer = new Dictionary<Guid, int>();
+        foreach (var lyr in layers) for (var i = 0; i < lyr.Count; i++) posInLayer[lyr[i]] = i;
+
+        // 4) barycenter crossing reduction: alternate down-sweeps (order by predecessor positions)
+        //    and up-sweeps (order by successor positions). Nodes with no neighbors keep their index
+        //    (stable); ties break by original input order so the result is deterministic.
+        void SortLayer(List<Guid> lyr, IReadOnlyDictionary<Guid, List<Guid>> neighbors)
         {
-            var x = OriginX + group.Key * ColGap;
-            var y = OriginY;
-            foreach (var id in group.OrderBy(i => order[i]))
+            double Bary(Guid id)
+            {
+                var ns = neighbors[id];
+                return ns.Count == 0 ? posInLayer[id] : ns.Average(n => (double)posInLayer[n]);
+            }
+            lyr.Sort((x, y) =>
+            {
+                var cmp = Bary(x).CompareTo(Bary(y));
+                return cmp != 0 ? cmp : order[x].CompareTo(order[y]);
+            });
+            for (var i = 0; i < lyr.Count; i++) posInLayer[lyr[i]] = i;
+        }
+
+        for (var pass = 0; pass < BarycenterPasses; pass++)
+        {
+            if (pass % 2 == 0)
+                for (var l = 1; l <= maxLayer; l++) SortLayer(layers[l], preds);
+            else
+                for (var l = maxLayer - 1; l >= 0; l--) SortLayer(layers[l], forward);
+        }
+
+        // 5) choose band width K (layers per stacked row). Single row for now.
+        var L = layers.Count;
+        var colHeight = layers
+            .Select(lyr => lyr.Sum(id => height[id]) + Math.Max(0, lyr.Count - 1) * RowGap)
+            .ToList();
+        var k = L;
+
+        // 6) position: row-reset bands. Band b holds layers [b*k, b*k+k); each band restarts at OriginX,
+        //    stacked below the previous band by that band's tallest column + BandGap.
+        var bands = (int)Math.Ceiling(L / (double)k);
+        var bandTop = new double[bands];
+        bandTop[0] = OriginY;
+        for (var b = 1; b < bands; b++)
+        {
+            var prevHeight = 0.0;
+            for (var l = (b - 1) * k; l < Math.Min(b * k, L); l++)
+                prevHeight = Math.Max(prevHeight, colHeight[l]);
+            bandTop[b] = bandTop[b - 1] + prevHeight + BandGap;
+        }
+
+        for (var l = 0; l < L; l++)
+        {
+            var band = l / k;
+            var localCol = l % k;
+            var x = OriginX + localCol * ColGap;
+            var y = bandTop[band];
+            foreach (var id in layers[l])
             {
                 result[id] = (x, y);
                 y += height[id] + RowGap;
