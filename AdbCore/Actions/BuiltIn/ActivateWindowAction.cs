@@ -40,16 +40,7 @@ public sealed class ActivateWindowAction : IActionDefinition, IActionExecutor
             return Task.FromResult(ActionResult.Fail("Activate Window requires a window target."));
         }
 
-        IntPtr handle;
-        try
-        {
-            handle = wh.GetLiveHandle();
-        }
-        catch (InvalidOperationException ex)
-        {
-            return Task.FromResult(ActionResult.Fail(ex.Message));
-        }
-
+        var handle = wh.GetLiveHandle();
         _activator.Activate(handle);
         return Task.FromResult(ActionResult.Ok(SuccessPort));
     }

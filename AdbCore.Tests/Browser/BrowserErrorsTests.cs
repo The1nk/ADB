@@ -50,4 +50,16 @@ public class BrowserErrorsTests
 
         Assert.NotNull(msg);
     }
+
+    [Fact]
+    public void Translate_TargetClosedPhrasing_ReturnsActionableMessage()
+    {
+        // Some Playwright versions emit the shorter "Target closed" form.
+        var ex = new PlaywrightException("Target closed");
+
+        var msg = BrowserErrors.Translate(ex);
+
+        Assert.NotNull(msg);
+        Assert.Contains("browser page has been closed", msg);
+    }
 }

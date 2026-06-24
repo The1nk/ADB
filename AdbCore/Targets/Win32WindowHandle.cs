@@ -7,6 +7,7 @@ public sealed class Win32WindowHandle : IWindowHandle
 {
     private readonly IWindowResolver _resolver;
     private readonly string _selector;
+    private readonly object _gate = new();
     private IntPtr _cached;
 
     /// <param name="resolver">Resolver used to re-resolve when the cached HWND is dead.</param>
@@ -24,20 +25,23 @@ public sealed class Win32WindowHandle : IWindowHandle
     /// <inheritdoc/>
     public IntPtr GetLiveHandle()
     {
-        if (_resolver.IsAlive(_cached))
+        lock (_gate)
         {
+            if (_resolver.IsAlive(_cached))
+            {
+                return _cached;
+            }
+
+            // Cached HWND is dead — attempt a single re-resolution from the original selector.
+            var fresh = _resolver.Resolve(_selector);
+            if (fresh == IntPtr.Zero || !_resolver.IsAlive(fresh))
+            {
+                throw new InvalidOperationException(
+                    $"Window target '{_selector}' is no longer available (it may have been closed).");
+            }
+
+            _cached = fresh;
             return _cached;
         }
-
-        // Cached HWND is dead — attempt a single re-resolution from the original selector.
-        var fresh = _resolver.Resolve(_selector);
-        if (fresh == IntPtr.Zero)
-        {
-            throw new InvalidOperationException(
-                $"Window target '{_selector}' is no longer available (it may have been closed).");
-        }
-
-        _cached = fresh;
-        return _cached;
     }
 }

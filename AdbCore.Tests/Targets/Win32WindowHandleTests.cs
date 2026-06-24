@@ -49,26 +49,24 @@ public class Win32WindowHandleTests
     [Fact]
     public void GetLiveHandle_DeadHandle_ReResolvesAndReturnsFreshHwnd()
     {
-        var resolver = new FakeWindowResolver(isAlive: false, resolved: (IntPtr)0x200);
+        // Original handle (0x100) is dead; re-resolved handle (0x200) is alive.
+        var resolvedSelector = (string?)null;
+        var resolver = new StatefulResolver(
+            isAlive: hwnd => hwnd == (IntPtr)0x200,
+            resolve: sel => { resolvedSelector = sel; return (IntPtr)0x200; });
         var sut = new Win32WindowHandle(resolver, "process:Notepad", (IntPtr)0x100);
 
         var result = sut.GetLiveHandle();
 
         Assert.Equal((IntPtr)0x200, result);
-        Assert.Equal("process:Notepad", resolver.LastResolvedSelector);
+        Assert.Equal("process:Notepad", resolvedSelector);
     }
 
     [Fact]
     public void GetLiveHandle_DeadHandle_CachesFreshHwnd_SubsequentCallDoesNotReResolve()
     {
         // First call re-resolves because the cached handle is dead, but after that the
-        // fresh handle is cached — subsequent calls must use the cache (resolver.IsAlive
-        // says "alive" for everything; we flip alive=false only on construction, then
-        // use a second resolver that says alive=true so the second call skips Resolve).
-        var resolver = new FakeWindowResolver(isAlive: false, resolved: (IntPtr)0x200);
-        var aliveResolver = new FakeWindowResolver(isAlive: true);
-        // Use the dying resolver first, then rebuild with the alive one to verify caching.
-        // Simpler: use a stateful resolver.
+        // fresh handle is cached — subsequent calls must use the cache.
         var callCount = 0;
         var statefulResolver = new StatefulResolver(
             isAlive: hwnd => hwnd == (IntPtr)0x200, // fresh handle is alive, original is dead
@@ -92,6 +90,23 @@ public class Win32WindowHandleTests
 
         var ex = Assert.Throws<InvalidOperationException>(() => sut.GetLiveHandle());
         Assert.Contains("title:Game", ex.Message);
+        Assert.Contains("no longer available", ex.Message);
+    }
+
+    [Fact]
+    public void GetLiveHandle_DeadHandle_ReResolvedHandleFailsIsAlive_ThrowsInvalidOperationException()
+    {
+        // Reproduce the hwnd:<literal> bug: Resolve returns a non-zero handle but IsAlive
+        // always returns false (e.g. the literal HWND points to a dead window). The re-resolved
+        // handle must NOT be cached and returned — it must be treated as failure.
+        var resolver = new StatefulResolver(
+            isAlive: _ => false,           // every handle is dead, including the re-resolved one
+            resolve: _ => (IntPtr)0x100);  // Resolve returns a non-zero handle
+
+        var sut = new Win32WindowHandle(resolver, "hwnd:0x100", (IntPtr)0x100);
+
+        var ex = Assert.Throws<InvalidOperationException>(() => sut.GetLiveHandle());
+        Assert.Contains("hwnd:0x100", ex.Message);
         Assert.Contains("no longer available", ex.Message);
     }
 
