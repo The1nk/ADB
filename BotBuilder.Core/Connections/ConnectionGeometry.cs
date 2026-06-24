@@ -9,6 +9,7 @@ public static class ConnectionGeometry
     private const double MinPull = 40;
     private const double BackRouteMargin = 1;   // target must be clearly left of source to back-route
     private const double BackRoutePull = 24;    // short stub off each port before turning into the gutter
+    private const double RowClearance = 48;     // ~half a default node card + margin: drops the gutter clear of level rows
 
     /// <summary>The two cubic control points for a curve from <paramref name="start"/> (leaving along
     /// <paramref name="startEdge"/>) to <paramref name="end"/> (approaching along <paramref name="endEdge"/>).</summary>
@@ -50,6 +51,8 @@ public static class ConnectionGeometry
         var ex = end.X + e.X * BackRoutePull;
         var ey = end.Y + e.Y * BackRoutePull;
         var gutterY = (sy + ey) / 2;   // midway between source and target rows -> in the inter-band gap
+        if (Math.Abs(ey - sy) < RowClearance * 2)        // rows are level / too close: midpoint would sit on a row
+            gutterY = Math.Max(sy, ey) + RowClearance;   // drop the cross-run below both rows instead
         return string.Create(CultureInfo.InvariantCulture,
             $"M {start.X},{start.Y} L {sx},{sy} L {sx},{gutterY} L {ex},{gutterY} L {ex},{ey} L {end.X},{end.Y}");
     }

@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using System.Globalization;
 using BotBuilder.Core;
 using BotBuilder.Core.Connections;
 using Xunit;
@@ -62,5 +64,52 @@ public class ConnectionGeometryTests
 
         Assert.Contains(" C ", path);
         Assert.DoesNotContain(" L ", path);
+    }
+
+    [Fact]
+    public void SameRowBackwardEdge_DipsBelowTheRow()
+    {
+        // Source and target on the same row (Y=100): a loop-back to a node directly to the left.
+        // The cross-run must not drag along the row's centerline — it should dip below it.
+        var path = ConnectionGeometry.BuildPath(
+            new CanvasPoint(400, 100), PortEdge.Right, new CanvasPoint(40, 100), PortEdge.Left);
+
+        Assert.Contains(" L ", path);
+        Assert.DoesNotContain(" C ", path);
+        Assert.True(MaxY(path) > 100, "back-route should dip below the level row, not run along it");
+    }
+
+    [Fact]
+    public void BottomSourceBackwardEdge_StaysOrthogonal()
+    {
+        // Source leaves downward (Bottom port), target is left and below.
+        var path = ConnectionGeometry.BuildPath(
+            new CanvasPoint(400, 100), PortEdge.Bottom, new CanvasPoint(40, 300), PortEdge.Left);
+
+        Assert.Contains(" L ", path);
+        Assert.DoesNotContain(" C ", path);
+        Assert.StartsWith("M 400,100 ", path);
+        // First stub drops straight down from the source: an x=400 point with y > 100.
+        Assert.Contains(Coordinates(path), p => p.X == 400 && p.Y > 100);
+    }
+
+    private static double MaxY(string path)
+    {
+        double max = double.NegativeInfinity;
+        foreach (var (_, y) in Coordinates(path))
+            if (y > max) max = y;
+        return max;
+    }
+
+    private static IEnumerable<(double X, double Y)> Coordinates(string path)
+    {
+        foreach (var token in path.Split(' '))
+        {
+            var comma = token.IndexOf(',');
+            if (comma < 0) continue;
+            if (double.TryParse(token[..comma], NumberStyles.Float, CultureInfo.InvariantCulture, out var x) &&
+                double.TryParse(token[(comma + 1)..], NumberStyles.Float, CultureInfo.InvariantCulture, out var y))
+                yield return (x, y);
+        }
     }
 }
