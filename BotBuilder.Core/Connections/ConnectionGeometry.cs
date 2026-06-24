@@ -56,4 +56,21 @@ public static class ConnectionGeometry
         return string.Create(CultureInfo.InvariantCulture,
             $"M {start.X},{start.Y} L {sx},{sy} L {sx},{gutterY} L {ex},{gutterY} L {ex},{ey} L {end.X},{end.Y}");
     }
+
+    /// <summary>Orthogonal back-route through an explicitly assigned lane: out along the source normal to
+    /// the right corridor, down/up to the gutter row, across to the left corridor, then up/down into the
+    /// target. The corridors and gutter come from <see cref="BackRoutePlanner"/> so parallel return wires
+    /// never coincide.</summary>
+    public static string BuildLanedBackRoute(
+        CanvasPoint start, PortEdge startEdge, CanvasPoint end, PortEdge endEdge,
+        double rightCornerX, double leftCornerX, double gutterY)
+    {
+        var s = NodeLayout.Outward(startEdge);
+        var e = NodeLayout.Outward(endEdge);
+        var sy = start.Y + s.Y * BackRoutePull;   // a short stub along the source normal (handles Bottom ports)
+        var ey = end.Y + e.Y * BackRoutePull;
+        return string.Create(CultureInfo.InvariantCulture,
+            $"M {start.X},{start.Y} L {start.X},{sy} L {rightCornerX},{sy} L {rightCornerX},{gutterY} " +
+            $"L {leftCornerX},{gutterY} L {leftCornerX},{ey} L {end.X},{ey} L {end.X},{end.Y}");
+    }
 }

@@ -31,8 +31,29 @@ public partial class ConnectionViewModel : ObservableObject
     public NodeViewModel Target { get; }
     public PortViewModel TargetPort { get; }
 
-    public string PathData => ConnectionGeometry.BuildPath(
-        Anchor(Source, SourcePort), SourcePort.Edge, Anchor(Target, TargetPort), TargetPort.Edge);
+    private BackRoutePlan? _lane;
+
+    public string PathData
+    {
+        get
+        {
+            var start = Anchor(Source, SourcePort);
+            var end = Anchor(Target, TargetPort);
+            if (_lane is { } lane && end.X < start.X)
+                return ConnectionGeometry.BuildLanedBackRoute(
+                    start, SourcePort.Edge, end, TargetPort.Edge,
+                    lane.RightCornerX, lane.LeftCornerX, lane.GutterY);
+            return ConnectionGeometry.BuildPath(start, SourcePort.Edge, end, TargetPort.Edge);
+        }
+    }
+
+    /// <summary>Assigns (or clears) this connection's back-route lane and re-renders its path. Lanes are
+    /// derived display state computed by <see cref="BackRoutePlanner"/> after layout/move/load.</summary>
+    public void SetLane(BackRoutePlan? lane)
+    {
+        _lane = lane;
+        OnPropertyChanged(nameof(PathData));
+    }
 
     /// <summary>(Re)subscribes to endpoint move notifications. Idempotent.</summary>
     public void Attach()

@@ -93,6 +93,24 @@ public class ConnectionGeometryTests
         Assert.Contains(Coordinates(path), p => p.X == 400 && p.Y > 100);
     }
 
+    [Fact]
+    public void LanedBackRoute_UsesGivenCornersAndGutter()
+    {
+        // start right -> end left, routed via explicit right/left corridors and a gutter Y.
+        var path = ConnectionGeometry.BuildLanedBackRoute(
+            new CanvasPoint(500, 100), PortEdge.Right,
+            new CanvasPoint(40, 300), PortEdge.Left,
+            rightCornerX: 720, leftCornerX: 10, gutterY: 215);
+
+        Assert.StartsWith("M 500,100 ", path);
+        Assert.Contains(" L ", path);
+        Assert.DoesNotContain(" C ", path);
+        Assert.Contains("720,", path);   // right corridor used
+        Assert.Contains("10,", path);    // left corridor used
+        Assert.Contains(",215", path);   // gutter row used
+        Assert.EndsWith(" 40,300", path);
+    }
+
     private static double MaxY(string path)
     {
         double max = double.NegativeInfinity;
