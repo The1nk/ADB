@@ -2,8 +2,8 @@ namespace BotBuilder.Core.Layout;
 
 /// <summary>Layered left-to-right graph layout ("Tidy Up"). Assigns each node a layer by longest path
 /// on the back-edge-removed DAG (cycles are safe), reduces edge crossings with alternating barycenter
-/// sweeps, then packs each layer's column top-to-bottom by height. (Wrapping into stacked rows is added
-/// in a later step.)</summary>
+/// sweeps, packs each layer's column top-to-bottom by height, and wraps long flows into stacked
+/// left-to-right bands sized toward a balanced aspect ratio so they don't run off-screen.</summary>
 public static class AutoLayout
 {
     public const double ColGap = 240;
@@ -106,7 +106,8 @@ public static class AutoLayout
                 for (var l = maxLayer - 1; l >= 0; l--) SortLayer(layers[l], forward);
         }
 
-        // 5) choose band width K (layers per stacked row). Single row for now.
+        // 5) choose band width K (layers per stacked row): short flows stay one row, longer flows
+        //    wrap so the whole block trends toward a balanced (screen-ish) aspect ratio.
         var L = layers.Count;
         var colHeight = layers
             .Select(lyr => lyr.Sum(id => height[id]) + Math.Max(0, lyr.Count - 1) * RowGap)
