@@ -25,6 +25,12 @@ public partial class ConfigFieldViewModel : ObservableObject
     public ConfigFieldType Type => Field.Type;
     public IReadOnlyList<string> Options => Field.Options;
 
+    /// <summary>True while an external-editor session is open for this field. Set by the WPF
+    /// code-behind when a session starts/ends; drives the Edit button's disabled state and the
+    /// inline "Editing in external editor…" affordance.</summary>
+    [ObservableProperty]
+    private bool _isExternallyEditing;
+
     public object? Value
     {
         get => Normalize(_node.Config.TryGetValue(Field.Key, out var v) ? v : Field.DefaultValue);

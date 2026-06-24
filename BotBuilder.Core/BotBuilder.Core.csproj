@@ -2,6 +2,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\AdbCore\AdbCore.csproj" />
+    <ProjectReference Include="..\AdbUi.Theme\AdbUi.Theme.csproj" />
   </ItemGroup>
 
   <ItemGroup>

@@ -10,6 +10,7 @@
         <local:CategoryColorToBrushConverter x:Key="CategoryBrush" />
         <BooleanToVisibilityConverter x:Key="BoolToVis" />
         <local:PathToImageConverter x:Key="PathToImage" />
+        <local:NegateBoolConverter x:Key="NegateBool" />
 
         <DataTemplate x:Key="FieldString">
             <StackPanel Margin="0,4">
@@ -19,9 +20,32 @@
         </DataTemplate>
         <DataTemplate x:Key="FieldMultiline">
             <StackPanel Margin="0,4">
-                <TextBlock Text="{Binding Label}" FontSize="11" Foreground="{DynamicResource SecondaryTextBrush}" />
+                <DockPanel>
+                    <TextBlock Text="{Binding Label}" FontSize="11" Foreground="{DynamicResource SecondaryTextBrush}"
+                               VerticalAlignment="Center" />
+                    <Button DockPanel.Dock="Right" Content="Edit" Margin="4,0,0,0" Padding="6,0"
+                            Click="EditScriptField_Click"
+                            IsEnabled="{Binding IsExternallyEditing, Converter={StaticResource NegateBool}}"
+                            AutomationProperties.Name="Open in external editor"
+                            ToolTip="Open this script in the external editor configured in Settings" />
+                </DockPanel>
                 <TextBox Text="{Binding Value, UpdateSourceTrigger=PropertyChanged}"
                          AcceptsReturn="True" TextWrapping="Wrap" MinHeight="48" VerticalScrollBarVisibility="Auto" />
+                <!-- Inline "editing…" affordance — visible only while an external session is active -->
+                <Border Visibility="{Binding IsExternallyEditing, Converter={StaticResource BoolToVis}}"
+                        Background="{DynamicResource SurfaceBackgroundBrush}"
+                        BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"
+                        CornerRadius="3" Padding="6,4" Margin="0,4,0,0">
+                    <DockPanel>
+                        <Button DockPanel.Dock="Right" Content="Done" Margin="8,0,0,0" Padding="6,0"
+                                Click="DoneEditScriptField_Click"
+                                AutomationProperties.Name="Done editing in external editor"
+                                ToolTip="Close the external-editor session and keep changes" />
+                        <TextBlock Text="Editing in external editor…"
+                                   Foreground="{DynamicResource SecondaryTextBrush}"
+                                   FontStyle="Italic" VerticalAlignment="Center" />
+                    </DockPanel>
+                </Border>
             </StackPanel>
         </DataTemplate>
         <DataTemplate x:Key="FieldNumber">
@@ -110,6 +134,8 @@
                 <Separator />
                 <MenuItem Header="_Fit to Window" Click="FitToWindow_Click" InputGestureText="Ctrl+Shift+0" />
                 <MenuItem Header="Reset _Zoom" Click="ResetZoom_Click" InputGestureText="Ctrl+0" />
+                <Separator />
+                <MenuItem Header="_Settings…" Click="Settings_Click" />
             </MenuItem>
         </Menu>
 

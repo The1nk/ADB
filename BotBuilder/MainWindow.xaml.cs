@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
@@ -9,9 +10,12 @@ using AdbCore.Actions.BuiltIn;
 using AdbCore.Execution;
 using BotBuilder.Core;
 using BotBuilder.Core.Connections;
+using BotBuilder.Core.ExternalEdit;
 using BotBuilder.Core.NestedBots;
 using BotBuilder.Core.Palette;
 using BotBuilder.Core.Properties;
+using BotBuilder.Core.Settings;
+using BotBuilder.ExternalEdit;
 using Microsoft.Win32;
 
 namespace BotBuilder;
@@ -985,5 +989,120 @@ public partial class MainWindow : Window
     {
         var entry = _editor.Properties.NewNestedBot();
         _nestedEditors!.OpenOrFocus(entry.Id);
+    }
+
+    // -------------------------------------------------------------------------
+    // Settings
+    // -------------------------------------------------------------------------
+
+    private void Settings_Click(object sender, RoutedEventArgs e)
+    {
+        var vm = new SettingsViewModel(((App)Application.Current).Settings);
+        var dialog = new SettingsDialog(vm) { Owner = this };
+        dialog.ShowDialog();
+        // vm.Save() is called inside SettingsDialog on OK. No action needed on Cancel.
+    }
+
+    // -------------------------------------------------------------------------
+    // External editor session management
+    // -------------------------------------------------------------------------
+
+    // At most one active session per window at a time. We keep it as a pair so we can
+    // call Done() on the session and clear IsExternallyEditing on the field.
+    private ExternalEditSession? _activeEditSession;
+    private ConfigFieldViewModel? _activeEditField;
+
+    private void EditScriptField_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not FrameworkElement { DataContext: ConfigFieldViewModel field })
+        {
+            return;
+        }
+
+        // End any existing session first (e.g. user opened another editor while one was running).
+        EndActiveSession();
+
+        var command = ((App)Application.Current).Settings.Load().ExternalEditorCommand;
+        var tempBase = Path.Combine(Path.GetTempPath(), "ADB", "LuaEdit");
+        var sessionId = Guid.NewGuid().ToString("N");
+
+        var session = new ExternalEditSession(
+            command,
+            tempBase,
+            sessionId,
+            new RealEditTempFile(),
+            new RealEditorProcessLauncher(),
+            new RealEditFileWatcher());
+
+        var initialText = field.Value as string ?? string.Empty;
+        if (!session.TryStart(initialText, out var error))
+        {
+            session.Dispose();
+            MessageBox.Show(
+                error,
+                "External editor",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+            return;
+        }
+
+        _activeEditSession = session;
+        _activeEditField = field;
+        field.IsExternallyEditing = true;
+
+        session.TextChanged += OnSessionTextChanged;
+        session.Stopped += OnSessionStopped;
+    }
+
+    private void DoneEditScriptField_Click(object sender, RoutedEventArgs e)
+    {
+        _activeEditSession?.Done();
+        // OnSessionStopped handles cleanup.
+    }
+
+    private void OnSessionTextChanged(object? sender, string newText)
+    {
+        // File-system events fire on a background thread; marshal to the UI dispatcher.
+        Dispatcher.Invoke(() =>
+        {
+            if (_activeEditField is not null)
+            {
+                _activeEditField.Value = newText;
+            }
+        });
+    }
+
+    private void OnSessionStopped(object? sender, ExternalEditStoppedArgs args)
+    {
+        Dispatcher.Invoke(() =>
+        {
+            if (_activeEditField is not null)
+            {
+                _activeEditField.Value = args.FinalText;
+                _activeEditField.IsExternallyEditing = false;
+                _activeEditField = null;
+            }
+
+            if (_activeEditSession is { } s)
+            {
+                s.TextChanged -= OnSessionTextChanged;
+                s.Stopped -= OnSessionStopped;
+                _activeEditSession = null;
+            }
+        });
+    }
+
+    private void EndActiveSession()
+    {
+        _activeEditSession?.Done();
+        // OnSessionStopped will run synchronously via Dispatcher.Invoke if already on the UI thread,
+        // but Done() → Stopped fires on a background thread, so we also clear eagerly here to avoid
+        // a window between Done() and the dispatcher callback.
+    }
+
+    protected override void OnClosed(EventArgs e)
+    {
+        EndActiveSession();
+        base.OnClosed(e);
     }
 }
