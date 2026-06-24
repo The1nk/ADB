@@ -187,8 +187,8 @@ public partial class BotEditorViewModel : ObservableObject
     {
         if (Connections.Count == 0) return;
 
-        double leftX = Nodes.Count == 0 ? 0 : Nodes.Min(n => n.X);
-        double rightX = Nodes.Count == 0 ? 0 : Nodes.Max(n => n.X + NodeLayout.CardWidth);
+        double leftX = Nodes.Min(n => n.X);
+        double rightX = Nodes.Max(n => n.X + NodeLayout.CardWidth);
 
         var inputs = Connections.Select(c =>
         {

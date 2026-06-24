@@ -1,4 +1,6 @@
+using System.Globalization;
 using System.Linq;
+using System.Text.RegularExpressions;
 using AdbCore.Actions;
 using AdbCore.Actions.BuiltIn;
 using AdbCore.Execution;
@@ -27,7 +29,8 @@ public class BackRouteRoutingTests
     public void RerouteBackEdges_LanesBackwardConnectionsOnly()
     {
         // Build an editor with two nodes wired forward, then position the target to the LEFT of the
-        // source so the connection becomes a back-route; reroute; assert it switched to an orthogonal path.
+        // source so the connection becomes a back-route; reroute; assert it switched to a LANED
+        // orthogonal route (distinct from a plain back-route) routed out to its right corridor.
         var editor = NewEditor();
         var a = editor.AddNode("control.start", 500, 500);
         var b = editor.AddNode("data.log", 30, 200);
@@ -40,7 +43,20 @@ public class BackRouteRoutingTests
         editor.RerouteBackEdges();
 
         var path = editor.Connections[0].PathData;
-        Assert.Contains(" L ", path);          // laned orthogonal route
+        Assert.Contains(" L ", path);          // orthogonal route
         Assert.DoesNotContain(" C ", path);
+
+        // A LANED back-route (BuildLanedBackRoute) emits 7 `L` segments; a plain unlaned back-route
+        // (BuildBackRoute) emits 5. Asserting 7 proves SetLane actually applied a lane (not a no-op).
+        Assert.Equal(7, path.Split(" L ").Length - 1);
+
+        // And the lane's right corridor must route out PAST the rightmost node edge — only a laned
+        // route does this. Parse every "x,y" point and assert the max X exceeds every node's right edge.
+        var rightmostNodeEdge = editor.Nodes.Max(n => n.X + NodeLayout.CardWidth);
+        var maxX = Regex.Matches(path, @"(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)")
+            .Select(m => double.Parse(m.Groups[1].Value, CultureInfo.InvariantCulture))
+            .Max();
+        Assert.True(maxX > rightmostNodeEdge,
+            $"laned route should route past the node block (maxX {maxX} > rightmost edge {rightmostNodeEdge})");
     }
 }
