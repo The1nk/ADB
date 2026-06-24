@@ -163,7 +163,9 @@ public partial class BotEditorViewModel : ObservableObject
     {
         if (Nodes.Count == 0) return;
         var nodes = Nodes.Select(n => (n.Id, n.Height)).ToList();
-        var edges = Connections.Select(c => (c.Source.Id, c.Target.Id)).ToList();
+        var edges = Connections
+            .Select(c => (c.Source.Id, c.Target.Id, c.SourcePort.AnchorOffset.Y, c.TargetPort.AnchorOffset.Y))
+            .ToList();
         var positions = BotBuilder.Core.Layout.AutoLayout.Arrange(nodes, edges);
 
         var moves = new List<(NodeViewModel Node, double OldX, double OldY)>();

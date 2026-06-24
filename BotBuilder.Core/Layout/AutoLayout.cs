@@ -17,9 +17,18 @@ public static class AutoLayout
     private const double TargetAspect = 1.6;                 // desired width:height of the whole block
     private const int NoWrapMaxLayers = 4;                   // flows this short or shorter never wrap
 
+    /// <summary>Back-compat overload: edges without port positions (port Y defaults to 0, so ties fall
+    /// back to input order exactly as before).</summary>
     public static IReadOnlyDictionary<Guid, (double X, double Y)> Arrange(
         IReadOnlyList<(Guid Id, double Height)> nodes,
         IReadOnlyList<(Guid Source, Guid Target)> edges)
+        => Arrange(nodes, edges.Select(e => (e.Source, e.Target, 0.0, 0.0)).ToList());
+
+    /// <summary>Port-aware layout: each edge carries the source/target port Y (relative to the card top),
+    /// so siblings fed from a single parent are ordered by feeding-port height (prevents crossed outputs).</summary>
+    public static IReadOnlyDictionary<Guid, (double X, double Y)> Arrange(
+        IReadOnlyList<(Guid Id, double Height)> nodes,
+        IReadOnlyList<(Guid Source, Guid Target, double SourcePortY, double TargetPortY)> edges)
     {
         var result = new Dictionary<Guid, (double X, double Y)>();
         if (nodes.Count == 0) return result;
@@ -30,23 +39,23 @@ public static class AutoLayout
         var order = new Dictionary<Guid, int>();           // stable input order
         for (var i = 0; i < ids.Count; i++) order[ids[i]] = i;
 
-        // adjacency over edges whose endpoints are both real nodes
-        var adj = ids.ToDictionary(id => id, _ => new List<Guid>());
-        foreach (var (s, t) in edges)
-            if (idSet.Contains(s) && idSet.Contains(t) && s != t) adj[s].Add(t);
+        // adjacency over edges whose endpoints are both real nodes, carrying port Y for ordering
+        var adj = ids.ToDictionary(id => id, _ => new List<(Guid Node, double SrcY, double TgtY)>());
+        foreach (var (s, t, sy, ty) in edges)
+            if (idSet.Contains(s) && idSet.Contains(t) && s != t) adj[s].Add((t, sy, ty));
 
         // 1) cycle removal: DFS, drop edges that point to a node on the current stack (back-edges)
-        var forward = ids.ToDictionary(id => id, _ => new List<Guid>());
+        var forward = ids.ToDictionary(id => id, _ => new List<(Guid Node, double SrcY, double TgtY)>());
         var state = new Dictionary<Guid, int>();           // 0=unvisited,1=on-stack,2=done
         foreach (var id in ids) state[id] = 0;
         void Dfs(Guid u)
         {
             state[u] = 1;
-            foreach (var v in adj[u])
+            foreach (var e in adj[u])
             {
-                if (state[v] == 1) continue;               // back-edge -> skip for layering
-                forward[u].Add(v);
-                if (state[v] == 0) Dfs(v);
+                if (state[e.Node] == 1) continue;          // back-edge -> skip for layering
+                forward[u].Add(e);
+                if (state[e.Node] == 0) Dfs(e.Node);
             }
             state[u] = 2;
         }
@@ -54,16 +63,16 @@ public static class AutoLayout
 
         // 2) longest-path layering on the forward DAG (Kahn)
         var indeg = ids.ToDictionary(id => id, _ => 0);
-        foreach (var u in ids) foreach (var v in forward[u]) indeg[v]++;
+        foreach (var u in ids) foreach (var e in forward[u]) indeg[e.Node]++;
         var layer = ids.ToDictionary(id => id, _ => 0);
         var queue = new Queue<Guid>(ids.Where(id => indeg[id] == 0).OrderBy(i => order[i]));
         while (queue.Count > 0)
         {
             var u = queue.Dequeue();
-            foreach (var v in forward[u])
+            foreach (var e in forward[u])
             {
-                if (layer[v] < layer[u] + 1) layer[v] = layer[u] + 1;
-                if (--indeg[v] == 0) queue.Enqueue(v);
+                if (layer[e.Node] < layer[u] + 1) layer[e.Node] = layer[u] + 1;
+                if (--indeg[e.Node] == 0) queue.Enqueue(e.Node);
             }
         }
 
@@ -73,26 +82,36 @@ public static class AutoLayout
         for (var l = 0; l <= maxLayer; l++)
             layers.Add(ids.Where(id => layer[id] == l).OrderBy(i => order[i]).ToList());
 
-        // predecessors over the forward DAG (for up-sweeps)
-        var preds = ids.ToDictionary(id => id, _ => new List<Guid>());
-        foreach (var u in ids) foreach (var v in forward[u]) preds[v].Add(u);
+        // predecessors over the forward DAG (for up-sweeps), carrying the edge's port Ys
+        var preds = ids.ToDictionary(id => id, _ => new List<(Guid Node, double SrcY, double TgtY)>());
+        foreach (var u in ids) foreach (var e in forward[u]) preds[e.Node].Add((u, e.SrcY, e.TgtY));
 
         var posInLayer = new Dictionary<Guid, int>();
         foreach (var lyr in layers) for (var i = 0; i < lyr.Count; i++) posInLayer[lyr[i]] = i;
 
-        // 4) barycenter crossing reduction: alternate down-sweeps (order by predecessor positions)
-        //    and up-sweeps (order by successor positions). Nodes with no neighbors keep their index
-        //    (stable); ties break by original input order so the result is deterministic.
-        void SortLayer(List<Guid> lyr, IReadOnlyDictionary<Guid, List<Guid>> neighbors)
+        // 4) barycenter crossing reduction: alternate down-sweeps (order layer by predecessor positions)
+        //    and up-sweeps (order by successor positions). Primary key = avg neighbor index; ties break by
+        //    the average feeding-port Y (so two children of one parent sort by which output port feeds
+        //    them — prevents crossed outputs); final tie-break = original input order (determinism).
+        //    `down` selects which port end matters: when ordering a layer by its PREDECESSORS we use the
+        //    SOURCE port Y (down-sweep, neighbor = parent); by its SUCCESSORS we use the TARGET port Y.
+        void SortLayer(List<Guid> lyr, IReadOnlyDictionary<Guid, List<(Guid Node, double SrcY, double TgtY)>> neighbors, bool down)
         {
             double Bary(Guid id)
             {
                 var ns = neighbors[id];
-                return ns.Count == 0 ? posInLayer[id] : ns.Average(n => (double)posInLayer[n]);
+                return ns.Count == 0 ? posInLayer[id] : ns.Average(n => (double)posInLayer[n.Node]);
+            }
+            double PortKey(Guid id)
+            {
+                var ns = neighbors[id];
+                return ns.Count == 0 ? 0.0 : ns.Average(n => down ? n.SrcY : n.TgtY);
             }
             lyr.Sort((x, y) =>
             {
                 var cmp = Bary(x).CompareTo(Bary(y));
+                if (cmp != 0) return cmp;
+                cmp = PortKey(x).CompareTo(PortKey(y));
                 return cmp != 0 ? cmp : order[x].CompareTo(order[y]);
             });
             for (var i = 0; i < lyr.Count; i++) posInLayer[lyr[i]] = i;
@@ -101,9 +120,9 @@ public static class AutoLayout
         for (var pass = 0; pass < BarycenterPasses; pass++)
         {
             if (pass % 2 == 0)
-                for (var l = 1; l <= maxLayer; l++) SortLayer(layers[l], preds);
+                for (var l = 1; l <= maxLayer; l++) SortLayer(layers[l], preds, down: true);
             else
-                for (var l = maxLayer - 1; l >= 0; l--) SortLayer(layers[l], forward);
+                for (var l = maxLayer - 1; l >= 0; l--) SortLayer(layers[l], forward, down: false);
         }
 
         // 5) choose band width K (layers per stacked row): short flows stay one row, longer flows

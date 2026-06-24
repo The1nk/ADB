@@ -123,4 +123,23 @@ public class AutoLayoutTests
     [Fact]
     public void EmptyGraph_EmptyResult()
         => Assert.Empty(AutoLayout.Arrange(Array.Empty<(Guid, double)>(), Array.Empty<(Guid, Guid)>()));
+
+    [Fact]
+    public void PortAware_OrdersSiblingsByFeedingPort()
+    {
+        var br = Guid.NewGuid();
+        var t0 = Guid.NewGuid();   // created first; fed by the LOWER port
+        var t1 = Guid.NewGuid();   // created second; fed by the UPPER port
+        // edges: (source, target, sourcePortY, targetPortY)
+        var pos = AutoLayout.Arrange(
+            new[] { N(br), N(t0), N(t1) },
+            new[]
+            {
+                (br, t0, 60.0, 35.0),   // br's lower output port (Y=60) -> t0
+                (br, t1, 20.0, 35.0),   // br's upper output port (Y=20) -> t1
+            });
+
+        Assert.Equal(pos[t0].X, pos[t1].X);     // same column
+        Assert.True(pos[t1].Y < pos[t0].Y);     // t1 (upper port) placed above t0 -> uncrossed
+    }
 }
