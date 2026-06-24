@@ -4,6 +4,7 @@ using AdbCore.Execution;
 using AdbCore.Models;
 using AdbCore.Screen;
 using AdbCore.Tests.Screen;
+using AdbCore.Tests.Targets;
 using Xunit;
 
 namespace AdbCore.Tests.Actions.BuiltIn;
@@ -13,7 +14,7 @@ public class AssertImageAbsentActionTests
     private static BotExecutionContext WindowContext(Guid id, IntPtr handle)
     {
         var ctx = new BotExecutionContext();
-        ctx.Targets[id] = new ResolvedTarget { Type = BotTargetType.Window, Selector = "hwnd:1", Handle = handle };
+        ctx.Targets[id] = new ResolvedTarget { Type = BotTargetType.Window, Selector = "hwnd:1", Handle = new FakeWindowHandle(handle) };
         return ctx;
     }
 

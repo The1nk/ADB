@@ -4,6 +4,7 @@ using AdbCore.Actions;
 using AdbCore.Actions.BuiltIn;
 using AdbCore.Execution;
 using AdbCore.Models;
+using AdbCore.Tests.Targets;
 using AdbCore.Window;
 using Xunit;
 
@@ -24,7 +25,7 @@ public class ActivateWindowActionTests
     {
         var fake = new FakeActivator();
         var ctx = new BotExecutionContext();
-        ctx.Targets[Guid.NewGuid()] = new ResolvedTarget { Handle = (IntPtr)0x4321 };
+        ctx.Targets[Guid.NewGuid()] = new ResolvedTarget { Handle = new FakeWindowHandle((IntPtr)0x4321) };
         var action = new BotAction();   // no explicit TargetId -> resolves the lone Window-handle target
 
         var r = await new ActivateWindowAction(fake).ExecuteAsync(Exec(action, ctx), default);

@@ -2,6 +2,7 @@ using AdbCore.Actions.BuiltIn;
 using AdbCore.Execution;
 using AdbCore.Input;
 using AdbCore.Models;
+using AdbCore.Tests.Targets;
 using Xunit;
 
 namespace AdbCore.Tests.Actions.BuiltIn;
@@ -57,7 +58,7 @@ public class ClickActionTests
     private static BotExecutionContext WindowContext(Guid targetId, IntPtr handle)
     {
         var ctx = new BotExecutionContext();
-        ctx.Targets[targetId] = new ResolvedTarget { Type = BotTargetType.Window, Selector = "hwnd:1", Handle = handle };
+        ctx.Targets[targetId] = new ResolvedTarget { Type = BotTargetType.Window, Selector = "hwnd:1", Handle = new FakeWindowHandle(handle) };
         return ctx;
     }
 
@@ -127,7 +128,7 @@ public class ClickActionTests
     {
         var senders = new Senders();
         var ctx = new BotExecutionContext();
-        ctx.Targets[Guid.NewGuid()] = new ResolvedTarget { Type = BotTargetType.Window, Selector = "hwnd:1", Handle = (IntPtr)99 };
+        ctx.Targets[Guid.NewGuid()] = new ResolvedTarget { Type = BotTargetType.Window, Selector = "hwnd:1", Handle = new FakeWindowHandle((IntPtr)99) };
 
         var result = await new ClickAction(senders.Resolver()).ExecuteAsync(Exec(ClickNode(null, x: 1, y: 2), ctx), default);
 

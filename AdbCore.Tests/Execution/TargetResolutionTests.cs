@@ -3,8 +3,10 @@ using AdbCore.Android;
 using AdbCore.Browser;
 using AdbCore.Execution;
 using AdbCore.Models;
+using AdbCore.Targets;
 using AdbCore.Tests.Actions.BuiltIn.Android;
 using AdbCore.Tests.Actions.BuiltIn.Browser;
+using AdbCore.Tests.Targets;
 using Xunit;
 
 namespace AdbCore.Tests.Execution;
@@ -23,7 +25,7 @@ public class TargetResolutionTests
         var androidId = Guid.NewGuid();
         var windowId = Guid.NewGuid();
         ctx.Targets[androidId] = new ResolvedTarget { Handle = NewAndroidDevice() };
-        ctx.Targets[windowId] = new ResolvedTarget { Handle = (IntPtr)0x1234 };
+        ctx.Targets[windowId] = new ResolvedTarget { Handle = NewWindowHandle((IntPtr)0x1234) };
         return (ctx, androidId, windowId);
     }
 
@@ -39,8 +41,8 @@ public class TargetResolutionTests
     public void Unassigned_PicksSingleTargetOfType_Window()
     {
         var (ctx, _, _) = MixedContext();
-        var hwnd = TargetResolution.ResolveHandle<IntPtr>(Make(ctx, null));
-        Assert.Equal((IntPtr)0x1234, hwnd);
+        var wh = TargetResolution.ResolveHandle<IWindowHandle>(Make(ctx, null));
+        Assert.Equal((IntPtr)0x1234, wh?.GetLiveHandle());
     }
 
     [Fact]
@@ -102,8 +104,8 @@ public class TargetResolutionTests
     public void Explicit_RightType_ResolvesWindowTarget()
     {
         var (ctx, _, windowId) = MixedContext();
-        var hwnd = TargetResolution.ResolveHandle<IntPtr>(Make(ctx, windowId));
-        Assert.Equal((IntPtr)0x1234, hwnd);
+        var wh = TargetResolution.ResolveHandle<IWindowHandle>(Make(ctx, windowId));
+        Assert.Equal((IntPtr)0x1234, wh?.GetLiveHandle());
     }
 
     [Fact]
@@ -119,11 +121,12 @@ public class TargetResolutionTests
     public void Unassigned_TwoOfType_Window_IsAmbiguous_ReturnsDefault()
     {
         var ctx = new BotExecutionContext();
-        ctx.Targets[System.Guid.NewGuid()] = new ResolvedTarget { Handle = (IntPtr)0x10 };
-        ctx.Targets[System.Guid.NewGuid()] = new ResolvedTarget { Handle = (IntPtr)0x20 };
-        Assert.Equal(IntPtr.Zero, TargetResolution.ResolveHandle<IntPtr>(Make(ctx, null)));
+        ctx.Targets[System.Guid.NewGuid()] = new ResolvedTarget { Handle = NewWindowHandle((IntPtr)0x10) };
+        ctx.Targets[System.Guid.NewGuid()] = new ResolvedTarget { Handle = NewWindowHandle((IntPtr)0x20) };
+        Assert.Null(TargetResolution.ResolveHandle<IWindowHandle>(Make(ctx, null)));
     }
 
     private static IAndroidDevice NewAndroidDevice() => new FakeAndroidDevice();
     private static IBrowserPage NewBrowserPage() => new FakeBrowserPage();
+    private static IWindowHandle NewWindowHandle(IntPtr hwnd) => new FakeWindowHandle(hwnd);
 }

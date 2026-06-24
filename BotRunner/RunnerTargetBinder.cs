@@ -43,7 +43,7 @@ public sealed class RunnerTargetBinder : ITargetBinder
         return resolved;
     }
 
-    private IntPtr BindWindow(string selector)
+    private IWindowHandle BindWindow(string selector)
     {
         IntPtr handle;
         try
@@ -60,7 +60,7 @@ public sealed class RunnerTargetBinder : ITargetBinder
             throw new InvalidOperationException($"Could not resolve Window target selector '{selector}' to a window.");
         }
 
-        return handle;
+        return new Win32WindowHandle(_windowResolver, selector, handle);
     }
 
     private IAndroidDevice BindAndroid(string selector)

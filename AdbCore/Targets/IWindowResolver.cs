@@ -5,4 +5,8 @@ namespace AdbCore.Targets;
 public interface IWindowResolver
 {
     IntPtr Resolve(string selector);
+
+    /// <summary>Returns <see langword="true"/> when <paramref name="handle"/> is a valid, existing window;
+    /// <see langword="false"/> when it is zero or the window has been destroyed.</summary>
+    bool IsAlive(IntPtr handle);
 }

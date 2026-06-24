@@ -2,6 +2,7 @@ using System.Drawing;
 using AdbCore.Execution;
 using AdbCore.Models;
 using AdbCore.Screen;
+using AdbCore.Targets;
 
 namespace AdbCore.Actions.BuiltIn;
 
@@ -64,9 +65,14 @@ public abstract class ScreenActionBase : IActionDefinition, IActionExecutor
     protected static ConfigField ConfidenceField() => TemplateMatchCore.ConfidenceField();
     protected static ConfigField ResultVarField() => TemplateMatchCore.ResultVarField();
 
-    /// <summary>Resolves the action's target HWND: the explicit TargetId, or the sole target if unset.</summary>
+    /// <summary>Resolves the action's target HWND: the explicit TargetId, or the sole target if unset.
+    /// Returns null when no window target is bound. Calls <see cref="IWindowHandle.GetLiveHandle"/> so a
+    /// stale HWND is refreshed automatically before capture.</summary>
     protected static IntPtr? ResolveWindow(ActionExecutionContext context)
-        => TargetResolution.ResolveHandle<IntPtr>(context);
+    {
+        var wh = TargetResolution.ResolveHandle<IWindowHandle>(context);
+        return wh?.GetLiveHandle();
+    }
 
     private ScreenCaptureMethod CaptureMethodOf(ActionExecutionContext context)
         => string.Equals(

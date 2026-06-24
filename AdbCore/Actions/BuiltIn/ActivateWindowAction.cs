@@ -1,4 +1,5 @@
 using AdbCore.Execution;
+using AdbCore.Targets;
 using AdbCore.Window;
 
 namespace AdbCore.Actions.BuiltIn;
@@ -33,12 +34,13 @@ public sealed class ActivateWindowAction : IActionDefinition, IActionExecutor
     public Task<ActionResult> ExecuteAsync(ActionExecutionContext context, CancellationToken ct)
     {
         ct.ThrowIfCancellationRequested();
-        var handle = TargetResolution.ResolveHandle<IntPtr>(context);
-        if (handle == IntPtr.Zero)
+        var wh = TargetResolution.ResolveHandle<IWindowHandle>(context);
+        if (wh is null)
         {
             return Task.FromResult(ActionResult.Fail("Activate Window requires a window target."));
         }
 
+        var handle = wh.GetLiveHandle();
         _activator.Activate(handle);
         return Task.FromResult(ActionResult.Ok(SuccessPort));
     }

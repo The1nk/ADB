@@ -13,6 +13,7 @@ public class RunnerTargetBinderTests
         private readonly IntPtr _handle;
         public FakeWindowResolver(IntPtr handle) => _handle = handle;
         public IntPtr Resolve(string selector) => _handle;
+        public bool IsAlive(IntPtr handle) => handle != IntPtr.Zero;
     }
 
     [Fact]
@@ -24,7 +25,8 @@ public class RunnerTargetBinderTests
         var resolved = await binder.BindAsync(target, CancellationToken.None);
 
         Assert.Equal(BotTargetType.Window, resolved.Type);
-        Assert.Equal(new IntPtr(0x1234), resolved.Handle);
+        var wh = Assert.IsAssignableFrom<AdbCore.Targets.IWindowHandle>(resolved.Handle);
+        Assert.Equal(new IntPtr(0x1234), wh.GetLiveHandle());
     }
 
     [Fact]
