@@ -41,4 +41,26 @@ public class ConnectionGeometryTests
         Assert.Equal(80, c1.X);          // vertical tangent (X unchanged)
         Assert.True(c1.Y > 70);          // pulls down
     }
+
+    [Fact]
+    public void BackwardEdge_RoutesOrthogonally()
+    {
+        // Target is left of (and below) the source: a wrap-return / loop-back wire.
+        var path = ConnectionGeometry.BuildPath(
+            new CanvasPoint(400, 100), PortEdge.Right, new CanvasPoint(40, 300), PortEdge.Left);
+
+        Assert.Contains(" L ", path);          // orthogonal line segments, not a single curve
+        Assert.DoesNotContain(" C ", path);    // no bezier for back-routed wires
+        Assert.StartsWith("M 400,100 ", path);
+    }
+
+    [Fact]
+    public void ForwardEdge_StillUsesBezier()
+    {
+        var path = ConnectionGeometry.BuildPath(
+            new CanvasPoint(40, 100), PortEdge.Right, new CanvasPoint(400, 100), PortEdge.Left);
+
+        Assert.Contains(" C ", path);
+        Assert.DoesNotContain(" L ", path);
+    }
 }
