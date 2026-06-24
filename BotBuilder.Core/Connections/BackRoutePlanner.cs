@@ -10,7 +10,8 @@ public readonly record struct BackRoutePlan(double RightCornerX, double LeftCorn
 
 /// <summary>Assigns each backward connection (target left of source) its own nested lane: a right-side
 /// corridor, a left-side corridor, and a gutter row, so return/loop wires never lie on top of each other.
-/// Pure and deterministic — narrower spans nest inside wider ones.</summary>
+/// Pure and deterministic — narrower spans nest inside wider ones, and each gutter rides the clear gap
+/// between node rows nearest its midpoint rather than cutting across a row.</summary>
 public static class BackRoutePlanner
 {
     public const double Margin = 40;       // gap from the node block to the first corridor
@@ -18,7 +19,8 @@ public static class BackRoutePlanner
     public const double GutterStep = 16;   // vertical spacing between gutter rows
 
     public static IReadOnlyDictionary<Guid, BackRoutePlan> Plan(
-        IReadOnlyList<BackRouteInput> routes, double nodesLeftX, double nodesRightX)
+        IReadOnlyList<BackRouteInput> routes, double nodesLeftX, double nodesRightX,
+        IReadOnlyList<(double Top, double Bottom)> clearBands)
     {
         var result = new Dictionary<Guid, BackRoutePlan>();
 
@@ -31,16 +33,49 @@ public static class BackRoutePlanner
             .ThenBy(r => r.Id)
             .ToList();
 
+        var perBand = new Dictionary<int, int>();   // how many routes already placed in each clear band
         for (var i = 0; i < back.Count; i++)
         {
             var r = back[i];
             var rightX = nodesRightX + Margin + i * LaneGap;
             var leftX = nodesLeftX - Margin - i * LaneGap;
-            // base gutter midway between the two rows, then a per-lane step so equal-row pairs separate.
-            var gutterY = (r.StartY + r.EndY) / 2 + i * GutterStep;
+
+            // Route the horizontal run through the clear gap between node rows nearest the route's
+            // midpoint, so it never cuts through a row; stagger routes sharing a gap.
+            var desiredY = (r.StartY + r.EndY) / 2;
+            double gutterY;
+            var bandIdx = NearestBand(clearBands, desiredY);
+            if (bandIdx < 0)
+            {
+                gutterY = desiredY;   // no band info -> fall back to the midpoint
+            }
+            else
+            {
+                var band = clearBands[bandIdx];
+                var local = perBand.TryGetValue(bandIdx, out var c) ? c : 0;
+                perBand[bandIdx] = local + 1;
+                var center = (band.Top + band.Bottom) / 2;
+                gutterY = Math.Clamp(center + local * GutterStep, band.Top + 2, band.Bottom - 2);
+            }
             result[r.Id] = new BackRoutePlan(rightX, leftX, gutterY);
         }
 
         return result;
+    }
+
+    /// <summary>Index of the clear band nearest <paramref name="y"/> (0 if y is inside a band), or -1 if
+    /// none were supplied. Bands are disjoint, so at most one contains y.</summary>
+    private static int NearestBand(IReadOnlyList<(double Top, double Bottom)> bands, double y)
+    {
+        var best = -1;
+        var bestDist = double.MaxValue;
+        for (var i = 0; i < bands.Count; i++)
+        {
+            var dist = y < bands[i].Top ? bands[i].Top - y
+                     : y > bands[i].Bottom ? y - bands[i].Bottom
+                     : 0;
+            if (dist < bestDist) { bestDist = dist; best = i; }
+        }
+        return best;
     }
 }

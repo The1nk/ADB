@@ -58,5 +58,22 @@ public class BackRouteRoutingTests
             .Max();
         Assert.True(maxX > rightmostNodeEdge,
             $"laned route should route past the node block (maxX {maxX} > rightmost edge {rightmostNodeEdge})");
+
+        // The horizontal run rides the gutter Y. With band-aware planning that Y must sit in a clear gap
+        // between rows, never inside a node's vertical extent. The gutter is the Y of the longest
+        // horizontal segment (the across-run between the two corridors): take consecutive point pairs and
+        // pick the Y of the pair with the largest horizontal span, then assert it clears every node row.
+        var pts = Regex.Matches(path, @"(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)")
+            .Select(m => (X: double.Parse(m.Groups[1].Value, CultureInfo.InvariantCulture),
+                          Y: double.Parse(m.Groups[2].Value, CultureInfo.InvariantCulture)))
+            .ToList();
+        var gutterY = Enumerable.Range(0, pts.Count - 1)
+            .Where(i => pts[i].Y == pts[i + 1].Y)                 // horizontal segments only
+            .OrderByDescending(i => System.Math.Abs(pts[i + 1].X - pts[i].X))
+            .Select(i => pts[i].Y)
+            .First();
+        Assert.All(editor.Nodes, n =>
+            Assert.False(gutterY > n.Y && gutterY < n.Y + n.Height,
+                $"gutter Y {gutterY} cuts through node at [{n.Y}, {n.Y + n.Height}]"));
     }
 }

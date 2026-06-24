@@ -16,7 +16,8 @@ public class BackRoutePlannerTests
         var fwd = Guid.NewGuid(); var back = Guid.NewGuid();
         var plans = BackRoutePlanner.Plan(
             new[] { In(fwd, 0, 0, 100, 0), In(back, 100, 0, 0, 50) },
-            nodesLeftX: 0, nodesRightX: 260);
+            nodesLeftX: 0, nodesRightX: 260,
+            clearBands: new (double, double)[] { (-100, 200) });
 
         Assert.False(plans.ContainsKey(fwd));   // forward edge: not a back-route
         Assert.True(plans.ContainsKey(back));   // backward edge: laned
@@ -33,7 +34,9 @@ public class BackRoutePlannerTests
                 In(b, 500, 110, 40, 310),
                 In(c, 500, 120, 40, 320),
             },
-            nodesLeftX: 40, nodesRightX: 660);
+            nodesLeftX: 40, nodesRightX: 660,
+            // one clear band wide enough to hold all three staggered gutters distinctly
+            clearBands: new (double, double)[] { (150, 350) });
 
         var rightXs = plans.Values.Select(p => p.RightCornerX).ToList();
         var leftXs  = plans.Values.Select(p => p.LeftCornerX).ToList();
@@ -56,10 +59,29 @@ public class BackRoutePlannerTests
                 In(narrow, 300, 100, 200, 300),   // span 100
                 In(wide,   500, 100, 40, 300),    // span 460
             },
-            nodesLeftX: 40, nodesRightX: 660);
+            nodesLeftX: 40, nodesRightX: 660,
+            clearBands: new (double, double)[] { (150, 350) });
 
         // Wider span routes farther out on both sides (outer lane).
         Assert.True(plans[wide].RightCornerX > plans[narrow].RightCornerX);
         Assert.True(plans[wide].LeftCornerX  < plans[narrow].LeftCornerX);
+    }
+
+    [Fact]
+    public void GutterSnapsIntoAClearBand_NotThroughARow()
+    {
+        // Raw midpoint (200) falls inside an occupied row (180..260); the clear bands sit on either
+        // side of that row, so the gutter must snap into one of them rather than cut through the row.
+        var id = Guid.NewGuid();
+        var clearBands = new (double, double)[] { (140, 180), (260, 300) };
+        var plans = BackRoutePlanner.Plan(
+            new[] { In(id, 500, 100, 40, 300) },   // midpoint = 200
+            nodesLeftX: 40, nodesRightX: 660,
+            clearBands: clearBands);
+
+        var gutterY = plans[id].GutterY;
+        var inAClearBand = clearBands.Any(b => gutterY >= b.Item1 && gutterY <= b.Item2);
+        Assert.True(inAClearBand, $"gutter {gutterY} should lie within a clear band");
+        Assert.False(gutterY > 180 && gutterY < 260, $"gutter {gutterY} must not cut through the occupied row");
     }
 }

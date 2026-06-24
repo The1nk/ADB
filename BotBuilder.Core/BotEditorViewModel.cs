@@ -197,10 +197,38 @@ public partial class BotEditorViewModel : ObservableObject
             return new BackRouteInput(c.Id, s.Item1, s.Item2, t.Item1, t.Item2);
         }).ToList();
 
-        var plans = BackRoutePlanner.Plan(inputs, leftX, rightX);
+        var plans = BackRoutePlanner.Plan(inputs, leftX, rightX, ComputeClearBands());
 
         foreach (var c in Connections)
             c.SetLane(plans.TryGetValue(c.Id, out var p) ? p : (BackRoutePlan?)null);
+    }
+
+    /// <summary>The clear horizontal strips between node rows (plus one above the first row and below the
+    /// last), so back-route horizontal runs can be placed in a gap rather than across a row.</summary>
+    private IReadOnlyList<(double Top, double Bottom)> ComputeClearBands()
+    {
+        const double pad = 80;   // height of the synthetic gap above the first / below the last row
+        var intervals = Nodes.Select(n => (Top: n.Y, Bottom: n.Y + n.Height)).OrderBy(t => t.Top).ToList();
+        if (intervals.Count == 0) return System.Array.Empty<(double, double)>();
+
+        // merge overlapping/touching node Y-extents into occupied row bands
+        var occupied = new List<(double Top, double Bottom)>();
+        foreach (var iv in intervals)
+        {
+            if (occupied.Count > 0 && iv.Top <= occupied[^1].Bottom + 1)
+                occupied[^1] = (occupied[^1].Top, System.Math.Max(occupied[^1].Bottom, iv.Bottom));
+            else
+                occupied.Add(iv);
+        }
+
+        var gaps = new List<(double Top, double Bottom)>
+        {
+            (occupied[0].Top - pad, occupied[0].Top),                       // above the first row
+        };
+        for (var i = 0; i + 1 < occupied.Count; i++)
+            gaps.Add((occupied[i].Bottom, occupied[i + 1].Top));            // between rows
+        gaps.Add((occupied[^1].Bottom, occupied[^1].Bottom + pad));         // below the last row
+        return gaps;
     }
 
     public ConnectionError Connect(NodeViewModel source, PortViewModel sourcePort, NodeViewModel target, PortViewModel targetPort)
