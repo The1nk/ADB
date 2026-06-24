@@ -1,3 +1,5 @@
+using BotBuilder.Core;
+
 namespace BotBuilder.Core.Layout;
 
 /// <summary>Layered left-to-right graph layout ("Tidy Up"). Assigns each node a layer by longest path
@@ -13,6 +15,9 @@ public static class AutoLayout
     public const double OriginY = 40;
 
     private const int BarycenterPasses = 4;
+    private const double NodeWidth = NodeLayout.CardWidth;   // 160; for aspect estimation only
+    private const double TargetAspect = 1.6;                 // desired width:height of the whole block
+    private const int NoWrapMaxLayers = 4;                   // flows this short or shorter never wrap
 
     public static IReadOnlyDictionary<Guid, (double X, double Y)> Arrange(
         IReadOnlyList<(Guid Id, double Height)> nodes,
@@ -108,7 +113,7 @@ public static class AutoLayout
         var colHeight = layers
             .Select(lyr => lyr.Sum(id => height[id]) + Math.Max(0, lyr.Count - 1) * RowGap)
             .ToList();
-        var k = L;
+        var k = L <= NoWrapMaxLayers ? L : ChooseBandWidth(L, colHeight);
 
         // 6) position: row-reset bands. Band b holds layers [b*k, b*k+k); each band restarts at OriginX,
         //    stacked below the previous band by that band's tallest column + BandGap.
@@ -136,5 +141,31 @@ public static class AutoLayout
             }
         }
         return result;
+    }
+
+    /// <summary>Brute-forces the band width (1..layerCount) whose resulting block aspect (width:height)
+    /// is closest to <see cref="TargetAspect"/>. layerCount is small (tens) so the O(n^2) scan is cheap.</summary>
+    private static int ChooseBandWidth(int layerCount, IReadOnlyList<double> colHeight)
+    {
+        var best = layerCount;
+        var bestDelta = double.MaxValue;
+        for (var k = 1; k <= layerCount; k++)
+        {
+            var bands = (int)Math.Ceiling(layerCount / (double)k);
+            var width = (k - 1) * ColGap + NodeWidth;
+            var totalHeight = 0.0;
+            for (var b = 0; b < bands; b++)
+            {
+                var bandHeight = 0.0;
+                for (var l = b * k; l < Math.Min((b + 1) * k, layerCount); l++)
+                    bandHeight = Math.Max(bandHeight, colHeight[l]);
+                totalHeight += bandHeight;
+            }
+            totalHeight += Math.Max(0, bands - 1) * BandGap;
+            var aspect = width / totalHeight;
+            var delta = Math.Abs(aspect - TargetAspect);
+            if (delta < bestDelta) { bestDelta = delta; best = k; }
+        }
+        return best;
     }
 }

@@ -77,6 +77,41 @@ public class AutoLayoutTests
         Assert.True(pos[q].Y < pos[p].Y);                 // reordered so q is above p -> uncrossed
     }
 
+    private static Guid[] LinearChain(int n, out (Guid, Guid)[] edges)
+    {
+        var ids = new Guid[n];
+        for (var i = 0; i < n; i++) ids[i] = Guid.NewGuid();
+        edges = new (Guid, Guid)[n - 1];
+        for (var i = 0; i < n - 1; i++) edges[i] = (ids[i], ids[i + 1]);
+        return ids;
+    }
+
+    [Fact]
+    public void LongChain_WrapsIntoStackedRows()
+    {
+        var ids = LinearChain(12, out var edges);
+        var pos = AutoLayout.Arrange(ids.Select(id => N(id)).ToArray(), edges);
+
+        // Used vertical space: the chain is no longer a single row.
+        Assert.True(pos.Values.Select(p => p.Y).Distinct().Count() > 1);
+        // Row-reset: at least two nodes start a row at the left origin (node 0 and each band start).
+        Assert.True(pos.Values.Count(p => p.X == AutoLayout.OriginX) >= 2);
+        // Narrower than a full single row would have been (11 * ColGap wide).
+        var width = pos.Values.Max(p => p.X) - pos.Values.Min(p => p.X);
+        Assert.True(width < 11 * AutoLayout.ColGap);
+    }
+
+    [Fact]
+    public void ShortChain_DoesNotWrap()
+    {
+        var ids = LinearChain(4, out var edges);
+        var pos = AutoLayout.Arrange(ids.Select(id => N(id)).ToArray(), edges);
+
+        Assert.Single(pos.Values.Select(p => p.Y).Distinct());          // one row
+        for (var i = 0; i < ids.Length - 1; i++)
+            Assert.True(pos[ids[i]].X < pos[ids[i + 1]].X);             // strictly increasing X
+    }
+
     [Fact]
     public void IsolatedNode_AtOriginColumn()
     {
