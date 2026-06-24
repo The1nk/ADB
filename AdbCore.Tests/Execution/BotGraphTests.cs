@@ -1,3 +1,4 @@
+using AdbCore.Actions.BuiltIn;
 using AdbCore.Execution;
 using AdbCore.Models;
 using Xunit;
@@ -27,6 +28,32 @@ public class BotGraphTests
         var graph = new BotGraph(bot);
 
         Assert.Same(a, graph.EntryPoint);
+    }
+
+    [Fact]
+    public void EntryPoint_PrefersStartNode_OverEarlierOrphanRoot()
+    {
+        // An orphan root (no incoming edge) authored BEFORE the Start node must not steal the entry point.
+        var orphan = Node("android.reboot", out _);
+        var start = Node(StartAction.Key, out var startId);
+        var next = Node("input.click", out var nextId);
+        var bot = new Bot();
+        bot.Actions.AddRange(new[] { orphan, start, next }); // orphan first in document order
+        bot.Connections.Add(Edge(startId, "out", nextId));
+
+        Assert.Same(start, new BotGraph(bot).EntryPoint);
+    }
+
+    [Fact]
+    public void EntryPoint_FallsBackToFirstNoIncoming_WhenNoStartNode()
+    {
+        var a = Node("a", out var aId);
+        var b = Node("b", out var bId);
+        var bot = new Bot();
+        bot.Actions.AddRange(new[] { a, b });
+        bot.Connections.Add(Edge(aId, "out", bId));
+
+        Assert.Same(a, new BotGraph(bot).EntryPoint);
     }
 
     [Fact]
