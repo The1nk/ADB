@@ -1026,6 +1026,10 @@ public partial class MainWindow : Window
         var tempBase = Path.Combine(Path.GetTempPath(), "ADB", "LuaEdit");
         var sessionId = Guid.NewGuid().ToString("N");
 
+        // Write the LuaLS scaffold before launching so IntelliSense is available the moment the file
+        // opens. Failure is swallowed — autocomplete is best-effort and must not block editing.
+        EnsureLuaWorkspaceScaffold(tempBase);
+
         var session = new ExternalEditSession(
             command,
             tempBase,
@@ -1098,6 +1102,30 @@ public partial class MainWindow : Window
         // OnSessionStopped will run synchronously via Dispatcher.Invoke if already on the UI thread,
         // but Done() → Stopped fires on a background thread, so we also clear eagerly here to avoid
         // a window between Done() and the dispatcher callback.
+    }
+
+    /// <summary>Writes the LuaLS workspace scaffold files into <paramref name="tempBase"/> so that
+    /// VS Code (with the Lua extension) offers autocomplete for ADB globals when the user opens the
+    /// edit folder. Both files are overwritten each call so they stay current after upgrades. Any I/O
+    /// failure is silently swallowed — IntelliSense is best-effort and must never block editing.</summary>
+    private static void EnsureLuaWorkspaceScaffold(string tempBase)
+    {
+        try
+        {
+            // .luarc.json in the edit base dir
+            var luaRcPath = Path.Combine(tempBase, BotBuilder.Core.ExternalEdit.LuaWorkspaceScaffold.LuaRcJsonRelativePath);
+            File.WriteAllText(luaRcPath, BotBuilder.Core.ExternalEdit.LuaWorkspaceScaffold.LuaRcJson, System.Text.Encoding.UTF8);
+
+            // library/adb.lua beside it
+            var defsRelative = BotBuilder.Core.ExternalEdit.LuaWorkspaceScaffold.DefinitionsRelativePath;
+            var defsPath = Path.Combine(tempBase, defsRelative.Replace('/', Path.DirectorySeparatorChar));
+            Directory.CreateDirectory(Path.GetDirectoryName(defsPath)!);
+            File.WriteAllText(defsPath, BotBuilder.Core.ExternalEdit.LuaWorkspaceScaffold.Definitions, System.Text.Encoding.UTF8);
+        }
+        catch
+        {
+            // Best-effort: scaffold failure must not prevent the editor from opening.
+        }
     }
 
     protected override void OnClosed(EventArgs e)
