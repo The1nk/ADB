@@ -14,13 +14,21 @@ public sealed class ExternalEditSession : IDisposable
 {
     private const int DebounceMs = 200;
 
+    // A launcher that hands off to an already-running instance (e.g. `code` without --wait) returns almost
+    // immediately. An exit within this window is treated as "the launcher delegated", not "the user finished":
+    // the session stays open and Done()/window-close end it. A real editor that holds the file (notepad) exits
+    // well after this, which is a genuine end.
+    private const int MinEditorLifetimeMs = 2000;
+
     private readonly string _command;
     private readonly IEditTempFile _tempFile;
     private readonly IEditorProcessLauncher _launcher;
     private readonly IEditFileWatcher _watcher;
     private readonly string _tempPath;
+    private readonly Func<DateTime> _clock;
 
     private IEditorProcess? _process;
+    private DateTime _launchedAt;
 
     // Lock-free "run once" guard: 0 = not ended, 1 = ended.
     private int _endedFlag;
@@ -47,18 +55,22 @@ public sealed class ExternalEditSession : IDisposable
     /// <param name="tempFile">File I/O abstraction.</param>
     /// <param name="launcher">Process launcher abstraction.</param>
     /// <param name="watcher">File-change watcher abstraction.</param>
+    /// <param name="clock">Time source (injectable for tests); defaults to <see cref="DateTime.UtcNow"/>.
+    /// Used to grace-ignore an immediate process exit from a delegating launcher.</param>
     public ExternalEditSession(
         string command,
         string tempBasePath,
         string sessionId,
         IEditTempFile tempFile,
         IEditorProcessLauncher launcher,
-        IEditFileWatcher watcher)
+        IEditFileWatcher watcher,
+        Func<DateTime>? clock = null)
     {
         _command = command;
         _tempFile = tempFile;
         _launcher = launcher;
         _watcher = watcher;
+        _clock = clock ?? (() => DateTime.UtcNow);
         _tempPath = Path.Combine(tempBasePath, $"{sessionId}.lua");
     }
 
@@ -83,6 +95,7 @@ public sealed class ExternalEditSession : IDisposable
         try
         {
             _process = _launcher.Launch(exe, args);
+            _launchedAt = _clock();
             _process.Exited += OnProcessExited;
         }
         catch (Exception ex)
@@ -114,7 +127,17 @@ public sealed class ExternalEditSession : IDisposable
     // Internals
     // ---------------------------------------------------------------------------
 
-    private void OnProcessExited(object? sender, EventArgs e) => TryEnd(userRequested: false);
+    private void OnProcessExited(object? sender, EventArgs e)
+    {
+        // Ignore an exit inside the grace window — the launcher delegated to a running instance (e.g. plain
+        // `code`) rather than the user closing the editor. Done()/window-close still end the session.
+        if ((_clock() - _launchedAt).TotalMilliseconds < MinEditorLifetimeMs)
+        {
+            return;
+        }
+
+        TryEnd(userRequested: false);
+    }
 
     private void OnFileChanged(object? sender, EventArgs e)
     {

@@ -76,6 +76,13 @@ public class ExternalEditSessionTests
     // Factory
     // ---------------------------------------------------------------------------
 
+    /// <summary>A controllable clock so tests can advance time across the process-exit grace window.</summary>
+    private sealed class FakeClock
+    {
+        public DateTime Now { get; set; } = new DateTime(2020, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        public void Advance(TimeSpan by) => Now += by;
+    }
+
     private static (ExternalEditSession Session, FakeTempFile TempFile, FakeLauncher Launcher, FakeWatcher Watcher)
         Build(string command = "notepad $filename", string tempBase = @"C:\tmp\LuaEdit", string sessionId = "abc")
     {
@@ -84,6 +91,19 @@ public class ExternalEditSessionTests
         var watcher = new FakeWatcher();
         var session = new ExternalEditSession(command, tempBase, sessionId, tf, launcher, watcher);
         return (session, tf, launcher, watcher);
+    }
+
+    /// <summary>Like <see cref="Build"/> but with an injected <see cref="FakeClock"/> so a test can control
+    /// whether a simulated process exit falls inside or outside the grace window.</summary>
+    private static (ExternalEditSession Session, FakeTempFile TempFile, FakeLauncher Launcher, FakeWatcher Watcher, FakeClock Clock)
+        BuildTimed(string command = "notepad $filename", string tempBase = @"C:\tmp\LuaEdit", string sessionId = "abc")
+    {
+        var tf = new FakeTempFile();
+        var launcher = new FakeLauncher();
+        var watcher = new FakeWatcher();
+        var clock = new FakeClock();
+        var session = new ExternalEditSession(command, tempBase, sessionId, tf, launcher, watcher, () => clock.Now);
+        return (session, tf, launcher, watcher, clock);
     }
 
     // ---------------------------------------------------------------------------
@@ -291,30 +311,49 @@ public class ExternalEditSessionTests
     }
 
     [Fact]
-    public void ProcessExit_RaisesStoppedWithFinalText()
+    public void ProcessExit_AfterGraceWindow_RaisesStoppedWithFinalText()
     {
-        var (session, tf, launcher, _) = Build();
+        var (session, tf, launcher, _, clock) = BuildTimed();
         session.TryStart("initial", out _);
         tf.Files[session.TempFilePath] = "editor saved this";
 
         ExternalEditStoppedArgs? args = null;
         session.Stopped += (_, a) => args = a;
+        clock.Advance(TimeSpan.FromSeconds(5)); // editor lived long enough to be a real close
         launcher.Launched!.SimulateExit();
 
         Assert.Equal("editor saved this", args?.FinalText);
     }
 
     [Fact]
-    public void ProcessExit_UserRequestedFlag_IsFalse()
+    public void ProcessExit_AfterGraceWindow_UserRequestedFlag_IsFalse()
     {
-        var (session, _, launcher, _) = Build();
+        var (session, _, launcher, _, clock) = BuildTimed();
         session.TryStart("", out _);
 
         ExternalEditStoppedArgs? args = null;
         session.Stopped += (_, a) => args = a;
+        clock.Advance(TimeSpan.FromSeconds(5));
         launcher.Launched!.SimulateExit();
 
         Assert.False(args?.UserRequested);
+    }
+
+    [Fact]
+    public void ProcessExit_WithinGraceWindow_IsIgnored_AndDoneStillEnds()
+    {
+        // A delegating launcher (e.g. plain `code`) exits immediately; the session must stay open so
+        // live-sync keeps working, and only Done() (or window-close) ends it.
+        var (session, _, launcher, _, _) = BuildTimed();
+        session.TryStart("", out _);
+
+        var count = 0;
+        session.Stopped += (_, _) => count++;
+        launcher.Launched!.SimulateExit(); // immediate — clock not advanced, inside grace window
+        Assert.Equal(0, count);
+
+        session.Done();
+        Assert.Equal(1, count);
     }
 
     [Fact]
@@ -334,11 +373,12 @@ public class ExternalEditSessionTests
     [Fact]
     public void ProcessExitAndDone_StoppedRaisedOnce()
     {
-        var (session, _, launcher, _) = Build();
+        var (session, _, launcher, _, clock) = BuildTimed();
         session.TryStart("", out _);
 
         var count = 0;
         session.Stopped += (_, _) => count++;
+        clock.Advance(TimeSpan.FromSeconds(5)); // real close (outside grace) so the exit ends the session
         launcher.Launched!.SimulateExit();
         session.Done(); // user also clicks Done after the editor already exited
 
