@@ -4,7 +4,8 @@ namespace BotBuilder.Core.Connections;
 public readonly record struct BackRouteInput(Guid Id, double StartX, double StartY, double EndX, double EndY);
 
 /// <summary>The lane a back-route was assigned: the vertical corridor X on each side and the gutter Y for
-/// its horizontal run. Distinct per route so no two back-routes overlap.</summary>
+/// its horizontal run. The corridors are distinct per route (monotonic in lane index) and carry the
+/// separation guarantee — the gutter Y is a routing convenience, not relied on for non-overlap.</summary>
 public readonly record struct BackRoutePlan(double RightCornerX, double LeftCornerX, double GutterY);
 
 /// <summary>Assigns each backward connection (target left of source) its own nested lane: a right-side

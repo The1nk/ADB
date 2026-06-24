@@ -67,7 +67,10 @@ public static class ConnectionGeometry
     {
         var s = NodeLayout.Outward(startEdge);
         var e = NodeLayout.Outward(endEdge);
-        var sy = start.Y + s.Y * BackRoutePull;   // a short stub along the source normal (handles Bottom ports)
+        // Stub along each port's outward normal before turning into the corridor. For Left/Right ports the
+        // normal is horizontal, so sy==start.Y / ey==end.Y and that first/last L segment is a harmless
+        // zero-length point; for a Bottom failure port the stub steps down/up first.
+        var sy = start.Y + s.Y * BackRoutePull;
         var ey = end.Y + e.Y * BackRoutePull;
         return string.Create(CultureInfo.InvariantCulture,
             $"M {start.X},{start.Y} L {start.X},{sy} L {rightCornerX},{sy} L {rightCornerX},{gutterY} " +
