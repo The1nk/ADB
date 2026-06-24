@@ -5,7 +5,10 @@ namespace AdbCore.Actions.BuiltIn;
 /// <summary>The entry point of a bot. Has a single output port and does nothing but proceed.</summary>
 public sealed class StartAction : IActionDefinition, IActionExecutor
 {
-    public string TypeKey => "control.start";
+    /// <summary>The registry key for the Start node. The graph walk treats this as the bot's entry point.</summary>
+    public const string Key = "control.start";
+
+    public string TypeKey => Key;
     public string DisplayName => "Start";
     public string Category => "Control Flow";
     public string Description => "Entry point of the bot.";
