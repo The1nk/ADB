@@ -142,4 +142,21 @@ public class AutoLayoutTests
         Assert.Equal(pos[t0].X, pos[t1].X);     // same column
         Assert.True(pos[t1].Y < pos[t0].Y);     // t1 (upper port) placed above t0 -> uncrossed
     }
+
+    [Fact]
+    public void BackCompatOverload_KeepsInputOrder_WhenNoPortData()
+    {
+        // Same graph as PortAware_OrdersSiblingsByFeedingPort, but via the (Guid,Guid) overload (no port Y).
+        // Without port data the barycenter tie falls back to input order, so the created-first sibling (t0)
+        // stays ABOVE t1 — proving the two overloads diverge on this exact graph.
+        var br = Guid.NewGuid();
+        var t0 = Guid.NewGuid();   // created first
+        var t1 = Guid.NewGuid();   // created second
+        var pos = AutoLayout.Arrange(
+            new[] { N(br), N(t0), N(t1) },
+            new[] { (br, t0), (br, t1) });
+
+        Assert.Equal(pos[t0].X, pos[t1].X);     // same column
+        Assert.True(pos[t0].Y < pos[t1].Y);     // input order preserved: t0 above t1
+    }
 }

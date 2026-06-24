@@ -105,14 +105,21 @@ public static class AutoLayout
             double PortKey(Guid id)
             {
                 var ns = neighbors[id];
-                return ns.Count == 0 ? 0.0 : ns.Average(n => down ? n.SrcY : n.TgtY);
+                return ns.Count == 0 ? double.NaN : ns.Average(n => down ? n.SrcY : n.TgtY);
             }
             lyr.Sort((x, y) =>
             {
                 var cmp = Bary(x).CompareTo(Bary(y));
                 if (cmp != 0) return cmp;
-                cmp = PortKey(x).CompareTo(PortKey(y));
-                return cmp != 0 ? cmp : order[x].CompareTo(order[y]);
+                // Port tie-break only applies when BOTH sides have neighbors (a real port opinion);
+                // a no-neighbor node (NaN) defers straight to input order so it isn't forced ahead.
+                var px = PortKey(x); var py = PortKey(y);
+                if (!double.IsNaN(px) && !double.IsNaN(py))
+                {
+                    cmp = px.CompareTo(py);
+                    if (cmp != 0) return cmp;
+                }
+                return order[x].CompareTo(order[y]);
             });
             for (var i = 0; i < lyr.Count; i++) posInLayer[lyr[i]] = i;
         }
