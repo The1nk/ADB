@@ -53,15 +53,14 @@ public static class AutoLayout
         var indeg = ids.ToDictionary(id => id, _ => 0);
         foreach (var u in ids) foreach (var v in forward[u]) indeg[v]++;
         var layer = ids.ToDictionary(id => id, _ => 0);
-        var work = indeg.ToDictionary(kv => kv.Key, kv => kv.Value);
-        var queue = new Queue<Guid>(ids.Where(id => work[id] == 0).OrderBy(i => order[i]));
+        var queue = new Queue<Guid>(ids.Where(id => indeg[id] == 0).OrderBy(i => order[i]));
         while (queue.Count > 0)
         {
             var u = queue.Dequeue();
             foreach (var v in forward[u])
             {
                 if (layer[v] < layer[u] + 1) layer[v] = layer[u] + 1;
-                if (--work[v] == 0) queue.Enqueue(v);
+                if (--indeg[v] == 0) queue.Enqueue(v);
             }
         }
 
