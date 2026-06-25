@@ -9,10 +9,12 @@
         <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,8">
             <TextBlock Text="Source:" VerticalAlignment="Center" Margin="0,0,8,0" />
             <RadioButton x:Name="WindowsToggle" Content="Windows" GroupName="SourceKind"
+                         Style="{StaticResource SegmentedToggleRadioButton}"
                          IsChecked="True" Checked="OnWindowsSelected"
-                         Margin="0,0,4,0" Padding="8,2" />
+                         BorderThickness="1,1,0,1" />
             <RadioButton x:Name="AndroidToggle" Content="Android" GroupName="SourceKind"
-                         Checked="OnAndroidSelected" Padding="8,2" />
+                         Style="{StaticResource SegmentedToggleRadioButton}"
+                         Checked="OnAndroidSelected" />
             <Button Content="Refresh" Click="OnRefresh" Width="90" Margin="12,0,0,0" />
             <Button Content="Capture Selected" Click="OnCapture" Width="140" Margin="8,0,0,0" />
             <Button Content="Use This Capture →" Click="OnUseCapture" Width="150" Margin="8,0,0,0"

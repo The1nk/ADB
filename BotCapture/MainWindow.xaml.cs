@@ -137,7 +137,7 @@ public partial class MainWindow : Window
     }
 
     private void OnRegionConfirmed(object? sender, System.Drawing.Bitmap crop)
-        => ShowConfirm(crop, _source!, fileName: null, confidence: null);
+        => ShowConfirm(crop, _source!, fileName: null, confidence: null); // non-null: _source is set in OnCaptureAccepted before region selection is reached
 
     private void ShowConfirm(System.Drawing.Bitmap crop, ICaptureSource source, string? fileName, double? confidence)
     {
@@ -195,7 +195,7 @@ public partial class MainWindow : Window
         }
         else
         {
-            _sessionVm.Add(path, confidence, _source!);
+            _sessionVm.Add(path, confidence, _source!); // non-null: _source is set in OnCaptureAccepted/StartReEdit before the confirm step
         }
 
         DisposeConfirm();
