@@ -7,6 +7,7 @@
             <TextBlock x:Name="StatusText" Margin="12,3" VerticalAlignment="Center" Foreground="{DynamicResource SecondaryTextBrush}" />
             <Button Content="Stop" Click="OnStop" Width="60" Margin="8,2" />
             <Button Content="Clear" Click="OnClear" Width="60" Margin="0,2" />
+            <Button Content="Hide" Click="OnHide" Width="60" Margin="4,2" ToolTip="Hide this panel (reappears on the next test run)" />
         </StackPanel>
         <ListBox x:Name="LogList" FontFamily="Consolas" FontSize="12" />
     </DockPanel>
