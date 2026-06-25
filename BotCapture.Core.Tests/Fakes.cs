@@ -40,3 +40,28 @@ internal sealed class FakeTemplateMatcher : AdbCore.Screen.ITemplateMatcher
         return Next;
     }
 }
+
+internal sealed class FakeAndroidDevice : AdbCore.Android.IAndroidDevice
+{
+    /// <summary>PNG bytes returned by Screenshot(); defaults to a 6x4 image. Set Throw to simulate a dead device.</summary>
+    public byte[]? Png;
+    public Exception? Throw;
+    public int ScreenshotCalls;
+
+    public byte[] Screenshot()
+    {
+        ScreenshotCalls++;
+        if (Throw is not null) throw Throw;
+        if (Png is not null) return Png;
+        using var bmp = new System.Drawing.Bitmap(6, 4);
+        using var ms = new System.IO.MemoryStream();
+        bmp.Save(ms, System.Drawing.Imaging.ImageFormat.Png);
+        return ms.ToArray();
+    }
+
+    public void Tap(int x, int y) { }
+    public void Swipe(int x1, int y1, int x2, int y2, int durationMs) { }
+    public void PressBack() { }
+    public void LaunchApp(string package) { }
+    public void InstallApk(string apkPath) { }
+}
