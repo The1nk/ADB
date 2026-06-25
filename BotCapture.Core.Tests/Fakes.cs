@@ -79,3 +79,18 @@ internal sealed class FakeAndroidDevice : AdbCore.Android.IAndroidDevice
     public void LaunchApp(string package) { }
     public void InstallApk(string apkPath) { }
 }
+
+internal sealed class FakeAdbDevices : AdbCore.Android.IAdbDevices
+{
+    public IReadOnlyList<AdbCore.Android.AdbDeviceInfo> Result = Array.Empty<AdbCore.Android.AdbDeviceInfo>();
+    public Exception? Throw;
+    public IReadOnlyList<AdbCore.Android.AdbDeviceInfo> List()
+        => Throw is not null ? throw Throw : Result;
+}
+
+internal sealed class FakeAndroidDeviceConnector : AdbCore.Android.IAndroidDeviceConnector
+{
+    public Func<string, AdbCore.Android.IAndroidDevice>? Behavior;
+    public AdbCore.Android.IAndroidDevice Connect(string serial)
+        => Behavior is not null ? Behavior(serial) : new FakeAndroidDevice();
+}
