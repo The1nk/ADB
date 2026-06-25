@@ -4,14 +4,32 @@ using BotCapture.Core;
 
 namespace BotCapture.Views;
 
-public partial class WindowPickerView : UserControl
+public partial class SourcePickerView : UserControl
 {
-    public WindowPickerView()
+    public SourcePickerView()
     {
         InitializeComponent();
     }
 
-    private WindowPickerViewModel? Vm => DataContext as WindowPickerViewModel;
+    private SourcePickerViewModel? Vm => DataContext as SourcePickerViewModel;
+
+    private void OnWindowsSelected(object sender, RoutedEventArgs e)
+    {
+        if (Vm is not null)
+        {
+            Vm.Kind = SourceKind.Window; // setter triggers Refresh()
+            CapturedPreview.Source = null;
+        }
+    }
+
+    private void OnAndroidSelected(object sender, RoutedEventArgs e)
+    {
+        if (Vm is not null)
+        {
+            Vm.Kind = SourceKind.Android; // setter triggers Refresh()
+            CapturedPreview.Source = null;
+        }
+    }
 
     private void OnRefresh(object sender, RoutedEventArgs e)
     {
@@ -45,8 +63,8 @@ public partial class WindowPickerView : UserControl
     {
         if (Vm?.HasCapture == true)
         {
-            // The capture is being handed off to region select; drop the in-place preview so returning
-            // to the picker doesn't show a stale screenshot (the capture is gone and the button disabled).
+            // The capture is handed off to region select; drop the in-place preview so returning to the
+            // picker doesn't show a stale screenshot (the capture is gone and the button disabled).
             CapturedPreview.Source = null;
             CaptureAccepted?.Invoke(this, EventArgs.Empty);
         }
