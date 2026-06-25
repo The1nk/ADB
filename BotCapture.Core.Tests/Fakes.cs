@@ -41,6 +41,20 @@ internal sealed class FakeTemplateMatcher : AdbCore.Screen.ITemplateMatcher
     }
 }
 
+internal sealed class FakeCaptureSource : ICaptureSource
+{
+    public string Label { get; set; } = "fake";
+    public string SubLabel { get; set; } = "fake";
+    public Func<System.Drawing.Bitmap>? Behavior;
+    public int CaptureCalls;
+
+    public System.Drawing.Bitmap Capture()
+    {
+        CaptureCalls++;
+        return Behavior is not null ? Behavior() : new System.Drawing.Bitmap(8, 8);
+    }
+}
+
 internal sealed class FakeAndroidDevice : AdbCore.Android.IAndroidDevice
 {
     /// <summary>PNG bytes returned by Screenshot(); defaults to a 6x4 image. Set Throw to simulate a dead device.</summary>
