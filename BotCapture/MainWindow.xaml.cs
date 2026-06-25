@@ -1,6 +1,7 @@
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
+using AdbCore.Android;
 using AdbCore.Screen;
 using AdbCore.Targets;
 using AdbUi.Theme;
@@ -14,13 +15,13 @@ public partial class MainWindow : Window
     private readonly IWindowCapture _capture = new Win32WindowCapture();
     private readonly ITemplateMatcher _matcher = new OpenCvSharpTemplateMatcher();
 
-    private readonly WindowPickerViewModel _pickerVm;
-    private readonly WindowPickerView _pickerView;
+    private readonly SourcePickerViewModel _pickerVm;
+    private readonly SourcePickerView _pickerView;
 
     private readonly SessionViewModel _sessionVm;
     private readonly SessionView _sessionView;
 
-    private IntPtr _sourceHandle;
+    private ICaptureSource? _source;
     private RegionSelectionViewModel? _regionVm;
     private PreviewConfirmViewModel? _confirmVm;
     private SessionRow? _editingRow;          // non-null while re-editing an existing row
@@ -31,11 +32,15 @@ public partial class MainWindow : Window
         InitializeComponent();
         _outputPath = outputPath;
 
-        _pickerVm = new WindowPickerViewModel(new Win32WindowEnumerator(), _capture);
-        _pickerView = new WindowPickerView { DataContext = _pickerVm };
+        _pickerVm = new SourcePickerViewModel(
+            new Win32WindowEnumerator(),
+            _capture,
+            new AdvancedSharpAdbDevices(),
+            new AdvancedSharpAdbDeviceConnector());
+        _pickerView = new SourcePickerView { DataContext = _pickerVm };
         _pickerView.CaptureAccepted += OnCaptureAccepted;
 
-        _sessionVm = new SessionViewModel(_capture, _matcher, DefaultFolder());
+        _sessionVm = new SessionViewModel(_matcher, DefaultFolder());
         _sessionView = new SessionView { DataContext = _sessionVm };
         // Session events are only reachable in standalone mode (integrated mode never shows the session
         // panel). If re-edit is ever wired into integrated mode, revisit the FileName ordering in ShowConfirm.
@@ -91,12 +96,13 @@ public partial class MainWindow : Window
     private void OnCaptureAccepted(object? sender, EventArgs e)
     {
         var image = _pickerVm.TakeCapturedImage();
-        if (image is null || _pickerVm.SelectedWindow is null)
+        var source = _pickerVm.SelectedCaptureSource;
+        if (image is null || source is null)
         {
             return;
         }
 
-        _sourceHandle = _pickerVm.SelectedWindow.Info.Handle;
+        _source = source;
         ShowRegion(new RegionSelectionViewModel(image));
     }
 
@@ -131,14 +137,14 @@ public partial class MainWindow : Window
     }
 
     private void OnRegionConfirmed(object? sender, System.Drawing.Bitmap crop)
-        => ShowConfirm(crop, _sourceHandle, fileName: null, confidence: null);
+        => ShowConfirm(crop, _source!, fileName: null, confidence: null);
 
-    private void ShowConfirm(System.Drawing.Bitmap crop, IntPtr sourceHandle, string? fileName, double? confidence)
+    private void ShowConfirm(System.Drawing.Bitmap crop, ICaptureSource source, string? fileName, double? confidence)
     {
         _confirmVm?.Dispose();
 
         var saveFolder = _outputPath is not null ? Path.GetDirectoryName(_outputPath)! : _sessionVm.SaveFolder;
-        _confirmVm = new PreviewConfirmViewModel(crop, sourceHandle, _capture, _matcher, new CaptureSaver(saveFolder));
+        _confirmVm = new PreviewConfirmViewModel(crop, source, _matcher, new CaptureSaver(saveFolder));
         if (_outputPath is not null)
         {
             _confirmVm.FileName = Path.GetFileName(_outputPath); // integrated: write exactly the requested file
@@ -189,7 +195,7 @@ public partial class MainWindow : Window
         }
         else
         {
-            _sessionVm.Add(path, confidence, _sourceHandle);
+            _sessionVm.Add(path, confidence, _source!);
         }
 
         DisposeConfirm();
@@ -206,9 +212,9 @@ public partial class MainWindow : Window
         }
 
         _editingRow = row;
-        _sourceHandle = row.SourceHandle;
+        _source = row.Source;
         DisposeRegion(); // no region step on re-edit
-        ShowConfirm(crop, row.SourceHandle, row.FileName, row.Confidence);
+        ShowConfirm(crop, row.Source, row.FileName, row.Confidence);
     }
 
     private void BrowseFolder()

@@ -10,6 +10,7 @@ internal sealed class FakeWindowEnumerator : IWindowEnumerator
     public IReadOnlyList<WindowInfo> Enumerate() => Result;
 }
 
+#pragma warning disable CS0649 // fields intentionally left unassigned; tests set them selectively
 internal sealed class FakeWindowCapture : IWindowCapture
 {
     public List<(IntPtr Handle, ScreenCaptureMethod Method)> Calls = new();
@@ -24,6 +25,7 @@ internal sealed class FakeWindowCapture : IWindowCapture
         return Behavior is not null ? Behavior(windowHandle) : new Bitmap(8, 8);
     }
 }
+#pragma warning restore CS0649
 
 internal sealed class FakeTemplateMatcher : AdbCore.Screen.ITemplateMatcher
 {
@@ -55,6 +57,7 @@ internal sealed class FakeCaptureSource : ICaptureSource
     }
 }
 
+#pragma warning disable CS0649 // fields intentionally left unassigned; tests set them selectively
 internal sealed class FakeAndroidDevice : AdbCore.Android.IAndroidDevice
 {
     /// <summary>PNG bytes returned by Screenshot(); defaults to a 6x4 image. Set Throw to simulate a dead device.</summary>
@@ -79,6 +82,7 @@ internal sealed class FakeAndroidDevice : AdbCore.Android.IAndroidDevice
     public void LaunchApp(string package) { }
     public void InstallApk(string apkPath) { }
 }
+#pragma warning restore CS0649
 
 internal sealed class FakeAdbDevices : AdbCore.Android.IAdbDevices
 {
@@ -88,9 +92,11 @@ internal sealed class FakeAdbDevices : AdbCore.Android.IAdbDevices
         => Throw is not null ? throw Throw : Result;
 }
 
+#pragma warning disable CS0649 // fields intentionally left unassigned; tests set them selectively
 internal sealed class FakeAndroidDeviceConnector : AdbCore.Android.IAndroidDeviceConnector
 {
     public Func<string, AdbCore.Android.IAndroidDevice>? Behavior;
     public AdbCore.Android.IAndroidDevice Connect(string serial)
         => Behavior is not null ? Behavior(serial) : new FakeAndroidDevice();
 }
+#pragma warning restore CS0649
