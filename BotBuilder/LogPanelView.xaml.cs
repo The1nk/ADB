@@ -1,3 +1,5 @@
+using System;
+using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -36,9 +38,11 @@ public partial class LogPanelView : UserControl
 
     private void Append(RunLogEntry entry)
     {
+        // Stamp the receive time in the system locale's long-time format (includes seconds, like a log wants).
+        var timestamp = DateTime.Now.ToString("T", CultureInfo.CurrentCulture);
         var item = new ListBoxItem
         {
-            Content = entry.Display,
+            Content = $"[{timestamp}] {entry.Display}",
             Foreground = entry.Kind == RunLogKind.Action && entry.Success == false ? Brushes.DarkRed
                        : entry.Kind == RunLogKind.RunEnd && entry.Success == false ? Brushes.DarkRed
                        : Brushes.Black,
@@ -50,4 +54,8 @@ public partial class LogPanelView : UserControl
     private void OnStop(object sender, RoutedEventArgs e) => _session?.Stop();
 
     private void OnClear(object sender, RoutedEventArgs e) => LogList.Items.Clear();
+
+    /// <summary>Collapses the panel to reclaim canvas space. The running session (if any) keeps going;
+    /// the next test run re-shows the panel via its visibility binding in MainWindow.</summary>
+    private void OnHide(object sender, RoutedEventArgs e) => Visibility = Visibility.Collapsed;
 }
