@@ -15,10 +15,10 @@ public class PreviewConfirmViewModelTests
     }
 
     private static PreviewConfirmViewModel Make(
-        string dir, FakeWindowCapture capture, FakeTemplateMatcher matcher, out Bitmap crop)
+        string dir, FakeTemplateMatcher matcher, out Bitmap crop)
     {
         crop = new Bitmap(12, 8);
-        return new PreviewConfirmViewModel(crop, (IntPtr)5, capture, matcher, new CaptureSaver(dir));
+        return new PreviewConfirmViewModel(crop, new FakeCaptureSource(), matcher, new CaptureSaver(dir));
     }
 
     [Fact]
@@ -27,7 +27,7 @@ public class PreviewConfirmViewModelTests
         var dir = NewTempDir();
         try
         {
-            var vm = Make(dir, new FakeWindowCapture(), new FakeTemplateMatcher(), out var crop);
+            var vm = Make(dir, new FakeTemplateMatcher(), out var crop);
             using (crop)
             {
                 Assert.Equal("capture_001.png", vm.FileName);
@@ -45,7 +45,7 @@ public class PreviewConfirmViewModelTests
         var dir = NewTempDir();
         try
         {
-            var vm = Make(dir, new FakeWindowCapture(), new FakeTemplateMatcher(), out var crop);
+            var vm = Make(dir, new FakeTemplateMatcher(), out var crop);
             using (crop)
             {
                 vm.Confidence = set;
@@ -62,7 +62,7 @@ public class PreviewConfirmViewModelTests
         try
         {
             var matcher = new FakeTemplateMatcher { Next = new MatchResult(3, 4, 12, 8, 0.95) };
-            var vm = Make(dir, new FakeWindowCapture(), matcher, out var crop);
+            var vm = Make(dir, matcher, out var crop);
             using (crop)
             {
                 vm.Confidence = 0.90;
@@ -85,7 +85,7 @@ public class PreviewConfirmViewModelTests
         try
         {
             var matcher = new FakeTemplateMatcher { Next = new MatchResult(0, 0, 12, 8, 0.61) };
-            var vm = Make(dir, new FakeWindowCapture(), matcher, out var crop);
+            var vm = Make(dir, matcher, out var crop);
             using (crop)
             {
                 vm.Confidence = 0.90;
@@ -107,7 +107,7 @@ public class PreviewConfirmViewModelTests
         try
         {
             var matcher = new FakeTemplateMatcher { Throw = new InvalidOperationException("bad template") };
-            var vm = Make(dir, new FakeWindowCapture(), matcher, out var crop);
+            var vm = Make(dir, matcher, out var crop);
             using (crop)
             {
                 vm.TestMatch();
@@ -126,7 +126,7 @@ public class PreviewConfirmViewModelTests
         var dir = NewTempDir();
         try
         {
-            var vm = Make(dir, new FakeWindowCapture(), new FakeTemplateMatcher(), out var crop);
+            var vm = Make(dir, new FakeTemplateMatcher(), out var crop);
             using (crop)
             {
                 vm.FileName = "btn.png";
