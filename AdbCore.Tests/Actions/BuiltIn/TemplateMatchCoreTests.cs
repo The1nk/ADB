@@ -10,12 +10,51 @@ namespace AdbCore.Tests.Actions.BuiltIn;
 public class TemplateMatchCoreTests
 {
     [Fact]
+    public void HasTemplate_TrueForEmbedded_TrueForPath_FalseForNeither()
+    {
+        Assert.True(TemplateMatchCore.HasTemplate(new Dictionary<string, object> { [TemplateMatchCore.TemplateImageKey] = "abc" }));
+        Assert.True(TemplateMatchCore.HasTemplate(new Dictionary<string, object> { [TemplateMatchCore.TemplatePathKey] = "btn.png" }));
+        Assert.False(TemplateMatchCore.HasTemplate(new Dictionary<string, object>()));
+    }
+
+    [Fact]
+    public void MatchInRegion_EmbeddedImage_MatchesViaBytes()
+    {
+        using var haystack = new Bitmap(40, 30);
+        var matcher = new FakeTemplateMatcher(new MatchResult(1, 2, 3, 4, 0.9));
+        var config = new Dictionary<string, object>
+        {
+            [TemplateMatchCore.TemplateImageKey] = System.Convert.ToBase64String(new byte[] { 1, 2, 3 }),
+        };
+
+        var hit = TemplateMatchCore.MatchInRegion(haystack, config, matcher, 0.8);
+
+        Assert.NotNull(hit);
+        Assert.NotNull(matcher.LastTemplateBytes);          // bytes path used
+        Assert.Equal(new byte[] { 1, 2, 3 }, matcher.LastTemplateBytes);
+        Assert.Null(matcher.LastTemplatePath);
+    }
+
+    [Fact]
+    public void MatchInRegion_NoEmbedded_MatchesViaPath()
+    {
+        using var haystack = new Bitmap(40, 30);
+        var matcher = new FakeTemplateMatcher(new MatchResult(1, 2, 3, 4, 0.9));
+        var config = new Dictionary<string, object> { [TemplateMatchCore.TemplatePathKey] = "btn.png" };
+
+        TemplateMatchCore.MatchInRegion(haystack, config, matcher, 0.8);
+
+        Assert.Equal("btn.png", matcher.LastTemplatePath);  // path branch used
+        Assert.Null(matcher.LastTemplateBytes);
+    }
+
+    [Fact]
     public void MatchInRegion_NoRegion_PassesFullHaystack_AndReturnsMatchUnchanged()
     {
         using var haystack = new Bitmap(1920, 1080);
         var matcher = new FakeTemplateMatcher(new MatchResult(50, 60, 10, 8, 0.95));
 
-        var result = TemplateMatchCore.MatchInRegion(haystack, new Dictionary<string, object>(), matcher, "t.png", 0.8);
+        var result = TemplateMatchCore.MatchInRegion(haystack, new Dictionary<string, object>(), matcher, 0.8);
 
         Assert.Equal(1920, matcher.LastHaystackWidth);
         Assert.Equal(1080, matcher.LastHaystackHeight);
@@ -33,7 +72,7 @@ public class TemplateMatchCoreTests
             [TemplateMatchCore.RegionWidthKey] = 300, [TemplateMatchCore.RegionHeightKey] = 200,
         };
 
-        var result = TemplateMatchCore.MatchInRegion(haystack, config, matcher, "t.png", 0.8);
+        var result = TemplateMatchCore.MatchInRegion(haystack, config, matcher, 0.8);
 
         Assert.Equal(300, matcher.LastHaystackWidth);
         Assert.Equal(200, matcher.LastHaystackHeight);
@@ -51,7 +90,7 @@ public class TemplateMatchCoreTests
             [TemplateMatchCore.RegionWidthKey] = 999, [TemplateMatchCore.RegionHeightKey] = 999,
         };
 
-        TemplateMatchCore.MatchInRegion(haystack, config, matcher, "t.png", 0.8);
+        TemplateMatchCore.MatchInRegion(haystack, config, matcher, 0.8);
 
         Assert.Equal(20, matcher.LastHaystackWidth);  // 200-180
         Assert.Equal(10, matcher.LastHaystackHeight); // 150-140
@@ -86,7 +125,7 @@ public class TemplateMatchCoreTests
         using var haystack = new Bitmap(100, 100);
         var matcher = new FakeTemplateMatcher(null);
 
-        Assert.Null(TemplateMatchCore.MatchInRegion(haystack, new Dictionary<string, object>(), matcher, "t.png", 0.8));
+        Assert.Null(TemplateMatchCore.MatchInRegion(haystack, new Dictionary<string, object>(), matcher, 0.8));
     }
 
     [Fact]
@@ -100,6 +139,6 @@ public class TemplateMatchCoreTests
             [TemplateMatchCore.RegionWidthKey] = 50, [TemplateMatchCore.RegionHeightKey] = 50,
         };
 
-        Assert.Null(TemplateMatchCore.MatchInRegion(haystack, config, matcher, "t.png", 0.8));
+        Assert.Null(TemplateMatchCore.MatchInRegion(haystack, config, matcher, 0.8));
     }
 }

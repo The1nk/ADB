@@ -4,7 +4,8 @@ using OpenCvSharp.Extensions;
 
 namespace AdbCore.Screen;
 
-/// <summary>Template matching via OpenCvSharp (<c>TM_CCOEFF_NORMED</c>, single best match).</summary>
+/// <summary>Template matching via OpenCvSharp (<c>TM_CCOEFF_NORMED</c>, single best match). Accepts the
+/// template by file path or by in-memory image bytes (templates embedded in a .bot).</summary>
 public sealed class OpenCvSharpTemplateMatcher : ITemplateMatcher
 {
     public MatchResult? Match(Bitmap haystack, string templatePath, double minConfidence)
@@ -20,6 +21,27 @@ public sealed class OpenCvSharpTemplateMatcher : ITemplateMatcher
             throw new InvalidOperationException($"Template image could not be read: '{templatePath}'.");
         }
 
+        return MatchMat(haystack, template, minConfidence);
+    }
+
+    public MatchResult? Match(Bitmap haystack, byte[] templatePng, double minConfidence)
+    {
+        if (templatePng is null || templatePng.Length == 0)
+        {
+            throw new InvalidOperationException("Embedded template image is empty.");
+        }
+
+        using var template = Cv2.ImDecode(templatePng, ImreadModes.Color);
+        if (template.Empty())
+        {
+            throw new InvalidOperationException("Embedded template image could not be decoded.");
+        }
+
+        return MatchMat(haystack, template, minConfidence);
+    }
+
+    private static MatchResult? MatchMat(Bitmap haystack, Mat template, double minConfidence)
+    {
         using var source = haystack.ToMat();          // BGRA from a 32bpp bitmap
         using var sourceBgr = new Mat();
         Cv2.CvtColor(source, sourceBgr, ColorConversionCodes.BGRA2BGR);

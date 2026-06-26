@@ -15,6 +15,8 @@ public class FindImageRetryTests
         private int _calls;
         public MatchResult? Match(Bitmap haystack, string templatePath, double minConfidence)
             => ++_calls > failuresBeforeHit ? hit : null;
+        public MatchResult? Match(Bitmap haystack, byte[] templatePng, double minConfidence)
+            => ++_calls > failuresBeforeHit ? hit : null;
     }
 
     private sealed class StubCapture : IWindowCapture

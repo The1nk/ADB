@@ -35,15 +35,14 @@ public sealed class AndroidAssertImageAbsentAction : AndroidImageActionBase
             return Task.FromResult(RequiresDevice());
         }
 
-        var templatePath = ConfigValues.GetString(context.Action.Config, TemplateMatchCore.TemplatePathKey);
-        if (string.IsNullOrWhiteSpace(templatePath))
+        if (!TemplateMatchCore.HasTemplate(context.Action.Config))
         {
-            return Task.FromResult(ActionResult.Fail("Assert Image Absent (Android): a template image path is required."));
+            return Task.FromResult(ActionResult.Fail("Assert Image Absent (Android): a template image is required."));
         }
 
         var confidence = ConfigValues.GetDouble(context.Action.Config, TemplateMatchCore.ConfidenceKey, TemplateMatchCore.DefaultConfidence);
 
-        return CaptureAndMatch(context, device, _matcher, templatePath, confidence) is MatchResult m
+        return CaptureAndMatch(context, device, _matcher, confidence) is MatchResult m
             ? Task.FromResult(ActionResult.Fail($"Assert Image Absent (Android): template is present (score {m.Score.ToString(CultureInfo.InvariantCulture)})."))
             : Task.FromResult(ActionResult.Ok(SuccessPort));
     }

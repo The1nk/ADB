@@ -45,10 +45,9 @@ public sealed class AndroidWaitForImageAction : AndroidImageActionBase
             return RequiresDevice();
         }
 
-        var templatePath = ConfigValues.GetString(context.Action.Config, TemplateMatchCore.TemplatePathKey);
-        if (string.IsNullOrWhiteSpace(templatePath))
+        if (!TemplateMatchCore.HasTemplate(context.Action.Config))
         {
-            return ActionResult.Fail("Wait for Image (Android): a template image path is required.");
+            return ActionResult.Fail("Wait for Image (Android): a template image is required.");
         }
 
         var confidence = ConfigValues.GetDouble(context.Action.Config, TemplateMatchCore.ConfidenceKey, TemplateMatchCore.DefaultConfidence);
@@ -64,7 +63,7 @@ public sealed class AndroidWaitForImageAction : AndroidImageActionBase
         var elapsed = Stopwatch.StartNew();
         while (true)
         {
-            if (CaptureAndMatch(context, device, _matcher, templatePath, confidence) is MatchResult m)
+            if (CaptureAndMatch(context, device, _matcher, confidence) is MatchResult m)
             {
                 TemplateMatchCore.WriteMatchVariables(context.Context.Variables, m, prefix, _random);
                 return ActionResult.Ok(SuccessPort);

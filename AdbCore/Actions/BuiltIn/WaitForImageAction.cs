@@ -53,10 +53,9 @@ public sealed class WaitForImageAction : ScreenActionBase
             return ActionResult.Fail($"{DisplayName} requires a resolved Window target (HWND).");
         }
 
-        var templatePath = ConfigValues.GetString(context.Action.Config, TemplatePathKey);
-        if (string.IsNullOrWhiteSpace(templatePath))
+        if (!TemplateMatchCore.HasTemplate(context.Action.Config))
         {
-            return ActionResult.Fail("Wait for Image: a template image path is required.");
+            return ActionResult.Fail("Wait for Image: a template image is required.");
         }
 
         var confidence = ConfigValues.GetDouble(context.Action.Config, ConfidenceKey, DefaultConfidence);
@@ -72,7 +71,7 @@ public sealed class WaitForImageAction : ScreenActionBase
         var elapsed = Stopwatch.StartNew();
         while (true)
         {
-            if (CaptureAndMatch(context, hwnd, _matcher, templatePath, confidence) is MatchResult m)
+            if (CaptureAndMatch(context, hwnd, _matcher, confidence) is MatchResult m)
             {
                 WriteMatchVariables(context, m, prefix, _random);
                 return ActionResult.Ok(SuccessPort);

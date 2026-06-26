@@ -25,8 +25,8 @@ public class AndroidImageActionBaseTests
         protected override IEnumerable<ConfigField> ActionConfigFields => [];
         public override Task<ActionResult> ExecuteAsync(ActionExecutionContext context, CancellationToken ct) => Task.FromResult(ActionResult.Ok(SuccessPort));
 
-        public MatchResult? CallCaptureAndMatch(ActionExecutionContext ctx, IAndroidDevice device, string template, double confidence)
-            => CaptureAndMatch(ctx, device, _matcher, template, confidence);
+        public MatchResult? CallCaptureAndMatch(ActionExecutionContext ctx, IAndroidDevice device, double confidence)
+            => CaptureAndMatch(ctx, device, _matcher, confidence);
     }
 
     internal static byte[] PngBytes(int w, int h)
@@ -46,7 +46,7 @@ public class AndroidImageActionBaseTests
         var matcher = new FakeTemplateMatcher(new MatchResult(50, 60, 10, 8, 0.95));
         var action = new TestAndroidImageAction(matcher);
 
-        var result = action.CallCaptureAndMatch(Exec(new BotAction()), device, "t.png", 0.8);
+        var result = action.CallCaptureAndMatch(Exec(new BotAction()), device, 0.8);
 
         Assert.Equal(1080, matcher.LastHaystackWidth);
         Assert.Equal(1920, matcher.LastHaystackHeight);
@@ -66,7 +66,7 @@ public class AndroidImageActionBaseTests
             [TemplateMatchCore.RegionWidthKey] = 300, [TemplateMatchCore.RegionHeightKey] = 200,
         } };
 
-        var result = action.CallCaptureAndMatch(Exec(botAction), device, "t.png", 0.8);
+        var result = action.CallCaptureAndMatch(Exec(botAction), device, 0.8);
 
         Assert.Equal(300, matcher.LastHaystackWidth);
         Assert.Equal(200, matcher.LastHaystackHeight);

@@ -42,15 +42,14 @@ public sealed class AssertImageAbsentAction : ScreenActionBase
             return Task.FromResult(ActionResult.Fail($"{DisplayName} requires a resolved Window target (HWND)."));
         }
 
-        var templatePath = ConfigValues.GetString(context.Action.Config, TemplatePathKey);
-        if (string.IsNullOrWhiteSpace(templatePath))
+        if (!TemplateMatchCore.HasTemplate(context.Action.Config))
         {
-            return Task.FromResult(ActionResult.Fail("Assert Image Absent: a template image path is required."));
+            return Task.FromResult(ActionResult.Fail("Assert Image Absent: a template image is required."));
         }
 
         var confidence = ConfigValues.GetDouble(context.Action.Config, ConfidenceKey, DefaultConfidence);
 
-        return CaptureAndMatch(context, hwnd, _matcher, templatePath, confidence) is MatchResult m
+        return CaptureAndMatch(context, hwnd, _matcher, confidence) is MatchResult m
             ? Task.FromResult(ActionResult.Fail($"Assert Image Absent: template is present (score {m.Score.ToString(System.Globalization.CultureInfo.InvariantCulture)})."))
             : Task.FromResult(ActionResult.Ok(SuccessPort));
     }

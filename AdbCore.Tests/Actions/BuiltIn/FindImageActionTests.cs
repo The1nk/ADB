@@ -110,6 +110,25 @@ public class FindImageActionTests
     }
 
     [Fact]
+    public async Task EmbeddedTemplate_MatchesViaBytes_RoutesSuccess()
+    {
+        var id = Guid.NewGuid();
+        var ctx = WindowContext(id, (IntPtr)5);
+        var matcher = new FakeTemplateMatcher(new MatchResult(1, 2, 3, 4, 0.95));
+        var action = new BotAction { TargetId = id, Config =
+        {
+            [FindImageAction.TemplatePathKey] = "btn.png",
+            [AdbCore.Actions.BuiltIn.TemplateMatchCore.TemplateImageKey] = Convert.ToBase64String(new byte[] { 9, 8, 7 }),
+        } };
+
+        var find = new FindImageAction(new FakeWindowCapture(800, 600), matcher, new FixedRandomSource(0));
+        var result = await find.ExecuteAsync(Exec(action, ctx), default);
+
+        Assert.True(result.Success);
+        Assert.Equal(new byte[] { 9, 8, 7 }, matcher.LastTemplateBytes); // embedded bytes used, not the path
+    }
+
+    [Fact]
     public void Definition_Metadata()
     {
         var def = Action(null);
