@@ -9,7 +9,7 @@
     <Window.Resources>
         <local:CategoryColorToBrushConverter x:Key="CategoryBrush" />
         <BooleanToVisibilityConverter x:Key="BoolToVis" />
-        <local:PathToImageConverter x:Key="PathToImage" />
+        <local:TemplateImageConverter x:Key="TemplateImage" />
         <local:NegateBoolConverter x:Key="NegateBool" />
 
         <DataTemplate x:Key="FieldString">
@@ -88,8 +88,14 @@
                 </DockPanel>
                 <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" Margin="0,4,0,0" Background="{DynamicResource SurfaceBackgroundBrush}"
                         HorizontalAlignment="Left">
-                    <Image Source="{Binding Value, Converter={StaticResource PathToImage}}"
-                           MaxHeight="120" MaxWidth="220" Stretch="Uniform" Margin="2" />
+                    <Image MaxHeight="120" MaxWidth="220" Stretch="Uniform" Margin="2">
+                        <Image.Source>
+                            <MultiBinding Converter="{StaticResource TemplateImage}">
+                                <Binding Path="EmbeddedImageBase64" />
+                                <Binding Path="Value" />
+                            </MultiBinding>
+                        </Image.Source>
+                    </Image>
                 </Border>
             </StackPanel>
         </DataTemplate>
