@@ -69,4 +69,41 @@ public class TemplateEmbedderTests
 
         Assert.Equal(@"C:\gone.png", bot.Actions[0].Config[TemplateMatchCore.TemplatePathKey]);
     }
+
+    [Fact]
+    public void Embed_NestedBotAction_FillsTemplateImage()
+    {
+        var nested = new Bot();
+        nested.Actions.Add(new BotAction
+        {
+            TypeKey = "screen.findImage",
+            Config = new() { [TemplateMatchCore.TemplatePathKey] = @"C:\caps\btn.png" },
+        });
+        var parent = new Bot();
+        parent.NestedBots.Add(nested);
+        var read = (string? p) => p == @"C:\caps\btn.png" ? new byte[] { 1, 2, 3 } : null;
+
+        TemplateEmbedder.Embed(parent, read);
+
+        Assert.Equal(Convert.ToBase64String(new byte[] { 1, 2, 3 }),
+            nested.Actions[0].Config[TemplateMatchCore.TemplateImageKey]);
+    }
+
+    [Fact]
+    public void PrepareForSave_NestedBotAction_StripsPathToBasename()
+    {
+        var nested = new Bot();
+        nested.Actions.Add(new BotAction
+        {
+            TypeKey = "screen.findImage",
+            Config = new() { [TemplateMatchCore.TemplatePathKey] = @"C:\caps\sub\btn.png" },
+        });
+        var parent = new Bot();
+        parent.NestedBots.Add(nested);
+
+        TemplateEmbedder.PrepareForSave(parent, _ => new byte[] { 1 });
+
+        Assert.Equal("btn.png", nested.Actions[0].Config[TemplateMatchCore.TemplatePathKey]);
+        Assert.True(nested.Actions[0].Config.ContainsKey(TemplateMatchCore.TemplateImageKey));
+    }
 }

@@ -14,7 +14,8 @@ public static class TemplateEmbedder
         => !string.IsNullOrWhiteSpace(path) && File.Exists(path) ? File.ReadAllBytes(path) : null;
 
     /// <summary>For each action with a source path but no embedded image yet, reads the file and stores its
-    /// base64 under the templateImage key. Idempotent; leaves the path untouched. Mutates and returns the bot.</summary>
+    /// base64 under the templateImage key. Recurses into nested bots. Idempotent; leaves paths untouched.
+    /// Mutates and returns the bot.</summary>
     public static Bot Embed(Bot bot, Func<string?, byte[]?> read)
     {
         foreach (var action in bot.Actions)
@@ -30,11 +31,16 @@ public static class TemplateEmbedder
             }
         }
 
+        foreach (var nested in bot.NestedBots)
+        {
+            Embed(nested, read);
+        }
+
         return bot;
     }
 
-    /// <summary>Embeds any not-yet-embedded templates, then rewrites the source path to its basename for every
-    /// action that now carries embedded bytes. Mutates and returns the bot.</summary>
+    /// <summary>Embeds any not-yet-embedded templates (including in nested bots), then rewrites the source
+    /// path to its basename for every action that now carries embedded bytes. Mutates and returns the bot.</summary>
     public static Bot PrepareForSave(Bot bot, Func<string?, byte[]?> read)
     {
         Embed(bot, read);
@@ -51,6 +57,11 @@ public static class TemplateEmbedder
             {
                 action.Config[TemplateMatchCore.TemplatePathKey] = Path.GetFileName(path);
             }
+        }
+
+        foreach (var nested in bot.NestedBots)
+        {
+            PrepareForSave(nested, read);
         }
 
         return bot;
