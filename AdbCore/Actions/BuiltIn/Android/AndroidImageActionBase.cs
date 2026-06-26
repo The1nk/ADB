@@ -25,12 +25,12 @@ public abstract class AndroidImageActionBase : AndroidActionBase
         .. TemplateMatchCore.RegionFields(),
     ];
 
-    /// <summary>Captures the device framebuffer, crops to any ROI, matches the template, and returns the
-    /// match in full-frame device-pixel coordinates (null if none ≥ confidence).</summary>
-    protected static MatchResult? CaptureAndMatch(ActionExecutionContext context, IAndroidDevice device, ITemplateMatcher matcher, string templatePath, double confidence)
+    /// <summary>Captures the device framebuffer, crops to any ROI, matches the configured template, and
+    /// returns the match in full-frame device-pixel coordinates (null if none ≥ confidence).</summary>
+    protected static MatchResult? CaptureAndMatch(ActionExecutionContext context, IAndroidDevice device, ITemplateMatcher matcher, double confidence)
     {
         using var ms = new MemoryStream(device.Screenshot());
         using var frame = new Bitmap(ms);
-        return TemplateMatchCore.MatchInRegion(frame, context.Action.Config, matcher, templatePath, confidence);
+        return TemplateMatchCore.MatchInRegion(frame, context.Action.Config, matcher, confidence);
     }
 }

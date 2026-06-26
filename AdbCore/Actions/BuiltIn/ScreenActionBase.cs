@@ -106,11 +106,11 @@ public abstract class ScreenActionBase : IActionDefinition, IActionExecutor
     }
 
     /// <summary>Captures the window's client area via the chosen method, then crops to any ROI, matches the
-    /// template, and returns the match in full-window client coordinates (null if none ≥ confidence).</summary>
-    protected MatchResult? CaptureAndMatch(ActionExecutionContext context, IntPtr hwnd, ITemplateMatcher matcher, string templatePath, double confidence)
+    /// configured template, and returns the match in full-window client coordinates (null if none ≥ confidence).</summary>
+    protected MatchResult? CaptureAndMatch(ActionExecutionContext context, IntPtr hwnd, ITemplateMatcher matcher, double confidence)
     {
         using var shot = _capture.Capture(hwnd, CaptureMethodOf(context));
-        return TemplateMatchCore.MatchInRegion(shot, context.Action.Config, matcher, templatePath, confidence);
+        return TemplateMatchCore.MatchInRegion(shot, context.Action.Config, matcher, confidence);
     }
 
     /// <summary>Writes a match's region edges, center, a random in-region point, and the score to run

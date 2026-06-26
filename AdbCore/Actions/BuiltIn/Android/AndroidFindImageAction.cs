@@ -38,10 +38,9 @@ public sealed class AndroidFindImageAction : AndroidImageActionBase
             return Task.FromResult(RequiresDevice());
         }
 
-        var templatePath = ConfigValues.GetString(context.Action.Config, TemplateMatchCore.TemplatePathKey);
-        if (string.IsNullOrWhiteSpace(templatePath))
+        if (!TemplateMatchCore.HasTemplate(context.Action.Config))
         {
-            return Task.FromResult(ActionResult.Fail("Find Image (Android): a template image path is required."));
+            return Task.FromResult(ActionResult.Fail("Find Image (Android): a template image is required."));
         }
 
         var confidence = ConfigValues.GetDouble(context.Action.Config, TemplateMatchCore.ConfidenceKey, TemplateMatchCore.DefaultConfidence);
@@ -51,7 +50,7 @@ public sealed class AndroidFindImageAction : AndroidImageActionBase
             prefix = TemplateMatchCore.DefaultResultVar;
         }
 
-        if (CaptureAndMatch(context, device, _matcher, templatePath, confidence) is not MatchResult m)
+        if (CaptureAndMatch(context, device, _matcher, confidence) is not MatchResult m)
         {
             return Task.FromResult(ActionResult.Fail("Find Image (Android): no match at or above the configured confidence."));
         }

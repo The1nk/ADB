@@ -46,10 +46,9 @@ public sealed class FindImageAction : ScreenActionBase
             return Task.FromResult(ActionResult.Fail($"{DisplayName} requires a resolved Window target (HWND)."));
         }
 
-        var templatePath = ConfigValues.GetString(context.Action.Config, TemplatePathKey);
-        if (string.IsNullOrWhiteSpace(templatePath))
+        if (!TemplateMatchCore.HasTemplate(context.Action.Config))
         {
-            return Task.FromResult(ActionResult.Fail("Find Image: a template image path is required."));
+            return Task.FromResult(ActionResult.Fail("Find Image: a template image is required."));
         }
 
         var confidence = ConfigValues.GetDouble(context.Action.Config, ConfidenceKey, DefaultConfidence);
@@ -59,7 +58,7 @@ public sealed class FindImageAction : ScreenActionBase
             prefix = DefaultResultVar;
         }
 
-        if (CaptureAndMatch(context, hwnd, _matcher, templatePath, confidence) is not MatchResult m)
+        if (CaptureAndMatch(context, hwnd, _matcher, confidence) is not MatchResult m)
         {
             return Task.FromResult(ActionResult.Fail("Find Image: no match at or above the configured confidence."));
         }

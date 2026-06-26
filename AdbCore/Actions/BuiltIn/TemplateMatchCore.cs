@@ -12,6 +12,7 @@ namespace AdbCore.Actions.BuiltIn;
 public static class TemplateMatchCore
 {
     public const string TemplatePathKey = "templatePath";
+    public const string TemplateImageKey = "templateImage";
     public const string ConfidenceKey = "confidence";
     public const string ResultVarKey = "resultVar";
     public const string RegionXKey = "regionX";
@@ -36,6 +37,11 @@ public static class TemplateMatchCore
         new ConfigField { Key = RegionHeightKey, Label = "Region Height", Type = ConfigFieldType.Number, DefaultValue = 0 },
     ];
 
+    /// <summary>True when the config carries a template — embedded base64 bytes or a (non-empty) source path.</summary>
+    public static bool HasTemplate(IReadOnlyDictionary<string, object> config)
+        => !string.IsNullOrWhiteSpace(ConfigValues.GetString(config, TemplateImageKey))
+           || !string.IsNullOrWhiteSpace(ConfigValues.GetString(config, TemplatePathKey));
+
     /// <summary>Reads + clamps the ROI fields against the haystack size; null when no usable region.</summary>
     public static Rectangle? ResolveRegion(IReadOnlyDictionary<string, object> config, int width, int height)
     {
@@ -53,19 +59,32 @@ public static class TemplateMatchCore
         return w > 0 && h > 0 ? new Rectangle(x, y, w, h) : null;
     }
 
-    /// <summary>Crops the haystack to the configured ROI (if any), matches the template, and returns the
-    /// match in full-haystack coordinates (null when none ≥ confidence). Does not dispose the haystack.</summary>
-    public static MatchResult? MatchInRegion(Bitmap haystack, IReadOnlyDictionary<string, object> config, ITemplateMatcher matcher, string templatePath, double confidence)
+    /// <summary>Crops the haystack to the configured ROI (if any), matches the configured template (embedded
+    /// bytes when present, else the source path), and returns the match in full-haystack coordinates (null
+    /// when none ≥ confidence). Does not dispose the haystack.</summary>
+    public static MatchResult? MatchInRegion(Bitmap haystack, IReadOnlyDictionary<string, object> config, ITemplateMatcher matcher, double confidence)
     {
         var region = ResolveRegion(config, haystack.Width, haystack.Height);
         if (region is not Rectangle roi)
         {
-            return matcher.Match(haystack, templatePath, confidence);
+            return MatchConfigured(haystack, config, matcher, confidence);
         }
 
         using var crop = haystack.Clone(roi, haystack.PixelFormat);
-        var hit = matcher.Match(crop, templatePath, confidence);
+        var hit = MatchConfigured(crop, config, matcher, confidence);
         return hit is MatchResult m ? m with { X = m.X + roi.X, Y = m.Y + roi.Y } : null;
+    }
+
+    // Prefers the embedded base64 image; falls back to the source path (which the matcher reads from disk).
+    private static MatchResult? MatchConfigured(Bitmap haystack, IReadOnlyDictionary<string, object> config, ITemplateMatcher matcher, double confidence)
+    {
+        var embedded = ConfigValues.GetString(config, TemplateImageKey);
+        if (!string.IsNullOrWhiteSpace(embedded))
+        {
+            return matcher.Match(haystack, Convert.FromBase64String(embedded), confidence);
+        }
+
+        return matcher.Match(haystack, ConfigValues.GetString(config, TemplatePathKey), confidence);
     }
 
     /// <summary>Writes a match's region edges, center, a random in-region point, and the score to

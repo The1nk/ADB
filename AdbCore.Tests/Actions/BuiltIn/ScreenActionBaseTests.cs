@@ -21,8 +21,8 @@ public class ScreenActionBaseTests
         protected override IEnumerable<ConfigField> ActionConfigFields => [];
         public override Task<ActionResult> ExecuteAsync(ActionExecutionContext context, CancellationToken ct) => Task.FromResult(ActionResult.Ok(SuccessPort));
 
-        public MatchResult? CallCaptureAndMatch(ActionExecutionContext ctx, IntPtr hwnd, string template, double confidence)
-            => CaptureAndMatch(ctx, hwnd, _matcher, template, confidence);
+        public MatchResult? CallCaptureAndMatch(ActionExecutionContext ctx, IntPtr hwnd, double confidence)
+            => CaptureAndMatch(ctx, hwnd, _matcher, confidence);
     }
 
     private static ActionExecutionContext Exec(BotAction action) => new(action, new BotExecutionContext(), _ => { });
@@ -34,7 +34,7 @@ public class ScreenActionBaseTests
         var matcher = new FakeTemplateMatcher(new MatchResult(50, 60, 10, 8, 0.95));
         var action = new TestScreenAction(capture, matcher);
 
-        var result = action.CallCaptureAndMatch(Exec(new BotAction()), (IntPtr)1, "t.png", 0.8);
+        var result = action.CallCaptureAndMatch(Exec(new BotAction()), (IntPtr)1, 0.8);
 
         Assert.Equal(1920, matcher.LastHaystackWidth);
         Assert.Equal(1080, matcher.LastHaystackHeight);
@@ -53,7 +53,7 @@ public class ScreenActionBaseTests
             [ScreenActionBase.RegionWidthKey] = 300, [ScreenActionBase.RegionHeightKey] = 200,
         } };
 
-        var result = action.CallCaptureAndMatch(Exec(botAction), (IntPtr)1, "t.png", 0.8);
+        var result = action.CallCaptureAndMatch(Exec(botAction), (IntPtr)1, 0.8);
 
         Assert.Equal(300, matcher.LastHaystackWidth);   // matcher saw the crop
         Assert.Equal(200, matcher.LastHaystackHeight);
@@ -72,7 +72,7 @@ public class ScreenActionBaseTests
             [ScreenActionBase.RegionWidthKey] = 999, [ScreenActionBase.RegionHeightKey] = 999,
         } };
 
-        action.CallCaptureAndMatch(Exec(botAction), (IntPtr)1, "t.png", 0.8);
+        action.CallCaptureAndMatch(Exec(botAction), (IntPtr)1, 0.8);
 
         Assert.Equal(20, matcher.LastHaystackWidth);   // 200-180
         Assert.Equal(10, matcher.LastHaystackHeight);  // 150-140
@@ -84,11 +84,11 @@ public class ScreenActionBaseTests
         var capture = new FakeWindowCapture(10, 10);
         var action = new TestScreenAction(capture, new FakeTemplateMatcher(null));
 
-        action.CallCaptureAndMatch(Exec(new BotAction()), (IntPtr)1, "t.png", 0.8);
+        action.CallCaptureAndMatch(Exec(new BotAction()), (IntPtr)1, 0.8);
         Assert.Equal(ScreenCaptureMethod.Auto, capture.LastMethod);
 
         var bitblt = new BotAction { Config = { [ScreenActionBase.CaptureMethodKey] = nameof(ScreenCaptureMethod.BitBlt) } };
-        action.CallCaptureAndMatch(Exec(bitblt), (IntPtr)1, "t.png", 0.8);
+        action.CallCaptureAndMatch(Exec(bitblt), (IntPtr)1, 0.8);
         Assert.Equal(ScreenCaptureMethod.BitBlt, capture.LastMethod);
     }
 }
