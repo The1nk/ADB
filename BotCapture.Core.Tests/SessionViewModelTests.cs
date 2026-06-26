@@ -5,30 +5,31 @@ namespace BotCapture.Core.Tests;
 
 public class SessionViewModelTests
 {
-    private static SessionViewModel Make(FakeWindowCapture capture, FakeTemplateMatcher matcher) =>
-        new(capture, matcher, saveFolder: @"C:\bots");
+    private static SessionViewModel Make(FakeTemplateMatcher matcher) =>
+        new(matcher, saveFolder: @"C:\bots");
 
     [Fact]
     public void Add_AppendsRowWithDetails()
     {
-        var vm = Make(new FakeWindowCapture(), new FakeTemplateMatcher());
+        var vm = Make(new FakeTemplateMatcher());
+        var source = new FakeCaptureSource();
 
-        var row = vm.Add(@"C:\bots\a.png", 0.88, (IntPtr)7);
+        var row = vm.Add(@"C:\bots\a.png", 0.88, source);
 
         Assert.Single(vm.Rows);
         Assert.Same(row, vm.Rows[0]);
         Assert.Equal(@"C:\bots\a.png", row.FilePath);
         Assert.Equal("a.png", row.FileName);
         Assert.Equal(0.88, row.Confidence, 3);
-        Assert.Equal((IntPtr)7, row.SourceHandle);
+        Assert.Same(source, row.Source);
         Assert.Null(row.LastRetestMatched);
     }
 
     [Fact]
     public void Remove_DropsRow()
     {
-        var vm = Make(new FakeWindowCapture(), new FakeTemplateMatcher());
-        var row = vm.Add(@"C:\bots\a.png", 0.9, (IntPtr)1);
+        var vm = Make(new FakeTemplateMatcher());
+        var row = vm.Add(@"C:\bots\a.png", 0.9, new FakeCaptureSource());
 
         vm.Remove(row);
 
@@ -36,17 +37,17 @@ public class SessionViewModelTests
     }
 
     [Fact]
-    public void Retest_Match_SetsGreen_UsesRowHandleAndConfidence()
+    public void Retest_Match_SetsGreen_RecapturesSource_UsesRowConfidenceAndTemplate()
     {
-        var capture = new FakeWindowCapture();
         var matcher = new FakeTemplateMatcher { Next = new MatchResult(0, 0, 4, 4, 0.97) };
-        var vm = Make(capture, matcher);
-        var row = vm.Add(@"C:\bots\a.png", 0.80, (IntPtr)42);
+        var vm = Make(matcher);
+        var source = new FakeCaptureSource();
+        var row = vm.Add(@"C:\bots\a.png", 0.80, source);
 
         vm.Retest(row);
 
         Assert.True(row.LastRetestMatched);
-        Assert.Equal((IntPtr)42, capture.Calls[^1].Handle);
+        Assert.Equal(1, source.CaptureCalls);
         Assert.Equal(0.80, matcher.LastMinConfidence, 3);
         Assert.Equal(@"C:\bots\a.png", matcher.LastTemplatePath);
     }
@@ -54,9 +55,8 @@ public class SessionViewModelTests
     [Fact]
     public void Retest_NoMatch_SetsRed()
     {
-        var matcher = new FakeTemplateMatcher { Next = null };
-        var vm = Make(new FakeWindowCapture(), matcher);
-        var row = vm.Add(@"C:\bots\a.png", 0.95, (IntPtr)1);
+        var vm = Make(new FakeTemplateMatcher { Next = null });
+        var row = vm.Add(@"C:\bots\a.png", 0.95, new FakeCaptureSource());
 
         vm.Retest(row);
 
@@ -64,11 +64,11 @@ public class SessionViewModelTests
     }
 
     [Fact]
-    public void Retest_MatcherThrows_SetsRed_NoException()
+    public void Retest_CaptureThrows_SetsRed_NoException()
     {
-        var matcher = new FakeTemplateMatcher { Throw = new FileNotFoundException("gone") };
-        var vm = Make(new FakeWindowCapture(), matcher);
-        var row = vm.Add(@"C:\bots\a.png", 0.9, (IntPtr)1);
+        var vm = Make(new FakeTemplateMatcher());
+        var source = new FakeCaptureSource { Behavior = () => throw new InvalidOperationException("device gone") };
+        var row = vm.Add(@"C:\bots\a.png", 0.9, source);
 
         vm.Retest(row);
 
