@@ -16,6 +16,8 @@ public class WaitForImageActionTests
         public int Calls { get; private set; }
         public MatchResult? Match(System.Drawing.Bitmap haystack, string templatePath, double minConfidence)
             => ++Calls > missesBeforeHit ? hit : null;
+        public MatchResult? Match(System.Drawing.Bitmap haystack, byte[] templatePng, double minConfidence)
+            => ++Calls > missesBeforeHit ? hit : null;
     }
 
     private static BotExecutionContext WindowContext(Guid id, IntPtr handle)
