@@ -1,5 +1,6 @@
 using System.Text.Json;
 using AdbCore.Actions;
+using AdbCore.Actions.BuiltIn;
 using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace BotBuilder.Core.Properties;
@@ -37,10 +38,22 @@ public partial class ConfigFieldViewModel : ObservableObject
         set
         {
             _node.Config[Field.Key] = Coerce(value);
+            if (Type == ConfigFieldType.ImagePath)
+            {
+                // A newly chosen source path supersedes any embedded image; it re-embeds on the next save.
+                _node.Config.Remove(TemplateMatchCore.TemplateImageKey);
+                OnPropertyChanged(nameof(EmbeddedImageBase64));
+            }
             OnPropertyChanged();
             _onChanged();
         }
     }
+
+    /// <summary>For an ImagePath field, the companion embedded base64 image (templateImage), or null —
+    /// lets the preview render an embedded template even when the original source file is gone.</summary>
+    public string? EmbeddedImageBase64
+        => _node.Config.TryGetValue(TemplateMatchCore.TemplateImageKey, out var v)
+           && AdbCore.Actions.ConfigValues.AsString(v) is { Length: > 0 } s ? s : null;
 
     private object? Normalize(object? raw)
     {

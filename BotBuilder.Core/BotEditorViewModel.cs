@@ -428,6 +428,7 @@ public partial class BotEditorViewModel : ObservableObject
     public void Open(string path)
     {
         var bot = _serializer.Load(path);
+        TemplateEmbedder.Embed(bot, TemplateEmbedder.ReadFileIfExists);
         DocumentMapper.Populate(this, bot, _registry);
         _undo.Clear();
         FilePath = path;
@@ -439,7 +440,7 @@ public partial class BotEditorViewModel : ObservableObject
     {
         UpdatedAt = DateTime.UtcNow;
         if (CreatedAt == default) { CreatedAt = UpdatedAt; } // safety for bots loaded from old files
-        _serializer.Save(DocumentMapper.ToBot(this), path);
+        _serializer.Save(ToBotForSave(), path);
         FilePath = path;
         IsDirty = false;
     }
@@ -460,7 +461,11 @@ public partial class BotEditorViewModel : ObservableObject
     /// <see cref="IsDirty"/>. Used to write a throwaway copy (e.g. a Test Run temp file) without making the editor
     /// believe it has been saved there.</summary>
     public void ExportTo(string path)
-        => _serializer.Save(DocumentMapper.ToBot(this), path);
+        => _serializer.Save(ToBotForSave(), path);
+
+    // The save-bound bot copy with templates embedded + source paths stripped to basenames.
+    private Bot ToBotForSave()
+        => TemplateEmbedder.PrepareForSave(DocumentMapper.ToBot(this), TemplateEmbedder.ReadFileIfExists);
 
     // ---- internal mutation helpers used by commands and the mapper ----
 
