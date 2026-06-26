@@ -1,5 +1,7 @@
+using System.IO;
 using System.Text.Json;
 using AdbCore.Actions;
+using AdbCore.Actions.BuiltIn;
 using BotBuilder.Core;
 using BotBuilder.Core.Properties;
 using Xunit;
@@ -119,5 +121,44 @@ public class ConfigFieldViewModelTests
         f.Value = "120";
 
         Assert.Equal(120d, Assert.IsType<double>(node.Config["k"]));
+    }
+
+    [Fact]
+    public void ImagePath_SetToNonExistentPath_PreservesEmbeddedImage()
+    {
+        var node = Node();
+        node.Config[TemplateMatchCore.TemplateImageKey] = "abc";
+        var f = Field(node, ConfigFieldType.ImagePath);
+
+        // Setting a path that does not exist on disk (e.g. a basename label from a ported bot)
+        // must NOT wipe the embedded bytes — otherwise the bot loses its template permanently.
+        f.Value = "btn.png";
+
+        Assert.True(node.Config.ContainsKey(TemplateMatchCore.TemplateImageKey),
+            "templateImage must be preserved when the path does not resolve to a readable file");
+        Assert.Equal("abc", node.Config[TemplateMatchCore.TemplateImageKey]);
+    }
+
+    [Fact]
+    public void ImagePath_SetToReadableFile_ClearsEmbeddedImage()
+    {
+        var node = Node();
+        node.Config[TemplateMatchCore.TemplateImageKey] = "abc";
+        var f = Field(node, ConfigFieldType.ImagePath);
+        var tempFile = Path.Combine(Path.GetTempPath(), $"cfvm_{Guid.NewGuid():N}.png");
+        try
+        {
+            File.WriteAllBytes(tempFile, new byte[] { 1, 2, 3 });
+
+            // Setting a path to a real readable file (e.g. after re-capturing) supersedes the embed.
+            f.Value = tempFile;
+
+            Assert.False(node.Config.ContainsKey(TemplateMatchCore.TemplateImageKey),
+                "templateImage must be cleared when a new readable source path is provided");
+        }
+        finally
+        {
+            try { File.Delete(tempFile); } catch { }
+        }
     }
 }

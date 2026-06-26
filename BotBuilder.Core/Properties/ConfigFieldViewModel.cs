@@ -40,8 +40,12 @@ public partial class ConfigFieldViewModel : ObservableObject
             _node.Config[Field.Key] = Coerce(value);
             if (Type == ConfigFieldType.ImagePath)
             {
-                // A newly chosen source path supersedes any embedded image; it re-embeds on the next save.
-                _node.Config.Remove(TemplateMatchCore.TemplateImageKey);
+                var newPath = _node.Config[Field.Key] as string;
+                if (!string.IsNullOrWhiteSpace(newPath) && File.Exists(newPath))
+                {
+                    // A new readable source supersedes any embedded image; it re-embeds on the next save.
+                    _node.Config.Remove(TemplateMatchCore.TemplateImageKey);
+                }
                 OnPropertyChanged(nameof(EmbeddedImageBase64));
             }
             OnPropertyChanged();
