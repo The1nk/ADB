@@ -302,7 +302,6 @@ using BotBuilder.Core.Properties;
 | `dotnet run --project BotBuilder` | Launch visual editor |
 | `dotnet run --project BotCapture` | Launch template image capture tool |
 | `dotnet run --project BotRunner -- --bot path\to\my.bot --target Main=process:notepad` | Run bot headlessly |
-| `dotnet run --project BotRunner -- --help` | Show BotRunner CLI help |
 | `dotnet clean ADB.slnx` | Remove build artifacts |
 
 ## BotRunner CLI
@@ -316,6 +315,10 @@ Options:
   --log-level debug|info|warn|error Log verbosity (default: info)
   --log-file <path>                 Write logs to file in addition to console
 ```
+
+There is **no `--help` flag** — `CommandLineArgs.Parse` rejects any unrecognized argument. Exit codes:
+`0` success, `1` unexpected error, `2` command-line/usage error (bad flag, missing `--bot`, malformed
+`--target`). `--target` values must be `Name=selector`; the first `=` splits them.
 
 Examples:
 ```bash
@@ -368,10 +371,20 @@ dotnet test ADB.slnx --collect:"XPlat Code Coverage"        # With code coverage
 ## Theme System (Light/Dark/High-Contrast)
 
 **AdbUi.Theme Library**
-- Centralized theme management: `ThemeManager.SetTheme(theme)`
+- Centralized theme management: `ThemeManager.Initialize()` at startup applies the persisted selection;
+  `ThemeManager.Apply(ThemeSelection)` switches and persists it. `ThemeSelection` is `System` (follow OS) |
+  `Light` | `Dark` | `HighContrast`.
 - Theme brushes defined in XAML (`Light.xaml`, `Dark.xaml`, `HighContrast.xaml`)
 - Theme resource keys: `WindowBackgroundBrush`, `SecondaryTextBrush`, `BorderBrush`, etc.
-- Default: follows Windows OS setting (`DPI.IsHighContrast` or user preference)
+- **Default is `Dark`** (`AppSettings.Theme`), not follow-OS — a fresh install opens dark so dark-mode users
+  aren't flash-banged on first launch. Users can pick `System`/`Light` explicitly.
+
+**Shared Settings File**
+- Both BotBuilder and BotCapture read/write `%AppData%/ADB/settings.json` via `JsonSettingsStore`
+  (atomic temp-file-then-rename write; missing/corrupt file falls back to defaults).
+- `AppSettings` is a general bag: `Theme` and `ExternalEditorCommand` (the command the Lua "Edit" button
+  runs, default `notepad $filename`). Both writers must **round-trip** existing settings (`Load() with { … }`)
+  so they don't clobber each other's fields.
 
 **WPF Control Templating Note**
 - ComboBox and ListBox dropdowns require full XAML templating for theme support (property bindings alone insufficient)
@@ -388,50 +401,69 @@ dotnet test ADB.slnx --collect:"XPlat Code Coverage"        # With code coverage
 
 ## .bot File Format
 
+Serialized by `BotSerializer` (`System.Text.Json`, **camelCase** property names, enums as strings). A
+`version` envelope (currently `"1.0"`) is written first and validated on load; an unknown version throws.
+
 **JSON Structure**
 ```json
 {
-  "id": "guid",
+  "version": "1.0",
+  "id": "5f0e…",
   "name": "My Bot",
   "description": "What this bot does",
   "targets": [
-    { "name": "Main", "selector": "process:notepad" },
-    { "name": "Android", "selector": "serial:emulator-5554" }
+    {
+      "id": "a1b2…",
+      "name": "Main",
+      "type": "Window",
+      "config": { "selector": "process:notepad" }
+    }
   ],
   "actions": [
     {
-      "id": "guid",
-      "typeKey": "control-flow:start",
-      "category": "Control Flow",
-      "x": 100,
-      "y": 100,
-      "config": {}
+      "id": "c3d4…",
+      "typeKey": "control.start",
+      "label": "Start",
+      "targetId": null,
+      "config": {},
+      "retry": null,
+      "position": { "x": 100, "y": 100 }
     },
     {
-      "id": "guid",
-      "typeKey": "input:click",
-      "category": "Input",
-      "x": 100,
-      "y": 200,
-      "config": {
-        "x": 500,
-        "y": 300,
-        "target": "Main"
-      }
+      "id": "e5f6…",
+      "typeKey": "input.click",
+      "label": "Click",
+      "targetId": "a1b2…",
+      "config": { "x": 500, "y": 300, "method": "SendInput" },
+      "retry": { "maxAttempts": 3, "delayMs": 250 },
+      "position": { "x": 100, "y": 200 }
     }
   ],
   "connections": [
     {
-      "fromActionId": "guid1",
-      "fromPort": "onSuccess",
-      "toActionId": "guid2",
-      "toPort": "in"
+      "id": "77aa…",
+      "sourceActionId": "c3d4…",
+      "sourcePort": "out",
+      "targetActionId": "e5f6…",
+      "targetPort": "in"
     }
   ],
-  "createdAt": "2025-06-05T12:00:00Z",
-  "updatedAt": "2025-06-05T12:00:00Z"
+  "nestedBots": [],
+  "createdAt": "2026-06-05T12:00:00Z",
+  "updatedAt": "2026-06-05T12:00:00Z"
 }
 ```
+
+Notes:
+- **Targets** carry `type` (`Window` | `AndroidDevice` | `Browser`) and a `config` bag whose `selector`
+  key holds the selector string. An action's `targetId` binds it to a target by id; `null` means "the sole
+  target" (see `TargetResolution`).
+- **Connections** use `sourceActionId`/`sourcePort` → `targetActionId`/`targetPort` (not `from*`/`to*`).
+- **Image actions** embed their template bytes: the config carries a base64 `templateImage` (preferred at
+  match time) plus the original `templatePath` as a fallback, so a `.bot` is self-contained and portable
+  without its source PNGs.
+- **`nestedBots`** is the flat reusable sub-bot library; only the root bot populates it. A Nested Bot card
+  references an entry via its config `nestedBotId`.
 
 ## Platform-Native Production Patterns
 
