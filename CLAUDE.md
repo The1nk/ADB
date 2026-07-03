@@ -10,6 +10,33 @@ ADB's public face — `README.md` above all — uses a deliberately **playful, i
 - **Never let the fun break the facts.** Every command, flag, selector format, version, and file path must stay accurate even when wrapped in a joke — a funny README that misleads is a bug. The grounding rules in the contracts below still apply: don't imply features, integrations, or behavior that don't exist in code.
 - **This CLAUDE.md and engineering docs stay straight.** This file, specs, and XML doc comments remain plain and precise — the voice is for the README and marketing surfaces, not the engineering reference.
 
+## Documentation Sync Contract
+
+**Docs are part of the change, not a follow-up.** Every change that alters observable behavior must update all
+three documentation surfaces **in the same unit of work**, so they never drift out of sync with the code:
+
+1. **`CLAUDE.md`** (this file) — the engineering reference. Plain and precise.
+2. **`README.md`** — the public overview. Keep the goblin voice; keep every fact accurate.
+3. **The wiki** (`ADB.wiki/` submodule → the GitHub wiki) — the detailed technical reference.
+
+**When this applies** — treat it as triggered by any change to: an action's set / TypeKey / config keys /
+defaults / ports, selector formats, the `.bot` file schema or serializer, the BotRunner CLI (flags, exit
+codes, behavior), the Lua host API / sandbox, the variable / interpolation model, target resolution, theming
+or the settings file, DPI/capture behavior, or the tech-stack versions. A pure internal refactor with no
+observable change needs no doc edit — but if you touched any of the above, doc drift **is a bug in that
+change**.
+
+**How to keep them consistent**
+- Update the specific page(s) that describe the thing you changed — don't just append. Fix stale examples,
+  defaults, and tables. Ground every claim in the code you just wrote.
+- The three surfaces must agree. If a fact lives in more than one, change it everywhere (config keys and
+  defaults especially — see the *Skill Advantage Contract* on centralizing repeated facts).
+- **The wiki is a separate git repo** mounted as the `ADB.wiki/` submodule (remote `ADB.wiki.git`). To update
+  it: edit files under `ADB.wiki/`, `commit` + `push` **in that repo** (default branch `master`), then bump
+  the submodule pointer in the main repo so the superproject references the new wiki commit.
+- Before calling a change done, re-read the doc edits against the actual diff and downgrade any claim the code
+  doesn't back to a TODO (or implement it).
+
 ## Tech Stack
 
 | Layer | Technology | Version | Purpose |
