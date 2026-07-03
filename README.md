@@ -21,10 +21,10 @@ Why click 10,000 times when a damn bot will click 10,001 and never complain? ADB
 
 ## Concepts (the lore)
 
-- **Bot** — a graph of action nodes wired together by success/failure paths, saved as a `.bot` file (JSON). It's a flowchart that gets off the couch and does the work.
+- **Bot** — a graph of action nodes wired together by success/failure paths, saved as a `.bot` file (JSON). It's a flowchart that gets off the couch and does the work. Template images are **embedded right in the file** (base64), so a `.bot` is self-contained — hand it to a friend and it still knows what the loot button looks like, no loose PNGs to lug around.
 - **Action** — one move (tap, click, type, find image, read text, run Lua, …), sorted into palette **categories**: Control Flow, Screen, Input, Window, Android, Browser, Data, Scripting. Mix and match into combos.
 - **Target** — the poor victim of your automation. Three kinds, summoned with a selector string:
-  - **Window** — `process:<name>` or `title:<window title>`
+  - **Window** — `process:<name>`, `title:<window title>`, or `hwnd:<handle>` (e.g. `hwnd:0x1A2B`)
   - **Android** — `serial:<device serial>`
   - **Browser** — `browser:<engine>` where engine is `chromium`, `firefox`, or `webkit`
 
