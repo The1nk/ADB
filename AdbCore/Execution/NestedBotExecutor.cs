@@ -53,9 +53,14 @@ public sealed class NestedBotExecutor : IActionExecutor
         {
             var childTargets = await BuildChildTargetsAsync(nestedBot, run, sendTargets, createdHandles, ct);
 
+            // Prefix every line this nested run emits so the log shows which bot it came from. The prefix
+            // wraps the sink we were handed, so deeper nesting composes automatically (e.g. "[Outer] [Inner] ").
+            var prefix = $"[{(string.IsNullOrWhiteSpace(nestedBot.Name) ? "Nested" : nestedBot.Name)}] ";
+            void ChildLog(string message) => context.Log(prefix + message);
+
             var childOptions = new ExecutionOptions
             {
-                Log = context.Log,
+                Log = ChildLog,
                 NestedBotLibrary = run.NestedBots,
                 NestedAncestry = run.NestedAncestry.Append(nestedId).ToList(),
                 InitialVariables = sendVars ? new Dictionary<string, object>(run.Variables) : null,
@@ -63,7 +68,12 @@ public sealed class NestedBotExecutor : IActionExecutor
                 TargetBinder = run.TargetBinder,
             };
 
-            var result = await new BotExecutor(_executors).RunAsync(nestedBot, childOptions, progress: null, ct);
+            // Nested actions don't reach the runner's progress channel, so synthesize their trace as prefixed
+            // log messages. Format mirrors BotBuilder.Core RunLogEntry.Display's Action branch (AdbCore can't
+            // reference the editor). Synchronous adapter — keeps lines in execution order.
+            var childProgress = new DelegateProgress<ExecutionProgress>(p => ChildLog(FormatActionLine(p)));
+
+            var result = await new BotExecutor(_executors).RunAsync(nestedBot, childOptions, childProgress, ct);
 
             if (receiveVars)
             {
@@ -135,6 +145,25 @@ public sealed class NestedBotExecutor : IActionExecutor
             }
         }
         return parentByName;
+    }
+
+    /// <summary>One trace line for an executed nested action. Mirrors BotBuilder.Core's
+    /// <c>RunLogEntry.Display</c> Action rendering so nested lines read like top-level ones.</summary>
+    private static string FormatActionLine(ExecutionProgress p)
+    {
+        var name = string.IsNullOrEmpty(p.ActionLabel) ? p.TypeKey : p.ActionLabel;
+        return p.Success
+            ? $"✓ {name}"
+            : $"✗ {name}" + (string.IsNullOrEmpty(p.ErrorMessage) ? string.Empty : $": {p.ErrorMessage}");
+    }
+
+    /// <summary>Synchronous <see cref="IProgress{T}"/> so synthesized log lines stay in execution order
+    /// (mirrors <c>RunnerApp.InlineProgress</c>; <see cref="Progress{T}"/> would post asynchronously).</summary>
+    private sealed class DelegateProgress<T> : IProgress<T>
+    {
+        private readonly Action<T> _report;
+        public DelegateProgress(Action<T> report) => _report = report;
+        public void Report(T value) => _report(value);
     }
 
     /// <summary>Best-effort disposal of handles this nested run created (mirrors the runner's teardown):

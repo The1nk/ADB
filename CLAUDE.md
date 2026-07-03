@@ -490,7 +490,9 @@ Notes:
   match time) plus the original `templatePath` as a fallback, so a `.bot` is self-contained and portable
   without its source PNGs.
 - **`nestedBots`** is the flat reusable sub-bot library; only the root bot populates it. A Nested Bot card
-  references an entry via its config `nestedBotId`.
+  references an entry via its config `nestedBotId`. During a run, actions inside a nested bot emit a
+  `[<BotName>]`-prefixed trace to the log sink (prefixes compose for deep nesting) — `NestedBotExecutor`
+  wraps the child's `Log` sink and feeds the child a synchronous progress→log adapter.
 
 ## Platform-Native Production Patterns
 
