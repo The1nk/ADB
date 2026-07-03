@@ -47,7 +47,10 @@ public sealed class ThemeManager
     {
         try
         {
-            _store.Save(new AppSettings { Theme = selection });
+            // Round-trip the existing settings so sibling fields (e.g. ExternalEditorCommand) survive a theme
+            // change. The settings file is a shared bag; constructing a fresh AppSettings here would reset every
+            // field we don't set back to its default.
+            _store.Save(_store.Load() with { Theme = selection });
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {

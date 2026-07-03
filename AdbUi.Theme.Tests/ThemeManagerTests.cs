@@ -50,6 +50,27 @@ public class ThemeManagerTests
     }
 
     [Fact]
+    public void Apply_preserves_unrelated_settings_it_does_not_own()
+    {
+        // The settings file is a shared bag (theme + external editor command + future fields). Persisting a
+        // theme change must round-trip the existing settings, not clobber sibling fields back to their defaults.
+        var applier = new FakeThemeApplier();
+        var probe = new FakeOsThemeProbe { Current = AppTheme.Light };
+        var store = new FakeSettingsStore(new AppSettings
+        {
+            Theme = ThemeSelection.System,
+            ExternalEditorCommand = "code --wait $filename",
+        });
+        var mgr = new ThemeManager(store, probe, applier);
+        mgr.Initialize();
+
+        mgr.Apply(ThemeSelection.Dark);
+
+        Assert.Equal(ThemeSelection.Dark, store.Load().Theme);
+        Assert.Equal("code --wait $filename", store.Load().ExternalEditorCommand);
+    }
+
+    [Fact]
     public void Os_change_reapplies_while_following_System()
     {
         var (mgr, applier, probe, _) = Build(ThemeSelection.System, osTheme: AppTheme.Light);
