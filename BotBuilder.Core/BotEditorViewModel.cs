@@ -81,6 +81,16 @@ public partial class BotEditorViewModel : ObservableObject
 
     public NodeViewModel AddNode(string typeKey, double x, double y)
     {
+        // At most one Error Handler per bot: the engine routes unhandled failures to the first one, so a second
+        // would be dead weight. Rather than add a duplicate, surface the existing handler (select it) so the
+        // user sees it's already on the canvas.
+        if (typeKey == ErrorHandlerAction.Key
+            && Nodes.FirstOrDefault(n => n.TypeKey == ErrorHandlerAction.Key) is { } existing)
+        {
+            Select(existing);
+            return existing;
+        }
+
         var definition = _registry.Get(typeKey);
         var node = NodeViewModel.FromDefinition(definition, Guid.NewGuid(), definition.DisplayName, x, y);
         node.TargetId = AutoTargetFor(definition.Category);
