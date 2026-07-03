@@ -61,6 +61,19 @@ public class BotExecutor
         var state = new RunState(graph, _executors, _controlFlow, context, options.Log ?? (_ => { }), progress);
         var outcome = await WalkAsync(state, entry, ct);
 
+        // Global Error Handler: when the walk ends in an unhandled failure and the bot has an Error Handler
+        // node, route into it (a fresh walk from that node) rather than aborting. The handler's own flow can
+        // wire back to an earlier node to build a reboot/retry loop; if that flow fails again, we re-enter the
+        // handler. Iterative here (no stack growth) and cancellable via ct — same shape as an always-on Loop.
+        // With no Error Handler this loop never runs, so the failed outcome bubbles exactly as before.
+        var errorHandler = graph.ErrorHandler;
+        while (!outcome.Success && errorHandler is not null)
+        {
+            SeedErrorContext(context, graph, outcome);
+            state.Log($"⚠ unhandled error → Error Handler: {outcome.ErrorMessage}");
+            outcome = await WalkAsync(state, errorHandler, ct);
+        }
+
         return new ExecutionResult
         {
             Success = outcome.Success,
@@ -69,6 +82,17 @@ public class BotExecutor
             ActionsExecuted = state.ActionsExecuted,
             FinalVariables = new Dictionary<string, object>(context.Variables),
         };
+    }
+
+    /// <summary>Publishes an unhandled failure's details as run variables the Error Handler flow can read
+    /// via <c>${error.message}</c> etc. before it runs.</summary>
+    private static void SeedErrorContext(BotExecutionContext context, BotGraph graph, WalkOutcome outcome)
+    {
+        var failed = outcome.FailedActionId is Guid id ? graph.Find(id) : null;
+        context.Variables["error.message"] = outcome.ErrorMessage ?? string.Empty;
+        context.Variables["error.action"] = failed?.Label ?? string.Empty;
+        context.Variables["error.actionId"] = outcome.FailedActionId?.ToString() ?? string.Empty;
+        context.Variables["error.typeKey"] = failed?.TypeKey ?? string.Empty;
     }
 
     /// <summary>Walks forward from <paramref name="start"/>, following output ports until the path

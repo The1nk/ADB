@@ -42,14 +42,21 @@ public sealed class BotGraph
         }
 
         // A dedicated Start node is always the entry point when present; only when a bot has none do we fall
-        // back to the first action with no incoming edge (older bots, or fragments without a Start).
+        // back to the first action with no incoming edge (older bots, or fragments without a Start). The Error
+        // Handler is never an entry point — it has no input port and is reached only via the error cascade.
         EntryPoint = bot.Actions.FirstOrDefault(a => a.TypeKey == StartAction.Key)
-            ?? bot.Actions.FirstOrDefault(a => !withIncoming.Contains(a.Id));
+            ?? bot.Actions.FirstOrDefault(a => !withIncoming.Contains(a.Id) && a.TypeKey != ErrorHandlerAction.Key);
+
+        ErrorHandler = bot.Actions.FirstOrDefault(a => a.TypeKey == ErrorHandlerAction.Key);
     }
 
     /// <summary>The entry point: the bot's Start node when present, otherwise the first action (document
     /// order) with no incoming connection, or null when every action has one.</summary>
     public BotAction? EntryPoint { get; }
+
+    /// <summary>The bot's Error Handler node when present (first wins on duplicates), else null. Unhandled
+    /// failures route here instead of aborting the run (see <see cref="BotExecutor"/>).</summary>
+    public BotAction? ErrorHandler { get; }
 
     /// <summary>The action with the given id, or null.</summary>
     public BotAction? Find(Guid id) => _byId.GetValueOrDefault(id);
