@@ -17,6 +17,7 @@ public static class BuiltInActions
 
         Add(new StartAction(), definitions, executors);
         Add(new EndAction(), definitions, executors);
+        Add(new ErrorHandlerAction(), definitions, executors);
         Add(new LogAction(), definitions, executors);
         Add(new DelayAction(), definitions, executors);
         Add(new BranchAction(), definitions, executors);

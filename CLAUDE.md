@@ -202,6 +202,15 @@ ADB follows a **three-layer architecture**:
 4. Call `RunAsync()`: recursive walk from entry point → execute action → follow success/failure port
 5. Return `ExecutionResult` with success status and logs
 
+**Error handling / Error Handler node.** A failed action follows its own `onFailure` port when wired; otherwise
+the walk returns failure. A bot may hold **one** `control.errorHandler` node (`ErrorHandlerAction`) — a no-op
+marker with no input port and a single `out` port. When the top-level walk ends in an unhandled failure and
+`BotGraph.ErrorHandler` is set, `RunAsync` seeds `error.message` / `error.action` / `error.actionId` /
+`error.typeKey` into the run variables and re-walks from the Error Handler node (looping — so a recovery flow
+wired back to an earlier node yields a reboot/retry loop; iterative, cancellable). With no Error Handler the
+behavior is unchanged. `Run Parallel` aggregates branch failures at the Join first; only a resulting halt
+reaches the Error Handler.
+
 ## Key Modules
 
 | Module | Location | Purpose |
