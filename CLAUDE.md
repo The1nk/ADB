@@ -495,9 +495,13 @@ Notes:
   key holds the selector string. An action's `targetId` binds it to a target by id; `null` means "the sole
   target" (see `TargetResolution`).
 - **Connections** use `sourceActionId`/`sourcePort` → `targetActionId`/`targetPort` (not `from*`/`to*`).
-- **Image actions** embed their template bytes: the config carries a base64 `templateImage` (preferred at
-  match time) plus the original `templatePath` as a fallback, so a `.bot` is self-contained and portable
-  without its source PNGs.
+- **Image actions** embed their template bytes: the config carries a base64 `templateImage` (the **only**
+  match source — there is no file-path fallback) plus a `templateName` display label. Templates come from
+  the **Capture** button, which captures to a temp file, embeds the bytes, and deletes the temp file — no
+  PNG ever lands in the working directory, and a `.bot` is fully self-contained. The legacy `templatePath`
+  key is **migrated away on load** (`TemplateEmbedder.Migrate`: embed a still-present source one last time,
+  derive `templateName` from its basename, drop the path); a bot referencing a missing external PNG loses
+  that image.
 - **`nestedBots`** is the flat reusable sub-bot library; only the root bot populates it. A Nested Bot card
   references an entry via its config `nestedBotId`. During a run, actions inside a nested bot emit a
   `[<BotName>]`-prefixed trace to the log sink (prefixes compose for deep nesting) — `NestedBotExecutor`

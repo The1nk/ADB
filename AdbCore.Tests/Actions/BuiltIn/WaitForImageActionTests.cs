@@ -14,8 +14,6 @@ public class WaitForImageActionTests
     private sealed class FlakyMatcher(int missesBeforeHit, MatchResult hit) : ITemplateMatcher
     {
         public int Calls { get; private set; }
-        public MatchResult? Match(System.Drawing.Bitmap haystack, string templatePath, double minConfidence)
-            => ++Calls > missesBeforeHit ? hit : null;
         public MatchResult? Match(System.Drawing.Bitmap haystack, byte[] templatePng, double minConfidence)
             => ++Calls > missesBeforeHit ? hit : null;
     }
@@ -32,7 +30,7 @@ public class WaitForImageActionTests
     private static BotAction WaitAction(Guid id, int timeoutMs, int pollMs)
         => new() { TargetId = id, Config =
         {
-            [ScreenActionBase.TemplatePathKey] = "t.png",
+            [TemplateMatchCore.TemplateImageKey] = System.Convert.ToBase64String(new byte[] { 1, 2, 3 }),
             [WaitForImageAction.TimeoutMsKey] = timeoutMs,
             [WaitForImageAction.PollIntervalMsKey] = pollMs,
         } };

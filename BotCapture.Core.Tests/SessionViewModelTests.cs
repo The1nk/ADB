@@ -1,3 +1,4 @@
+using System.Drawing;
 using AdbCore.Screen;
 using BotCapture.Core;
 
@@ -7,6 +8,16 @@ public class SessionViewModelTests
 {
     private static SessionViewModel Make(FakeTemplateMatcher matcher) =>
         new(matcher, saveFolder: @"C:\bots");
+
+    // Retest reads the saved template from disk as bytes (the matcher is embedded-bytes-only), so tests
+    // that exercise the actual match/no-match path need a real PNG file on disk, not a bogus path.
+    private static string CreateTempPng()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"botcap_sessionvm_test_{Guid.NewGuid():N}.png");
+        using var bmp = new Bitmap(4, 4);
+        bmp.Save(path, System.Drawing.Imaging.ImageFormat.Png);
+        return path;
+    }
 
     [Fact]
     public void Add_AppendsRowWithDetails()
@@ -42,25 +53,44 @@ public class SessionViewModelTests
         var matcher = new FakeTemplateMatcher { Next = new MatchResult(0, 0, 4, 4, 0.97) };
         var vm = Make(matcher);
         var source = new FakeCaptureSource();
-        var row = vm.Add(@"C:\bots\a.png", 0.80, source);
+        var path = CreateTempPng();
 
-        vm.Retest(row);
+        try
+        {
+            var row = vm.Add(path, 0.80, source);
 
-        Assert.True(row.LastRetestMatched);
-        Assert.Equal(1, source.CaptureCalls);
-        Assert.Equal(0.80, matcher.LastMinConfidence, 3);
-        Assert.Equal(@"C:\bots\a.png", matcher.LastTemplatePath);
+            vm.Retest(row);
+
+            Assert.True(row.LastRetestMatched);
+            Assert.Equal(1, source.CaptureCalls);
+            Assert.Equal(0.80, matcher.LastMinConfidence, 3);
+            Assert.NotNull(matcher.LastTemplateBytes); // read from disk as bytes — matcher is embedded-bytes-only
+            Assert.NotEmpty(matcher.LastTemplateBytes!);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
     }
 
     [Fact]
     public void Retest_NoMatch_SetsRed()
     {
         var vm = Make(new FakeTemplateMatcher { Next = null });
-        var row = vm.Add(@"C:\bots\a.png", 0.95, new FakeCaptureSource());
+        var path = CreateTempPng();
 
-        vm.Retest(row);
+        try
+        {
+            var row = vm.Add(path, 0.95, new FakeCaptureSource());
 
-        Assert.False(row.LastRetestMatched);
+            vm.Retest(row);
+
+            Assert.False(row.LastRetestMatched);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
     }
 
     [Fact]

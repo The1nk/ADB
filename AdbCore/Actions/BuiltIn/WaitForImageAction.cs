@@ -37,7 +37,7 @@ public sealed class WaitForImageAction : ScreenActionBase
 
     protected override IEnumerable<ConfigField> ActionConfigFields =>
     [
-        TemplatePathField(),
+        TemplateNameField(),
         ConfidenceField(),
         ResultVarField(),
         new ConfigField { Key = TimeoutMsKey, Label = "Timeout (ms)", Type = ConfigFieldType.Number, DefaultValue = DefaultTimeoutMs },

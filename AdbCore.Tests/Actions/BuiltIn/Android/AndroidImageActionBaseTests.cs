@@ -39,14 +39,20 @@ public class AndroidImageActionBaseTests
 
     private static ActionExecutionContext Exec(BotAction action) => new(action, new BotExecutionContext(), _ => { });
 
+    // CaptureAndMatch short-circuits to null (without calling the matcher) when there's no embedded
+    // template, so ROI-crop tests below — which only care about the crop/offset math — need a real (if
+    // arbitrary) embedded image to reach the matcher.
+    private static readonly string EmbeddedImage = System.Convert.ToBase64String(new byte[] { 1, 2, 3 });
+
     [Fact]
     public void CaptureAndMatch_NoRegion_PassesFullFrame_AndReturnsMatchUnchanged()
     {
         var device = new FakeAndroidDevice { ScreenshotBytes = PngBytes(1080, 1920) };
         var matcher = new FakeTemplateMatcher(new MatchResult(50, 60, 10, 8, 0.95));
         var action = new TestAndroidImageAction(matcher);
+        var botAction = new BotAction { Config = { [TemplateMatchCore.TemplateImageKey] = EmbeddedImage } };
 
-        var result = action.CallCaptureAndMatch(Exec(new BotAction()), device, 0.8);
+        var result = action.CallCaptureAndMatch(Exec(botAction), device, 0.8);
 
         Assert.Equal(1080, matcher.LastHaystackWidth);
         Assert.Equal(1920, matcher.LastHaystackHeight);
@@ -62,6 +68,7 @@ public class AndroidImageActionBaseTests
         var action = new TestAndroidImageAction(matcher);
         var botAction = new BotAction { Config =
         {
+            [TemplateMatchCore.TemplateImageKey] = EmbeddedImage,
             [TemplateMatchCore.RegionXKey] = 100, [TemplateMatchCore.RegionYKey] = 40,
             [TemplateMatchCore.RegionWidthKey] = 300, [TemplateMatchCore.RegionHeightKey] = 200,
         } };

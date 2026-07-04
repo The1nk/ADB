@@ -21,7 +21,7 @@ public class TemplateEmbedRoundTripTests
     }
 
     [Fact]
-    public void OpenPathBasedBot_ThenSave_EmbedsImageAndStripsPathToBasename()
+    public void OpenPathBasedBot_ThenSave_EmbedsImageAndMigratesPathToTemplateName()
     {
         var png = WriteTempPng();
         var srcBotPath = Path.Combine(Path.GetTempPath(), $"src_{Guid.NewGuid():N}.bot");
@@ -48,7 +48,8 @@ public class TemplateEmbedRoundTripTests
             var cfg = reloaded.Actions[0].Config;
             Assert.True(cfg.ContainsKey(TemplateMatchCore.TemplateImageKey));
             Assert.Equal(Path.GetFileName(png),
-                AdbCore.Actions.ConfigValues.AsString(cfg[TemplateMatchCore.TemplatePathKey]));
+                AdbCore.Actions.ConfigValues.AsString(cfg[TemplateMatchCore.TemplateNameKey]));
+            Assert.False(cfg.ContainsKey(TemplateMatchCore.TemplatePathKey));
         }
         finally
         {

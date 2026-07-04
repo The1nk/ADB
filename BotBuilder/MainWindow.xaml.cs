@@ -579,7 +579,7 @@ public partial class MainWindow : Window
             return;
         }
 
-        var isImage = field.Type == AdbCore.Actions.ConfigFieldType.ImagePath;
+        var isImage = field.Type == AdbCore.Actions.ConfigFieldType.ImageTemplate;
         var dialog = new OpenFileDialog
         {
             Filter = isImage
@@ -915,34 +915,41 @@ public partial class MainWindow : Window
             return;
         }
 
-        // Output path: the field's current value, or a Save dialog if it's empty.
-        var outputPath = field.Value as string;
-        if (string.IsNullOrWhiteSpace(outputPath))
-        {
-            var dialog = new SaveFileDialog { Filter = "PNG image|*.png", DefaultExt = ".png", AddExtension = true };
-            if (dialog.ShowDialog(this) != true)
-            {
-                return;
-            }
-            outputPath = dialog.FileName;
-        }
+        // Capture into a temp file we embed and then delete — templates live in the .bot, never on disk.
+        var dir = Path.Combine(Path.GetTempPath(), "ADB", "Captures");
+        Directory.CreateDirectory(dir);
+        var tempPath = Path.Combine(dir, Guid.NewGuid().ToString("N") + ".png");
 
         // Capture the sibling confidence field now (the selection may change while BotCapture is open).
         var confidenceField = ConfidenceFieldOrNull();
 
-        CaptureLauncher.Launch(exe, outputPath, saved =>
+        CaptureLauncher.Launch(exe, tempPath, saved =>
         {
-            if (!saved)
+            try
             {
-                return; // cancelled — leave the field unchanged
-            }
+                if (!saved || !File.Exists(tempPath))
+                {
+                    return; // cancelled — leave the field unchanged
+                }
 
-            field.Value = outputPath;
-            if (confidenceField is not null && BotBuilder.Core.Integration.ConfidenceSidecarReader.Read(outputPath) is double c)
+                field.SetCapturedTemplate(File.ReadAllBytes(tempPath));
+                if (confidenceField is not null &&
+                    BotBuilder.Core.Integration.ConfidenceSidecarReader.Read(tempPath) is double c)
+                {
+                    confidenceField.Value = c;
+                }
+            }
+            finally
             {
-                confidenceField.Value = c;
+                TryDelete(tempPath);
+                TryDelete(tempPath + ".meta.json");
             }
         });
+    }
+
+    private static void TryDelete(string path)
+    {
+        try { if (File.Exists(path)) File.Delete(path); } catch { /* best-effort temp cleanup */ }
     }
 
     private static string? ResolveCapture()

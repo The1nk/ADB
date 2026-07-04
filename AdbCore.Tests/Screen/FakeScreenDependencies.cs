@@ -21,18 +21,8 @@ internal sealed class FakeTemplateMatcher(MatchResult? result) : ITemplateMatche
 {
     public int LastHaystackWidth { get; private set; }
     public int LastHaystackHeight { get; private set; }
-    public string? LastTemplatePath { get; private set; }
     public double LastConfidence { get; private set; }
     public byte[]? LastTemplateBytes { get; private set; }
-
-    public MatchResult? Match(Bitmap haystack, string templatePath, double minConfidence)
-    {
-        LastHaystackWidth = haystack.Width;
-        LastHaystackHeight = haystack.Height;
-        LastTemplatePath = templatePath;
-        LastConfidence = minConfidence;
-        return result;
-    }
 
     public MatchResult? Match(Bitmap haystack, byte[] templatePng, double minConfidence)
     {

@@ -23,7 +23,7 @@ public sealed class AndroidAssertImageAbsentAction : AndroidImageActionBase
 
     protected override IEnumerable<ConfigField> ActionConfigFields =>
     [
-        TemplateMatchCore.TemplatePathField(),
+        TemplateMatchCore.TemplateNameField(),
         TemplateMatchCore.ConfidenceField(),
     ];
 

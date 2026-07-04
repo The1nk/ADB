@@ -1,4 +1,3 @@
-using System.IO;
 using System.Text.Json;
 using AdbCore.Actions;
 using AdbCore.Actions.BuiltIn;
@@ -124,41 +123,33 @@ public class ConfigFieldViewModelTests
     }
 
     [Fact]
-    public void ImagePath_SetToNonExistentPath_PreservesEmbeddedImage()
+    public void ImageTemplate_SetValue_NeverClearsEmbeddedImage()
     {
+        // ImageTemplate is a pure name label now — the field carries no file-path semantics, so
+        // setting it (to anything, existing file or not) must never touch the embedded bytes.
         var node = Node();
         node.Config[TemplateMatchCore.TemplateImageKey] = "abc";
-        var f = Field(node, ConfigFieldType.ImagePath);
+        var f = Field(node, ConfigFieldType.ImageTemplate);
 
-        // Setting a path that does not exist on disk (e.g. a basename label from a ported bot)
-        // must NOT wipe the embedded bytes — otherwise the bot loses its template permanently.
         f.Value = "btn.png";
 
         Assert.True(node.Config.ContainsKey(TemplateMatchCore.TemplateImageKey),
-            "templateImage must be preserved when the path does not resolve to a readable file");
+            "templateImage must be preserved when the template-name label changes");
         Assert.Equal("abc", node.Config[TemplateMatchCore.TemplateImageKey]);
     }
 
     [Fact]
-    public void ImagePath_SetToReadableFile_ClearsEmbeddedImage()
+    public void SetCapturedTemplate_StoresEmbeddedBase64AndRaisesPreviewChange()
     {
         var node = Node();
-        node.Config[TemplateMatchCore.TemplateImageKey] = "abc";
-        var f = Field(node, ConfigFieldType.ImagePath);
-        var tempFile = Path.Combine(Path.GetTempPath(), $"cfvm_{Guid.NewGuid():N}.png");
-        try
-        {
-            File.WriteAllBytes(tempFile, new byte[] { 1, 2, 3 });
+        var f = Field(node, ConfigFieldType.ImageTemplate);
+        var raised = false;
+        f.PropertyChanged += (_, e) => raised |= e.PropertyName == nameof(ConfigFieldViewModel.EmbeddedImageBase64);
 
-            // Setting a path to a real readable file (e.g. after re-capturing) supersedes the embed.
-            f.Value = tempFile;
+        f.SetCapturedTemplate(new byte[] { 1, 2, 3 });
 
-            Assert.False(node.Config.ContainsKey(TemplateMatchCore.TemplateImageKey),
-                "templateImage must be cleared when a new readable source path is provided");
-        }
-        finally
-        {
-            try { File.Delete(tempFile); } catch { }
-        }
+        Assert.Equal(Convert.ToBase64String(new byte[] { 1, 2, 3 }), node.Config[TemplateMatchCore.TemplateImageKey]);
+        Assert.Equal(Convert.ToBase64String(new byte[] { 1, 2, 3 }), f.EmbeddedImageBase64);
+        Assert.True(raised);
     }
 }

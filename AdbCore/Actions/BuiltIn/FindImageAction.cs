@@ -32,7 +32,7 @@ public sealed class FindImageAction : ScreenActionBase
 
     protected override IEnumerable<ConfigField> ActionConfigFields =>
     [
-        TemplatePathField(),
+        TemplateNameField(),
         ConfidenceField(),
         ResultVarField(),
     ];
