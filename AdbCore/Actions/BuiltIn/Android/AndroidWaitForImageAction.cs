@@ -30,7 +30,7 @@ public sealed class AndroidWaitForImageAction : AndroidImageActionBase
 
     protected override IEnumerable<ConfigField> ActionConfigFields =>
     [
-        TemplateMatchCore.TemplatePathField(),
+        TemplateMatchCore.TemplateNameField(),
         TemplateMatchCore.ConfidenceField(),
         TemplateMatchCore.ResultVarField(),
         new ConfigField { Key = TimeoutMsKey, Label = "Timeout (ms)", Type = ConfigFieldType.Number, DefaultValue = DefaultTimeoutMs },

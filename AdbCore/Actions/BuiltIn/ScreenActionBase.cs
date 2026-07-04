@@ -61,7 +61,7 @@ public abstract class ScreenActionBase : IActionDefinition, IActionExecutor
     public abstract Task<ActionResult> ExecuteAsync(ActionExecutionContext context, CancellationToken ct);
 
     // Shared config-field factories for the match actions.
-    protected static ConfigField TemplatePathField() => TemplateMatchCore.TemplatePathField();
+    protected static ConfigField TemplateNameField() => TemplateMatchCore.TemplateNameField();
     protected static ConfigField ConfidenceField() => TemplateMatchCore.ConfidenceField();
     protected static ConfigField ResultVarField() => TemplateMatchCore.ResultVarField();
 

@@ -12,6 +12,7 @@ namespace AdbCore.Actions.BuiltIn;
 public static class TemplateMatchCore
 {
     public const string TemplatePathKey = "templatePath";
+    public const string TemplateNameKey = "templateName";
     public const string TemplateImageKey = "templateImage";
     public const string ConfidenceKey = "confidence";
     public const string ResultVarKey = "resultVar";
@@ -24,7 +25,7 @@ public static class TemplateMatchCore
     public const double DefaultConfidence = 0.8;
     public const string DefaultResultVar = "match";
 
-    public static ConfigField TemplatePathField() => new() { Key = TemplatePathKey, Label = "Template Image", Type = ConfigFieldType.ImagePath };
+    public static ConfigField TemplateNameField() => new() { Key = TemplateNameKey, Label = "Template Name", Type = ConfigFieldType.ImageTemplate };
     public static ConfigField ConfidenceField() => new() { Key = ConfidenceKey, Label = "Confidence", Type = ConfigFieldType.Number, DefaultValue = DefaultConfidence };
     public static ConfigField ResultVarField() => new() { Key = ResultVarKey, Label = "Result Variable", Type = ConfigFieldType.String, DefaultValue = DefaultResultVar };
 

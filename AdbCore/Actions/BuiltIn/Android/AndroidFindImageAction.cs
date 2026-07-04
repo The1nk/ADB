@@ -25,7 +25,7 @@ public sealed class AndroidFindImageAction : AndroidImageActionBase
 
     protected override IEnumerable<ConfigField> ActionConfigFields =>
     [
-        TemplateMatchCore.TemplatePathField(),
+        TemplateMatchCore.TemplateNameField(),
         TemplateMatchCore.ConfidenceField(),
         TemplateMatchCore.ResultVarField(),
     ];

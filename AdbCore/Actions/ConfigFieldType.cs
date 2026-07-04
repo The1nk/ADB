@@ -9,5 +9,5 @@ public enum ConfigFieldType
     Boolean,
     Enum,
     FilePath,
-    ImagePath,
+    ImageTemplate,
 }

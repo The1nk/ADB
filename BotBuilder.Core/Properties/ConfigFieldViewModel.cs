@@ -38,14 +38,8 @@ public partial class ConfigFieldViewModel : ObservableObject
         set
         {
             _node.Config[Field.Key] = Coerce(value);
-            if (Type == ConfigFieldType.ImagePath)
+            if (Type == ConfigFieldType.ImageTemplate)
             {
-                var newPath = _node.Config[Field.Key] as string;
-                if (!string.IsNullOrWhiteSpace(newPath) && File.Exists(newPath))
-                {
-                    // A new readable source supersedes any embedded image; it re-embeds on the next save.
-                    _node.Config.Remove(TemplateMatchCore.TemplateImageKey);
-                }
                 OnPropertyChanged(nameof(EmbeddedImageBase64));
             }
             OnPropertyChanged();
@@ -53,11 +47,20 @@ public partial class ConfigFieldViewModel : ObservableObject
         }
     }
 
-    /// <summary>For an ImagePath field, the companion embedded base64 image (templateImage), or null —
+    /// <summary>For an ImageTemplate field, the companion embedded base64 image (templateImage), or null —
     /// lets the preview render an embedded template even when the original source file is gone.</summary>
     public string? EmbeddedImageBase64
         => _node.Config.TryGetValue(TemplateMatchCore.TemplateImageKey, out var v)
            && AdbCore.Actions.ConfigValues.AsString(v) is { Length: > 0 } s ? s : null;
+
+    /// <summary>Stores a freshly captured template as the node's embedded base64 image and refreshes the
+    /// preview. Called by the Capture button — templates are embedded, never written to a working file.</summary>
+    public void SetCapturedTemplate(byte[] png)
+    {
+        _node.Config[TemplateMatchCore.TemplateImageKey] = Convert.ToBase64String(png);
+        OnPropertyChanged(nameof(EmbeddedImageBase64));
+        _onChanged();
+    }
 
     private object? Normalize(object? raw)
     {

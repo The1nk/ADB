@@ -29,7 +29,7 @@ public sealed class AssertImageAbsentAction : ScreenActionBase
 
     protected override IEnumerable<ConfigField> ActionConfigFields =>
     [
-        TemplatePathField(),
+        TemplateNameField(),
         ConfidenceField(),
     ];
 

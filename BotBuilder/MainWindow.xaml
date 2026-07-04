@@ -76,12 +76,10 @@
                 </DockPanel>
             </StackPanel>
         </DataTemplate>
-        <DataTemplate x:Key="FieldImagePath">
+        <DataTemplate x:Key="FieldImageTemplate">
             <StackPanel Margin="0,4">
                 <TextBlock Text="{Binding Label}" FontSize="11" Foreground="{DynamicResource SecondaryTextBrush}" />
                 <DockPanel>
-                    <Button DockPanel.Dock="Right" Content="Browse..." Margin="4,0,0,0" Padding="6,0"
-                            Click="BrowseField_Click" />
                     <Button DockPanel.Dock="Right" Content="Capture" Margin="4,0,0,0" Padding="6,0"
                             Click="CaptureField_Click" />
                     <TextBox Text="{Binding Value, UpdateSourceTrigger=PropertyChanged}" />
@@ -107,7 +105,7 @@
             BooleanTemplate="{StaticResource FieldBoolean}"
             EnumTemplate="{StaticResource FieldEnum}"
             FilePathTemplate="{StaticResource FieldFilePath}"
-            ImagePathTemplate="{StaticResource FieldImagePath}" />
+            ImageTemplateTemplate="{StaticResource FieldImageTemplate}" />
     </Window.Resources>
     <DockPanel>
         <Menu DockPanel.Dock="Top">

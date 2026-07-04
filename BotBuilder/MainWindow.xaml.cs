@@ -579,7 +579,7 @@ public partial class MainWindow : Window
             return;
         }
 
-        var isImage = field.Type == AdbCore.Actions.ConfigFieldType.ImagePath;
+        var isImage = field.Type == AdbCore.Actions.ConfigFieldType.ImageTemplate;
         var dialog = new OpenFileDialog
         {
             Filter = isImage
