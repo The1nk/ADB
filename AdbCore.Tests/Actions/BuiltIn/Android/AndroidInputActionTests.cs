@@ -134,4 +134,59 @@ public class AndroidInputActionTests
 
         Assert.Equal("text  ", dev.Calls.Single()); // "text " + the space argument
     }
+
+    [Fact]
+    public async Task PressKey_ResolvesNameAndRepeatsByCount()
+    {
+        var action = new BotAction { Config = { ["key"] = "Backspace", ["count"] = 3 } };
+        var (ctx, dev) = WithDevice(action);
+
+        var r = await new PressKeyAction().ExecuteAsync(ctx, default);
+
+        Assert.True(r.Success);
+        Assert.Equal("keyevent 67 3", dev.Calls.Single());
+    }
+
+    [Fact]
+    public async Task PressKey_DefaultsToBackspaceCountOne()
+    {
+        var action = new BotAction(); // no config
+        var (ctx, dev) = WithDevice(action);
+
+        await new PressKeyAction().ExecuteAsync(ctx, default);
+
+        Assert.Equal("keyevent 67 1", dev.Calls.Single());
+    }
+
+    [Fact]
+    public async Task PressKey_CountBelowOne_ClampsToOne()
+    {
+        var action = new BotAction { Config = { ["key"] = "Enter", ["count"] = 0 } };
+        var (ctx, dev) = WithDevice(action);
+
+        await new PressKeyAction().ExecuteAsync(ctx, default);
+
+        Assert.Equal("keyevent 66 1", dev.Calls.Single());
+    }
+
+    [Fact]
+    public async Task PressKey_UnknownKey_Fails()
+    {
+        var action = new BotAction { Config = { ["key"] = "Meta", ["count"] = 1 } };
+        var (ctx, dev) = WithDevice(action);
+
+        var r = await new PressKeyAction().ExecuteAsync(ctx, default);
+
+        Assert.False(r.Success);
+        Assert.Contains("Meta", r.ErrorMessage);
+        Assert.Empty(dev.Calls);
+    }
+
+    [Fact]
+    public void PressKey_KeyField_OptionsComeFromAndroidKeyCodes()
+    {
+        var key = new PressKeyAction().ConfigFields.Single(f => f.Key == "key");
+        Assert.Equal(ConfigFieldType.Enum, key.Type);
+        Assert.Equal(AdbCore.Android.AndroidKeyCodes.Names, key.Options);
+    }
 }
