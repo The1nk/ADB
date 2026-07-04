@@ -27,14 +27,20 @@ public class ScreenActionBaseTests
 
     private static ActionExecutionContext Exec(BotAction action) => new(action, new BotExecutionContext(), _ => { });
 
+    // CaptureAndMatch short-circuits to null (without calling the matcher) when there's no embedded
+    // template, so ROI-crop tests below — which only care about the crop/offset math — need a real (if
+    // arbitrary) embedded image to reach the matcher.
+    private static readonly string EmbeddedImage = System.Convert.ToBase64String(new byte[] { 1, 2, 3 });
+
     [Fact]
     public void CaptureAndMatch_NoRegion_PassesFullHaystack_AndReturnsMatchUnchanged()
     {
         var capture = new FakeWindowCapture(1920, 1080);
         var matcher = new FakeTemplateMatcher(new MatchResult(50, 60, 10, 8, 0.95));
         var action = new TestScreenAction(capture, matcher);
+        var botAction = new BotAction { Config = { [TemplateMatchCore.TemplateImageKey] = EmbeddedImage } };
 
-        var result = action.CallCaptureAndMatch(Exec(new BotAction()), (IntPtr)1, 0.8);
+        var result = action.CallCaptureAndMatch(Exec(botAction), (IntPtr)1, 0.8);
 
         Assert.Equal(1920, matcher.LastHaystackWidth);
         Assert.Equal(1080, matcher.LastHaystackHeight);
@@ -49,6 +55,7 @@ public class ScreenActionBaseTests
         var action = new TestScreenAction(capture, matcher);
         var botAction = new BotAction { Config =
         {
+            [TemplateMatchCore.TemplateImageKey] = EmbeddedImage,
             [ScreenActionBase.RegionXKey] = 100, [ScreenActionBase.RegionYKey] = 40,
             [ScreenActionBase.RegionWidthKey] = 300, [ScreenActionBase.RegionHeightKey] = 200,
         } };
@@ -68,6 +75,7 @@ public class ScreenActionBaseTests
         var action = new TestScreenAction(capture, matcher);
         var botAction = new BotAction { Config =
         {
+            [TemplateMatchCore.TemplateImageKey] = EmbeddedImage,
             [ScreenActionBase.RegionXKey] = 180, [ScreenActionBase.RegionYKey] = 140,
             [ScreenActionBase.RegionWidthKey] = 999, [ScreenActionBase.RegionHeightKey] = 999,
         } };

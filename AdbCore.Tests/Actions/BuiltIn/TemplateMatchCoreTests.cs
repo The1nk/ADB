@@ -9,11 +9,16 @@ namespace AdbCore.Tests.Actions.BuiltIn;
 
 public class TemplateMatchCoreTests
 {
+    // MatchInRegion/CaptureAndMatch short-circuit to null (without ever calling the matcher) when there's
+    // no embedded template, so ROI-crop tests below — which only care about the crop/offset math, not the
+    // template content — need a real (if arbitrary) embedded image to reach the matcher.
+    private static readonly string EmbeddedImage = System.Convert.ToBase64String(new byte[] { 1, 2, 3 });
+
     [Fact]
-    public void HasTemplate_TrueForEmbedded_TrueForPath_FalseForNeither()
+    public void HasTemplate_TrueForEmbedded_FalseForPathOnly_FalseForNeither()
     {
         Assert.True(TemplateMatchCore.HasTemplate(new Dictionary<string, object> { [TemplateMatchCore.TemplateImageKey] = "abc" }));
-        Assert.True(TemplateMatchCore.HasTemplate(new Dictionary<string, object> { [TemplateMatchCore.TemplatePathKey] = "btn.png" }));
+        Assert.False(TemplateMatchCore.HasTemplate(new Dictionary<string, object> { [TemplateMatchCore.TemplatePathKey] = "btn.png" })); // path alone is not a template — embedded-only
         Assert.False(TemplateMatchCore.HasTemplate(new Dictionary<string, object>()));
     }
 
@@ -32,20 +37,22 @@ public class TemplateMatchCoreTests
         Assert.NotNull(hit);
         Assert.NotNull(matcher.LastTemplateBytes);          // bytes path used
         Assert.Equal(new byte[] { 1, 2, 3 }, matcher.LastTemplateBytes);
-        Assert.Null(matcher.LastTemplatePath);
     }
 
     [Fact]
-    public void MatchInRegion_NoEmbedded_MatchesViaPath()
+    public void MatchInRegion_NoEmbedded_ReturnsNullWithoutCallingMatcher()
     {
+        // Embedded-only: a bare templatePath (no templateImage) is not a template, so MatchInRegion
+        // short-circuits to null without ever calling the matcher (there is no disk-read fallback).
         using var haystack = new Bitmap(40, 30);
         var matcher = new FakeTemplateMatcher(new MatchResult(1, 2, 3, 4, 0.9));
         var config = new Dictionary<string, object> { [TemplateMatchCore.TemplatePathKey] = "btn.png" };
 
-        TemplateMatchCore.MatchInRegion(haystack, config, matcher, 0.8);
+        var hit = TemplateMatchCore.MatchInRegion(haystack, config, matcher, 0.8);
 
-        Assert.Equal("btn.png", matcher.LastTemplatePath);  // path branch used
+        Assert.Null(hit);
         Assert.Null(matcher.LastTemplateBytes);
+        Assert.Equal(0, matcher.LastHaystackWidth); // matcher never invoked
     }
 
     [Fact]
@@ -53,8 +60,9 @@ public class TemplateMatchCoreTests
     {
         using var haystack = new Bitmap(1920, 1080);
         var matcher = new FakeTemplateMatcher(new MatchResult(50, 60, 10, 8, 0.95));
+        var config = new Dictionary<string, object> { [TemplateMatchCore.TemplateImageKey] = EmbeddedImage };
 
-        var result = TemplateMatchCore.MatchInRegion(haystack, new Dictionary<string, object>(), matcher, 0.8);
+        var result = TemplateMatchCore.MatchInRegion(haystack, config, matcher, 0.8);
 
         Assert.Equal(1920, matcher.LastHaystackWidth);
         Assert.Equal(1080, matcher.LastHaystackHeight);
@@ -68,6 +76,7 @@ public class TemplateMatchCoreTests
         var matcher = new FakeTemplateMatcher(new MatchResult(5, 7, 10, 8, 0.9));
         var config = new Dictionary<string, object>
         {
+            [TemplateMatchCore.TemplateImageKey] = EmbeddedImage,
             [TemplateMatchCore.RegionXKey] = 100, [TemplateMatchCore.RegionYKey] = 40,
             [TemplateMatchCore.RegionWidthKey] = 300, [TemplateMatchCore.RegionHeightKey] = 200,
         };
@@ -86,6 +95,7 @@ public class TemplateMatchCoreTests
         var matcher = new FakeTemplateMatcher(new MatchResult(0, 0, 1, 1, 0.9));
         var config = new Dictionary<string, object>
         {
+            [TemplateMatchCore.TemplateImageKey] = EmbeddedImage,
             [TemplateMatchCore.RegionXKey] = 180, [TemplateMatchCore.RegionYKey] = 140,
             [TemplateMatchCore.RegionWidthKey] = 999, [TemplateMatchCore.RegionHeightKey] = 999,
         };

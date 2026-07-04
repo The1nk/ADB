@@ -36,14 +36,16 @@ public partial class SessionViewModel : ObservableObject
 
     public void Remove(SessionRow row) => Rows.Remove(row);
 
-    /// <summary>Re-captures the row's source and matches its saved template at the row's confidence,
-    /// updating <see cref="SessionRow.LastRetestMatched"/> (true = matched). Never throws.</summary>
+    /// <summary>Re-captures the row's source and matches its saved template (read from disk as bytes —
+    /// the matcher is embedded-bytes-only) at the row's confidence, updating
+    /// <see cref="SessionRow.LastRetestMatched"/> (true = matched). Never throws.</summary>
     public void Retest(SessionRow row)
     {
         try
         {
             using var fresh = row.Source.Capture();
-            row.LastRetestMatched = _matcher.Match(fresh, row.FilePath, row.Confidence) is not null;
+            var templateBytes = File.ReadAllBytes(row.FilePath);
+            row.LastRetestMatched = _matcher.Match(fresh, templateBytes, row.Confidence) is not null;
         }
         catch
         {

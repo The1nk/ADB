@@ -27,7 +27,7 @@ public class AndroidImageActionTests
     [Fact]
     public async Task Find_Match_WritesAllVariables_AndRoutesSuccess()
     {
-        var action = new BotAction { Config = { [TemplateMatchCore.TemplatePathKey] = "btn.png" } };
+        var action = new BotAction { Config = { [TemplateMatchCore.TemplateImageKey] = Convert.ToBase64String(new byte[] { 1, 2, 3 }) } };
         var (ctx, _) = WithDevice(action);
 
         var result = await Find(new MatchResult(100, 40, 30, 20, 0.97), rand: 123).ExecuteAsync(ctx, default);
@@ -46,7 +46,7 @@ public class AndroidImageActionTests
     {
         var action = new BotAction { Config =
         {
-            [TemplateMatchCore.TemplatePathKey] = "btn.png",
+            [TemplateMatchCore.TemplateImageKey] = Convert.ToBase64String(new byte[] { 1, 2, 3 }),
             [TemplateMatchCore.ResultVarKey] = "btn",
         } };
         var (ctx, _) = WithDevice(action);
@@ -60,7 +60,7 @@ public class AndroidImageActionTests
     [Fact]
     public async Task Find_NoMatch_Fails_WritesNothing()
     {
-        var action = new BotAction { Config = { [TemplateMatchCore.TemplatePathKey] = "btn.png" } };
+        var action = new BotAction { Config = { [TemplateMatchCore.TemplateImageKey] = Convert.ToBase64String(new byte[] { 1, 2, 3 }) } };
         var (ctx, _) = WithDevice(action);
 
         var result = await Find(null).ExecuteAsync(ctx, default);
@@ -109,7 +109,7 @@ public class AndroidImageActionTests
     {
         var action = new BotAction { Config =
         {
-            [TemplateMatchCore.TemplatePathKey] = "btn.png",
+            [TemplateMatchCore.TemplateImageKey] = Convert.ToBase64String(new byte[] { 1, 2, 3 }),
             [AndroidWaitForImageAction.TimeoutMsKey] = 1000,
             [AndroidWaitForImageAction.PollIntervalMsKey] = 10,
         } };
@@ -127,7 +127,7 @@ public class AndroidImageActionTests
     {
         var action = new BotAction { Config =
         {
-            [TemplateMatchCore.TemplatePathKey] = "btn.png",
+            [TemplateMatchCore.TemplateImageKey] = Convert.ToBase64String(new byte[] { 1, 2, 3 }),
             [AndroidWaitForImageAction.TimeoutMsKey] = 30,
             [AndroidWaitForImageAction.PollIntervalMsKey] = 10,
         } };
@@ -154,7 +154,7 @@ public class AndroidImageActionTests
     [Fact]
     public async Task Absent_TemplateMissing_Succeeds()
     {
-        var action = new BotAction { Config = { [TemplateMatchCore.TemplatePathKey] = "btn.png" } };
+        var action = new BotAction { Config = { [TemplateMatchCore.TemplateImageKey] = Convert.ToBase64String(new byte[] { 1, 2, 3 }) } };
         var (ctx, _) = WithDevice(action);
 
         var result = await Absent(null).ExecuteAsync(ctx, default);
@@ -166,7 +166,7 @@ public class AndroidImageActionTests
     [Fact]
     public async Task Absent_TemplatePresent_Fails()
     {
-        var action = new BotAction { Config = { [TemplateMatchCore.TemplatePathKey] = "btn.png" } };
+        var action = new BotAction { Config = { [TemplateMatchCore.TemplateImageKey] = Convert.ToBase64String(new byte[] { 1, 2, 3 }) } };
         var (ctx, _) = WithDevice(action);
 
         var result = await Absent(new MatchResult(0, 0, 4, 4, 0.95)).ExecuteAsync(ctx, default);

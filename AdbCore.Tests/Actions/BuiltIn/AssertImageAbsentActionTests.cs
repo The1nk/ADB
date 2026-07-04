@@ -23,7 +23,7 @@ public class AssertImageAbsentActionTests
     private static AssertImageAbsentAction Action(MatchResult? result)
         => new(new FakeWindowCapture(800, 600), new FakeTemplateMatcher(result));
 
-    private static BotAction Cfg(Guid id) => new() { TargetId = id, Config = { [ScreenActionBase.TemplatePathKey] = "t.png" } };
+    private static BotAction Cfg(Guid id) => new() { TargetId = id, Config = { [TemplateMatchCore.TemplateImageKey] = Convert.ToBase64String(new byte[] { 1, 2, 3 }) } };
 
     [Fact]
     public async Task ImageAbsent_Succeeds()

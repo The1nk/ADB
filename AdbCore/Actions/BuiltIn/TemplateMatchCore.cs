@@ -37,10 +37,10 @@ public static class TemplateMatchCore
         new ConfigField { Key = RegionHeightKey, Label = "Region Height", Type = ConfigFieldType.Number, DefaultValue = 0 },
     ];
 
-    /// <summary>True when the config carries a template — embedded base64 bytes or a (non-empty) source path.</summary>
+    /// <summary>True when the config carries an embedded template image (base64). Templates are
+    /// capture-embedded; there is no file-path fallback.</summary>
     public static bool HasTemplate(IReadOnlyDictionary<string, object> config)
-        => !string.IsNullOrWhiteSpace(ConfigValues.GetString(config, TemplateImageKey))
-           || !string.IsNullOrWhiteSpace(ConfigValues.GetString(config, TemplatePathKey));
+        => !string.IsNullOrWhiteSpace(ConfigValues.GetString(config, TemplateImageKey));
 
     /// <summary>Reads + clamps the ROI fields against the haystack size; null when no usable region.</summary>
     public static Rectangle? ResolveRegion(IReadOnlyDictionary<string, object> config, int width, int height)
@@ -75,16 +75,14 @@ public static class TemplateMatchCore
         return hit is MatchResult m ? m with { X = m.X + roi.X, Y = m.Y + roi.Y } : null;
     }
 
-    // Prefers the embedded base64 image; falls back to the source path (which the matcher reads from disk).
+    // Matches the embedded base64 template. No template ⇒ null (the action's HasTemplate gate fails the
+    // run early, so this is only defensive).
     private static MatchResult? MatchConfigured(Bitmap haystack, IReadOnlyDictionary<string, object> config, ITemplateMatcher matcher, double confidence)
     {
         var embedded = ConfigValues.GetString(config, TemplateImageKey);
-        if (!string.IsNullOrWhiteSpace(embedded))
-        {
-            return matcher.Match(haystack, Convert.FromBase64String(embedded), confidence);
-        }
-
-        return matcher.Match(haystack, ConfigValues.GetString(config, TemplatePathKey), confidence);
+        return string.IsNullOrWhiteSpace(embedded)
+            ? null
+            : matcher.Match(haystack, Convert.FromBase64String(embedded), confidence);
     }
 
     /// <summary>Writes a match's region edges, center, a random in-region point, and the score to

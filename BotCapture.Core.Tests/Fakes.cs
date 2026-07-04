@@ -31,17 +31,8 @@ internal sealed class FakeTemplateMatcher : AdbCore.Screen.ITemplateMatcher
 {
     public AdbCore.Screen.MatchResult? Next;
     public Exception? Throw;
-    public string? LastTemplatePath;
     public double LastMinConfidence;
     public byte[]? LastTemplateBytes;
-
-    public AdbCore.Screen.MatchResult? Match(System.Drawing.Bitmap haystack, string templatePath, double minConfidence)
-    {
-        LastTemplatePath = templatePath;
-        LastMinConfidence = minConfidence;
-        if (Throw is not null) throw Throw;
-        return Next;
-    }
 
     public AdbCore.Screen.MatchResult? Match(System.Drawing.Bitmap haystack, byte[] templatePng, double minConfidence)
     {

@@ -13,8 +13,6 @@ public class FindImageRetryTests
     private sealed class FlakyMatcher(int failuresBeforeHit, MatchResult hit) : ITemplateMatcher
     {
         private int _calls;
-        public MatchResult? Match(Bitmap haystack, string templatePath, double minConfidence)
-            => ++_calls > failuresBeforeHit ? hit : null;
         public MatchResult? Match(Bitmap haystack, byte[] templatePng, double minConfidence)
             => ++_calls > failuresBeforeHit ? hit : null;
     }
@@ -37,7 +35,7 @@ public class FindImageRetryTests
         var find = new BotAction
         {
             Id = Guid.NewGuid(), TypeKey = "screen.findImage", TargetId = targetId,
-            Config = { [FindImageAction.TemplatePathKey] = "x.png" },
+            Config = { [TemplateMatchCore.TemplateImageKey] = Convert.ToBase64String(new byte[] { 1, 2, 3 }) },
             Retry = new RetryPolicy { MaxAttempts = 3, DelayMs = 0 },
         };
         var end = new BotAction { Id = Guid.NewGuid(), TypeKey = "control.end" };

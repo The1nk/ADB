@@ -54,12 +54,12 @@ public partial class PreviewConfirmViewModel : ObservableObject, IDisposable
     /// whether it met <see cref="Confidence"/> into <see cref="LastOutcome"/>. Never throws.</summary>
     public void TestMatch()
     {
-        var tempPath = Path.Combine(Path.GetTempPath(), $"botcap_test_{Guid.NewGuid():N}.png");
         try
         {
-            Crop.Save(tempPath, ImageFormat.Png);
+            using var ms = new MemoryStream();
+            Crop.Save(ms, ImageFormat.Png);
             using var fresh = _source.Capture();
-            var best = _matcher.Match(fresh, tempPath, BestMatchFloor);
+            var best = _matcher.Match(fresh, ms.ToArray(), BestMatchFloor);
             LastOutcome = best is MatchResult m
                 ? new TestMatchOutcome(m.Score >= Confidence, m.Score, m, Error: null)
                 : new TestMatchOutcome(Matched: false, Score: null, Location: null, Error: "No match could be computed.");
@@ -67,10 +67,6 @@ public partial class PreviewConfirmViewModel : ObservableObject, IDisposable
         catch (Exception ex)
         {
             LastOutcome = new TestMatchOutcome(Matched: false, Score: null, Location: null, Error: ex.Message);
-        }
-        finally
-        {
-            try { File.Delete(tempPath); } catch { /* temp cleanup is best-effort */ }
         }
     }
 

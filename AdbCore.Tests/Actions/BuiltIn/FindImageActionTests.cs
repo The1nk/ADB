@@ -28,7 +28,7 @@ public class FindImageActionTests
     {
         var id = Guid.NewGuid();
         var ctx = WindowContext(id, (IntPtr)5);
-        var action = new BotAction { TargetId = id, Config = { [FindImageAction.TemplatePathKey] = "btn.png" } };
+        var action = new BotAction { TargetId = id, Config = { [TemplateMatchCore.TemplateImageKey] = Convert.ToBase64String(new byte[] { 1, 2, 3 }) } };
 
         var result = await Action(new MatchResult(100, 40, 30, 20, 0.97), rand: 123)
             .ExecuteAsync(Exec(action, ctx), default);
@@ -51,7 +51,7 @@ public class FindImageActionTests
     {
         var id = Guid.NewGuid();
         var ctx = WindowContext(id, (IntPtr)5);
-        var action = new BotAction { TargetId = id, Config = { [FindImageAction.TemplatePathKey] = "btn.png" } };
+        var action = new BotAction { TargetId = id, Config = { [TemplateMatchCore.TemplateImageKey] = Convert.ToBase64String(new byte[] { 1, 2, 3 }) } };
 
         var find = new FindImageAction(new FakeWindowCapture(800, 600), new FakeTemplateMatcher(new MatchResult(100, 40, 30, 20, 0.9)), new SystemRandomSource());
         await find.ExecuteAsync(Exec(action, ctx), default);
@@ -67,7 +67,7 @@ public class FindImageActionTests
         var ctx = WindowContext(id, (IntPtr)5);
         var action = new BotAction { TargetId = id, Config =
         {
-            [FindImageAction.TemplatePathKey] = "btn.png",
+            [TemplateMatchCore.TemplateImageKey] = Convert.ToBase64String(new byte[] { 1, 2, 3 }),
             [FindImageAction.ResultVarKey] = "btn",
         } };
 
@@ -82,7 +82,7 @@ public class FindImageActionTests
     {
         var id = Guid.NewGuid();
         var ctx = WindowContext(id, (IntPtr)5);
-        var action = new BotAction { TargetId = id, Config = { [FindImageAction.TemplatePathKey] = "btn.png" } };
+        var action = new BotAction { TargetId = id, Config = { [TemplateMatchCore.TemplateImageKey] = Convert.ToBase64String(new byte[] { 1, 2, 3 }) } };
 
         var result = await Action(null).ExecuteAsync(Exec(action, ctx), default);
 
@@ -117,15 +117,14 @@ public class FindImageActionTests
         var matcher = new FakeTemplateMatcher(new MatchResult(1, 2, 3, 4, 0.95));
         var action = new BotAction { TargetId = id, Config =
         {
-            [FindImageAction.TemplatePathKey] = "btn.png",
-            [AdbCore.Actions.BuiltIn.TemplateMatchCore.TemplateImageKey] = Convert.ToBase64String(new byte[] { 9, 8, 7 }),
+            [TemplateMatchCore.TemplateImageKey] = Convert.ToBase64String(new byte[] { 9, 8, 7 }),
         } };
 
         var find = new FindImageAction(new FakeWindowCapture(800, 600), matcher, new FixedRandomSource(0));
         var result = await find.ExecuteAsync(Exec(action, ctx), default);
 
         Assert.True(result.Success);
-        Assert.Equal(new byte[] { 9, 8, 7 }, matcher.LastTemplateBytes); // embedded bytes used, not the path
+        Assert.Equal(new byte[] { 9, 8, 7 }, matcher.LastTemplateBytes);
     }
 
     [Fact]
