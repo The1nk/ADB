@@ -42,9 +42,9 @@ identical to `TapAction`/`SwipeAction`/`PressBackAction`.
 held for `durationMs`. This mirrors `SwipeAction` exactly, just with one point and a longer default
 duration. Default **600 ms** (a comfortable long-press threshold on Android, which is ~500 ms).
 
-**Send Text** types a literal string. **Empty or whitespace-only text is a no-op that returns
-success**, mirroring the Windows *Type Text* action. Non-empty text is escaped (see below) and sent
-via `input text`.
+**Send Text** types a literal string. **Empty text is a no-op that returns success** (a deliberate
+single space is still typed), mirroring the Windows *Type Text* action. Non-empty text is escaped (see
+below) and sent via `input text`.
 
 **Press Key** resolves the selected key name to an Android keycode and sends `input keyevent` with the
 code repeated `count` times **in a single shell invocation** (e.g. `input keyevent 67 67 67`), so one

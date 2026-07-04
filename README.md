@@ -39,7 +39,7 @@ Why click 10,000 times when a damn bot will click 10,001 and never complain? ADB
 - **Image matching** (OpenCvSharp) — find / wait-for / assert-absent template images on Screen *and* Android, with a coordinate & region picker. Show it the loot button once; it clicks it until the heat death of the universe.
 - **OCR** (Tesseract, bundled `eng`) — read / find / wait-for / assert-absent text. Reads your gold counter, your cooldowns, and the "YOU DIED" screen so the bot knows when to ragequit gracefully.
 - **Lua scripting** (MoonSharp) — a "Run Lua Script" action with `http`, `json`, `fs`, `process`, and `log` host APIs for whenever the visual blocks aren't enough and you need to go full mad scientist.
-- **Input & windows** — mouse/keyboard actions, activate window. The clicky-clicky.
+- **Input & windows** — mouse/keyboard actions, activate window, and on Android: tap, long-press, swipe, send text, and hammer a key (Backspace ×50 to nuke a field). The clicky-clicky.
 - **Theming** — Light / Dark / High-Contrast, following the OS by default (`View ▸ Theme` in BotBuilder).
 
 ## Lua IntelliSense (VS Code autocomplete)
