@@ -93,6 +93,11 @@ internal sealed class FakeAndroidDevice : AdbCore.Android.IAndroidDevice
     public void PressBack() { }
     public void LaunchApp(string package) { }
     public void InstallApk(string apkPath) { }
+    public string GetInputMethod() => string.Empty;
+    public bool IsInputMethodAvailable(string ime) => false;
+    public void EnableInputMethod(string ime) { }
+    public void SetInputMethod(string ime) { }
+    public void SendAdbKeyboardText(string text) { }
 }
 #pragma warning restore CS0649
 

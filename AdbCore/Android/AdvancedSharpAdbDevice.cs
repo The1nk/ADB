@@ -3,6 +3,7 @@ using System.Drawing.Imaging;
 using System.Runtime.InteropServices;
 using AdvancedSharpAdbClient;
 using AdvancedSharpAdbClient.Models;
+using AdvancedSharpAdbClient.Receivers;
 
 namespace AdbCore.Android;
 
@@ -56,6 +57,29 @@ public sealed class AdvancedSharpAdbDevice : IAndroidDevice
     public void SendText(string text) => Shell(AdbInputCommand.Text(text));
 
     public void KeyEvent(int keyCode, int count) => Shell(AdbInputCommand.KeyEvent(keyCode, count));
+
+    // Output-capturing shell: the fire-and-forget Shell(...) above discards stdout, but reading the
+    // active IME needs it. 3.6.16: ExecuteRemoteCommand(command, device, IShellOutputReceiver) collects
+    // into the receiver; ConsoleOutputReceiver.ToString() returns the accumulated text.
+    private string ShellCapture(string command)
+    {
+        var receiver = new ConsoleOutputReceiver();
+        Invoke(d => _client.ExecuteRemoteCommand(command, d, receiver));
+        return receiver.ToString()?.Trim() ?? string.Empty;
+    }
+
+    public string GetInputMethod() => ShellCapture(AdbInputCommand.GetDefaultIme());
+
+    public bool IsInputMethodAvailable(string ime)
+        => ShellCapture(AdbInputCommand.ListImes())
+            .Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
+            .Any(line => line.Trim() == ime);
+
+    public void EnableInputMethod(string ime) => Shell(AdbInputCommand.EnableIme(ime));
+
+    public void SetInputMethod(string ime) => Shell(AdbInputCommand.SetIme(ime));
+
+    public void SendAdbKeyboardText(string text) => Shell(AdbInputCommand.AdbKeyboardText(text));
 
     public void PressBack() => Shell("input keyevent 4");
 

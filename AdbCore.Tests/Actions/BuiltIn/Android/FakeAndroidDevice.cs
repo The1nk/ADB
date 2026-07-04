@@ -17,4 +17,13 @@ internal sealed class FakeAndroidDevice : IAndroidDevice
     public void PressBack() => Calls.Add("back");
     public void LaunchApp(string package) => Calls.Add($"launch {package}");
     public void InstallApk(string apkPath) => Calls.Add($"install {apkPath}");
+
+    public string ActiveIme { get; set; } = "com.original/.Ime";
+    public bool AdbKeyboardInstalled { get; set; } = true;
+
+    public string GetInputMethod() { Calls.Add("getime"); return ActiveIme; }
+    public bool IsInputMethodAvailable(string ime) { Calls.Add($"imeavail {ime}"); return AdbKeyboardInstalled; }
+    public void EnableInputMethod(string ime) => Calls.Add($"imeenable {ime}");
+    public void SetInputMethod(string ime) { Calls.Add($"imeset {ime}"); ActiveIme = ime; }
+    public void SendAdbKeyboardText(string text) => Calls.Add($"adbkbtext {text}");
 }

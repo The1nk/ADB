@@ -16,6 +16,21 @@ public interface IAndroidDevice
     /// <summary>Sends an Android keycode <paramref name="count"/> times (via <c>input keyevent</c>).</summary>
     void KeyEvent(int keyCode, int count);
 
+    /// <summary>Reads the currently-active IME id (secure setting <c>default_input_method</c>).</summary>
+    string GetInputMethod();
+
+    /// <summary>True if <paramref name="ime"/> appears in the device's installed IME list.</summary>
+    bool IsInputMethodAvailable(string ime);
+
+    /// <summary>Enables <paramref name="ime"/> so it can be set active (<c>ime enable</c>).</summary>
+    void EnableInputMethod(string ime);
+
+    /// <summary>Makes <paramref name="ime"/> the active input method (<c>ime set</c>).</summary>
+    void SetInputMethod(string ime);
+
+    /// <summary>Types Unicode text via the active ADBKeyboard IME (base64 <c>ADB_INPUT_B64</c> broadcast).</summary>
+    void SendAdbKeyboardText(string text);
+
     /// <summary>Captures the screen as PNG bytes.</summary>
     byte[] Screenshot();
 
