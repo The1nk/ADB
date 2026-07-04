@@ -223,7 +223,7 @@ reaches the Error Handler.
 | **OCR** | AdbCore/Ocr/OcrEngine.cs (with TesseractOcrEngine) | Tesseract text recognition on images |
 | **Lua Scripting** | AdbCore/Scripting/LuaScriptHost.cs | MoonSharp host with http, json, fs, process, log modules |
 | **Input Senders** | AdbCore/Input/Win32SendInputSender.cs, Win32PostMessageSender.cs | Send mouse/keyboard input to windows |
-| **Android Driver** | AdbCore/Android/AdvancedSharpAdbDevice.cs | ADB command wrapping (install APK, launch app, tap, swipe, screenshot) |
+| **Android Driver** | AdbCore/Android/AdvancedSharpAdbDevice.cs | ADB command wrapping (install APK, launch app, tap, swipe, screenshot, send text, key events, IME query/switch). Send Text has two methods: **Input Text** (`input text`, ASCII only) and **ADB Keyboard** (base64 `ADB_INPUT_B64` broadcast for Unicode; needs the ADBKeyboard IME installed and made active by the **Enable ADB Keyboard** node, which stashes the prior IME for **Restore Keyboard** — id in `AndroidImes.AdbKeyboard`). |
 | **Playwright Driver** | AdbCore/Browser/PlaywrightBrowserPage.cs | Playwright automation (navigate, click, type, querySelector) |
 | **Canvas VM** | BotBuilder.Core/BotEditorViewModel.cs | Editor state: nodes, connections, undo/redo, selection, copy/paste |
 | **Palette VM** | BotBuilder.Core/Palette/PaletteViewModel.cs | Action discovery, category filtering, dependency availability probing |

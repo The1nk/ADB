@@ -39,7 +39,7 @@ Why click 10,000 times when a damn bot will click 10,001 and never complain? ADB
 - **Image matching** (OpenCvSharp) — find / wait-for / assert-absent template images on Screen *and* Android, with a coordinate & region picker. Show it the loot button once; it clicks it until the heat death of the universe.
 - **OCR** (Tesseract, bundled `eng`) — read / find / wait-for / assert-absent text. Reads your gold counter, your cooldowns, and the "YOU DIED" screen so the bot knows when to ragequit gracefully.
 - **Lua scripting** (MoonSharp) — a "Run Lua Script" action with `http`, `json`, `fs`, `process`, and `log` host APIs for whenever the visual blocks aren't enough and you need to go full mad scientist.
-- **Input & windows** — mouse/keyboard actions, activate window, and on Android: tap, long-press, swipe, send text, and hammer a key (Backspace ×50 to nuke a field). The clicky-clicky.
+- **Input & windows** — mouse/keyboard actions, activate window, and on Android: tap, long-press, swipe, send text (plain, or **full Unicode via ADBKeyboard**), and hammer a key (Backspace ×50 to nuke a field). The clicky-clicky.
 - **Theming** — Light / Dark / High-Contrast, following the OS by default (`View ▸ Theme` in BotBuilder).
 
 ## Lua IntelliSense (VS Code autocomplete)
@@ -74,6 +74,14 @@ Reusing the defs elsewhere: the `library\adb.lua` file is a standalone LuaLS ann
 - Optional, per feature:
   - **Android actions** — `adb` on your `PATH` (Android Platform Tools)
   - **Browser actions** — Playwright browsers installed (`playwright install`)
+  - **Unicode / non-Latin text on Android (ADBKeyboard)** — Android's built-in `input text` (what plain **Send Text** uses) only speaks plain ASCII; superscripts, emoji, accents, CJK — all silently vanish. To send the weird stuff, install the free **ADBKeyboard** IME and flip Send Text's **Method** to **ADB Keyboard**:
+    1. Grab `ADBKeyboard.apk` from the [ADBKeyBoard releases](https://github.com/senzhk/ADBKeyBoard/releases).
+    2. Install it — `adb install ADBKeyboard.apk`, or point the **Install APK** action at the file.
+    3. Drop an **Enable ADB Keyboard** node (Android) before you type — it switches the device to ADBKeyboard and remembers the old keyboard.
+    4. Set your **Send Text** node's **Method** to **ADB Keyboard**. Now `${those_superscripts}` actually land.
+    5. Drop a **Restore Keyboard** node when you're done (or hang it off the Error Handler) to give the phone its normal keyboard back.
+
+    Check it took: `adb shell ime list -a` should list `com.android.adbkeyboard/.AdbIME`.
 
   Missing a dependency? The bot doesn't throw a tantrum — the categories you can't use just go grey in the palette with a tooltip telling you exactly what to install. Polite, for a goblin.
 
