@@ -21,6 +21,25 @@ public static class AndroidKeyCodes
         ("Home", 122),          // KEYCODE_MOVE_HOME
         ("End", 123),           // KEYCODE_MOVE_END
         ("Escape", 111),        // KEYCODE_ESCAPE
+        // Text editing (API 24+)
+        ("Paste", 279),         // KEYCODE_PASTE
+        ("Copy", 278),          // KEYCODE_COPY
+        ("Cut", 277),           // KEYCODE_CUT
+        // Navigation — "Home Button" is the device home key (distinct from the cursor "Home" above)
+        ("Home Button", 3),     // KEYCODE_HOME
+        ("Back", 4),            // KEYCODE_BACK
+        ("Recent Apps", 187),   // KEYCODE_APP_SWITCH
+        ("Menu", 82),           // KEYCODE_MENU
+        ("Search", 84),         // KEYCODE_SEARCH
+        ("Page Up", 92),        // KEYCODE_PAGE_UP
+        ("Page Down", 93),      // KEYCODE_PAGE_DOWN
+        // System / power
+        ("Power", 26),          // KEYCODE_POWER
+        ("Wake", 224),          // KEYCODE_WAKEUP
+        ("Sleep", 223),         // KEYCODE_SLEEP
+        ("Volume Up", 24),      // KEYCODE_VOLUME_UP
+        ("Volume Down", 25),    // KEYCODE_VOLUME_DOWN
+        ("Mute", 164),          // KEYCODE_VOLUME_MUTE
     ];
 
     private static readonly Dictionary<string, int> ByName =
