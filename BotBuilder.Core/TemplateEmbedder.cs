@@ -5,67 +5,51 @@ using AdbCore.Models;
 
 namespace BotBuilder.Core;
 
-/// <summary>Embeds image-action templates into the bot model as base64 (so a saved .bot is self-contained)
-/// and, on save, strips the source path to its basename. Pure; the file reader is injected for testing.</summary>
+/// <summary>Ensures every image action carries its template as embedded base64 (so a .bot is
+/// self-contained) and migrates legacy file-path templates: embed a still-present source one last time,
+/// derive the display <c>templateName</c> from its basename, and drop the obsolete <c>templatePath</c>.</summary>
 public static class TemplateEmbedder
 {
     /// <summary>Reads a file's bytes, or null when the path is empty or the file does not exist.</summary>
     public static byte[]? ReadFileIfExists(string? path)
         => !string.IsNullOrWhiteSpace(path) && File.Exists(path) ? File.ReadAllBytes(path) : null;
 
-    /// <summary>For each action with a source path but no embedded image yet, reads the file and stores its
-    /// base64 under the templateImage key. Recurses into nested bots. Idempotent; leaves paths untouched.
-    /// Mutates and returns the bot.</summary>
-    public static Bot Embed(Bot bot, Func<string?, byte[]?> read)
+    /// <summary>Embeds not-yet-embedded templates from a still-readable source path, sets a display
+    /// <c>templateName</c> from the legacy basename when absent, and removes <c>templatePath</c>. Recurses
+    /// into nested bots. Idempotent. Mutates and returns the bot.</summary>
+    public static Bot Migrate(Bot bot, Func<string?, byte[]?> read)
     {
         foreach (var action in bot.Actions)
         {
-            if (!string.IsNullOrWhiteSpace(Get(action, TemplateMatchCore.TemplateImageKey)))
-            {
-                continue;
-            }
+            var path = Get(action, TemplateMatchCore.TemplatePathKey);
+            var hasImage = !string.IsNullOrWhiteSpace(Get(action, TemplateMatchCore.TemplateImageKey));
 
-            if (read(Get(action, TemplateMatchCore.TemplatePathKey)) is byte[] bytes)
+            if (!hasImage && read(path) is byte[] bytes)
             {
                 action.Config[TemplateMatchCore.TemplateImageKey] = Convert.ToBase64String(bytes);
             }
-        }
 
-        foreach (var nested in bot.NestedBots)
-        {
-            Embed(nested, read);
-        }
-
-        return bot;
-    }
-
-    /// <summary>Embeds any not-yet-embedded templates (including in nested bots), then rewrites the source
-    /// path to its basename for every action that now carries embedded bytes. Mutates and returns the bot.</summary>
-    public static Bot PrepareForSave(Bot bot, Func<string?, byte[]?> read)
-    {
-        Embed(bot, read);
-
-        foreach (var action in bot.Actions)
-        {
-            if (string.IsNullOrWhiteSpace(Get(action, TemplateMatchCore.TemplateImageKey)))
-            {
-                continue;
-            }
-
-            var path = Get(action, TemplateMatchCore.TemplatePathKey);
             if (!string.IsNullOrWhiteSpace(path))
             {
-                action.Config[TemplateMatchCore.TemplatePathKey] = Path.GetFileName(path);
+                if (string.IsNullOrWhiteSpace(Get(action, TemplateMatchCore.TemplateNameKey)))
+                {
+                    action.Config[TemplateMatchCore.TemplateNameKey] = Path.GetFileName(path);
+                }
+                action.Config.Remove(TemplateMatchCore.TemplatePathKey);
             }
         }
 
         foreach (var nested in bot.NestedBots)
         {
-            PrepareForSave(nested, read);
+            Migrate(nested, read);
         }
 
         return bot;
     }
+
+    /// <summary>Save-time normalization: same as <see cref="Migrate"/> (capture embeds directly, so there
+    /// is nothing extra to do). Kept as a distinct entry point for the save path.</summary>
+    public static Bot PrepareForSave(Bot bot, Func<string?, byte[]?> read) => Migrate(bot, read);
 
     private static string Get(BotAction action, string key)
         => action.Config.TryGetValue(key, out var v) ? ConfigValues.AsString(v) : string.Empty;

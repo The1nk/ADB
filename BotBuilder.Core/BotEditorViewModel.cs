@@ -438,7 +438,7 @@ public partial class BotEditorViewModel : ObservableObject
     public void Open(string path)
     {
         var bot = _serializer.Load(path);
-        TemplateEmbedder.Embed(bot, TemplateEmbedder.ReadFileIfExists);
+        TemplateEmbedder.Migrate(bot, TemplateEmbedder.ReadFileIfExists);
         DocumentMapper.Populate(this, bot, _registry);
         _undo.Clear();
         FilePath = path;
