@@ -1,3 +1,4 @@
+using AdbCore.Actions;
 using AdbCore.Actions.BuiltIn.Android;
 using AdbCore.Execution;
 using AdbCore.Models;
@@ -62,4 +63,41 @@ public class AndroidInputActionTests
         Assert.False(r.Success);
         Assert.Contains("Android", r.ErrorMessage);
     }
+
+    [Fact]
+    public async Task LongPress_CallsDeviceWithCoordsAndDuration()
+    {
+        var action = new BotAction { Config = { ["x"] = 50, ["y"] = 60, ["durationMs"] = 900 } };
+        var (ctx, dev) = WithDevice(action);
+
+        var r = await new LongPressAction().ExecuteAsync(ctx, default);
+
+        Assert.True(r.Success);
+        Assert.Equal("onSuccess", r.OutputPort);
+        Assert.Equal("longpress 50 60 900", dev.Calls.Single());
+    }
+
+    [Fact]
+    public async Task LongPress_DefaultsDurationTo600()
+    {
+        var action = new BotAction { Config = { ["x"] = 1, ["y"] = 2 } };
+        var (ctx, dev) = WithDevice(action);
+
+        await new LongPressAction().ExecuteAsync(ctx, default);
+
+        Assert.Equal("longpress 1 2 600", dev.Calls.Single());
+    }
+
+    [Fact]
+    public async Task LongPress_NoDeviceBound_Fails()
+    {
+        var ctx = new BotExecutionContext();
+        var exec = new ActionExecutionContext(new BotAction { Config = { ["x"] = 1, ["y"] = 1 } }, ctx, _ => { });
+
+        var r = await new LongPressAction().ExecuteAsync(exec, default);
+
+        Assert.False(r.Success);
+        Assert.Contains("Android", r.ErrorMessage);
+    }
+
 }
