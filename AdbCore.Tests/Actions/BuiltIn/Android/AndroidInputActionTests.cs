@@ -272,4 +272,30 @@ public class AndroidInputActionTests
         Assert.False(r.Success);
         Assert.Contains("Android", r.ErrorMessage);
     }
+
+    [Fact]
+    public async Task RestoreKeyboard_SetsImeFromVariable()
+    {
+        var action = new BotAction(); // default previousImeVar = "PreviousIme"
+        var (ctx, dev) = WithDevice(action);
+        ctx.Context.Variables["PreviousIme"] = "com.original/.Ime";
+
+        var r = await new RestoreKeyboardAction().ExecuteAsync(ctx, default);
+
+        Assert.True(r.Success);
+        Assert.Equal("imeset com.original/.Ime", dev.Calls.Single());
+    }
+
+    [Fact]
+    public async Task RestoreKeyboard_NoVariable_FailsClearly()
+    {
+        var action = new BotAction();
+        var (ctx, dev) = WithDevice(action);
+
+        var r = await new RestoreKeyboardAction().ExecuteAsync(ctx, default);
+
+        Assert.False(r.Success);
+        Assert.Contains("PreviousIme", r.ErrorMessage);
+        Assert.Empty(dev.Calls);
+    }
 }
