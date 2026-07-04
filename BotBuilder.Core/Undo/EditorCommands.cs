@@ -49,6 +49,43 @@ internal sealed class DisconnectCommand : IUndoableCommand
     public void Undo() => _editor.AddConnectionCore(_connection);
 }
 
+/// <summary>Moves an occupied output edge to a new target and, when given, forwards the dropped node's
+/// single output to the old destination — inserting a node into a wire. Atomic: one undo reverses all
+/// of remove-old + add-primary (+ add-forward).</summary>
+internal sealed class InsertOrMoveConnectionCommand : IUndoableCommand
+{
+    private readonly BotEditorViewModel _editor;
+    private readonly ConnectionViewModel _removed;
+    private readonly ConnectionViewModel _primary;
+    private readonly ConnectionViewModel? _forward;
+
+    public InsertOrMoveConnectionCommand(
+        BotEditorViewModel editor,
+        ConnectionViewModel removed,
+        ConnectionViewModel primary,
+        ConnectionViewModel? forward)
+    {
+        _editor = editor;
+        _removed = removed;
+        _primary = primary;
+        _forward = forward;
+    }
+
+    public void Do()
+    {
+        _editor.RemoveConnectionCore(_removed);
+        _editor.AddConnectionCore(_primary);
+        if (_forward is not null) { _editor.AddConnectionCore(_forward); }
+    }
+
+    public void Undo()
+    {
+        if (_forward is not null) { _editor.RemoveConnectionCore(_forward); }
+        _editor.RemoveConnectionCore(_primary);
+        _editor.AddConnectionCore(_removed);
+    }
+}
+
 /// <summary>Removes a set of nodes and a set of connections; undo restores all of them.</summary>
 internal sealed class DeleteNodesCommand : IUndoableCommand
 {

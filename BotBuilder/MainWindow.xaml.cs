@@ -525,7 +525,7 @@ public partial class MainWindow : Window
         var hit = System.Windows.Media.VisualTreeHelper.HitTest(NodeHost, dropPosition)?.VisualHit;
         if (hit is { } h && NodeOf(h) is { } targetNode && targetNode.InputPorts.FirstOrDefault() is { } targetPort)
         {
-            _editor.Connect(source, sourcePort, targetNode, targetPort);
+            _editor.ConnectOrMove(source, sourcePort, targetNode, targetPort);
         }
     }
 
