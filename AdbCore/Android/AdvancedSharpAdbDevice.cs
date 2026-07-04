@@ -60,15 +60,26 @@ public sealed class AdvancedSharpAdbDevice : IAndroidDevice
 
     // Output-capturing shell: the fire-and-forget Shell(...) above discards stdout, but reading the
     // active IME needs it. 3.6.16: ExecuteRemoteCommand(command, device, IShellOutputReceiver) collects
-    // into the receiver; ConsoleOutputReceiver.ToString() returns the accumulated text.
+    // into the receiver; ConsoleOutputReceiver.ToString() returns the accumulated text. The receiver is
+    // created inside the Invoke lambda so a stale-handle retry starts from a fresh receiver instead of
+    // appending to output collected against the dead handle.
     private string ShellCapture(string command)
     {
-        var receiver = new ConsoleOutputReceiver();
-        Invoke(d => _client.ExecuteRemoteCommand(command, d, receiver));
-        return receiver.ToString()?.Trim() ?? string.Empty;
+        return Invoke(d =>
+        {
+            var receiver = new ConsoleOutputReceiver();
+            _client.ExecuteRemoteCommand(command, d, receiver);
+            return receiver.ToString()?.Trim() ?? string.Empty;
+        });
     }
 
-    public string GetInputMethod() => ShellCapture(AdbInputCommand.GetDefaultIme());
+    // adb prints the literal string "null" for default_input_method when no IME is set; normalize that
+    // (and empty output) to "" so a later Restore never runs "ime set null".
+    public string GetInputMethod()
+    {
+        var ime = ShellCapture(AdbInputCommand.GetDefaultIme());
+        return string.Equals(ime, "null", StringComparison.OrdinalIgnoreCase) ? string.Empty : ime;
+    }
 
     public bool IsInputMethodAvailable(string ime)
         => ShellCapture(AdbInputCommand.ListImes())
