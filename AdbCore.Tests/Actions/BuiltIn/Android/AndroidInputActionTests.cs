@@ -1,5 +1,6 @@
 using AdbCore.Actions;
 using AdbCore.Actions.BuiltIn.Android;
+using AdbCore.Android;
 using AdbCore.Execution;
 using AdbCore.Models;
 
@@ -133,6 +134,45 @@ public class AndroidInputActionTests
         await new SendTextAction().ExecuteAsync(ctx, default);
 
         Assert.Equal("text  ", dev.Calls.Single()); // "text " + the space argument
+    }
+
+    [Fact]
+    public async Task SendText_AdbKeyboard_WhenActive_BroadcastsUnicode()
+    {
+        var action = new BotAction { Config = { ["text"] = "!¹&!²", ["method"] = "ADB Keyboard" } };
+        var (ctx, dev) = WithDevice(action);
+        dev.ActiveIme = AndroidImes.AdbKeyboard; // Enable node already ran
+
+        var r = await new SendTextAction().ExecuteAsync(ctx, default);
+
+        Assert.True(r.Success);
+        Assert.Equal("getime", dev.Calls[0]);
+        Assert.Equal("adbkbtext !¹&!²", dev.Calls[1]);
+    }
+
+    [Fact]
+    public async Task SendText_AdbKeyboard_WhenNotActive_FailsWithoutSending()
+    {
+        var action = new BotAction { Config = { ["text"] = "hi", ["method"] = "ADB Keyboard" } };
+        var (ctx, dev) = WithDevice(action);
+        dev.ActiveIme = "com.other/.Ime";
+
+        var r = await new SendTextAction().ExecuteAsync(ctx, default);
+
+        Assert.False(r.Success);
+        Assert.Contains("Enable ADB Keyboard", r.ErrorMessage);
+        Assert.DoesNotContain(dev.Calls, c => c.StartsWith("adbkbtext"));
+    }
+
+    [Fact]
+    public async Task SendText_DefaultMethod_UsesInputText()
+    {
+        var action = new BotAction { Config = { ["text"] = "hello" } }; // no method key
+        var (ctx, dev) = WithDevice(action);
+
+        await new SendTextAction().ExecuteAsync(ctx, default);
+
+        Assert.Equal("text hello", dev.Calls.Single());
     }
 
     [Fact]
