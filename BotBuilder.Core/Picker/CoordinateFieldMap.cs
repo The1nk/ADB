@@ -8,6 +8,7 @@ public static class CoordinateFieldMap
         new Dictionary<string, IReadOnlyList<CoordinatePoint>>
         {
             ["android.tap"] = [new CoordinatePoint("x", "y", "Target")],
+            ["android.longPress"] = [new CoordinatePoint("x", "y", "Target")],
             ["android.swipe"] = [new CoordinatePoint("x1", "y1", "Start"), new CoordinatePoint("x2", "y2", "End")],
             ["input.click"] = [new CoordinatePoint("x", "y", "Target")],
             ["input.rightClick"] = [new CoordinatePoint("x", "y", "Target")],
