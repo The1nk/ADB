@@ -77,7 +77,7 @@ Reusing the defs elsewhere: the `library\adb.lua` file is a standalone LuaLS ann
   - **Unicode / non-Latin text on Android (ADBKeyboard)** — Android's built-in `input text` (what plain **Send Text** uses) only speaks plain ASCII; superscripts, emoji, accents, CJK — all silently vanish. To send the weird stuff, install the free **ADBKeyboard** IME and flip Send Text's **Method** to **ADB Keyboard**:
     1. Grab `ADBKeyboard.apk` from the [ADBKeyBoard releases](https://github.com/senzhk/ADBKeyBoard/releases).
     2. Install it — `adb install ADBKeyboard.apk`, or point the **Install APK** action at the file.
-    3. Drop an **Enable ADB Keyboard** node (Android) before you type — it switches the device to ADBKeyboard and remembers the old keyboard.
+    3. Drop an **Enable ADB Keyboard** node (Android) before you type — it switches the device to ADBKeyboard, **waits until the keyboard is actually ready** (so you don't need a manual Delay), and remembers the old keyboard.
     4. Set your **Send Text** node's **Method** to **ADB Keyboard**. Now `${those_superscripts}` actually land.
     5. Drop a **Restore Keyboard** node when you're done (or hang it off the Error Handler) to give the phone its normal keyboard back.
 
