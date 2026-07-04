@@ -124,8 +124,8 @@ Using a hand-rolled `FakeAndroidDevice` that records calls:
 
 - **LongPress** — emits a same-point swipe (`x==x1==x2`, `y==y1==y2`) with the configured duration;
   default duration is 600; returns `RequiresDevice()` failure when the target is unbound.
-- **SendText** — escapes embedded single quotes and preserves spaces; empty/whitespace text is a
-  no-op that returns success and issues no command.
+- **SendText** — escapes embedded single quotes and preserves spaces; empty text is a
+  no-op that returns success and issues no command (a deliberate single space is still typed).
 - **PressKey** — each dropdown name resolves to the correct keycode; `count` repeats the code that
   many times; `count < 1` behaves as 1; unresolvable key name fails with a clear message.
 - **AndroidKeyCodes** — every entry in `Names` resolves via `TryResolve`, and the resolved codes match
