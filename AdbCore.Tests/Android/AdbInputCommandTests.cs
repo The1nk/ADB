@@ -32,4 +32,29 @@ public class AdbInputCommandTests
     [Fact]
     public void KeyEvent_CountBelowOne_ClampsToOne()
         => Assert.Equal("input keyevent 67", AdbInputCommand.KeyEvent(67, 0));
+
+    [Fact]
+    public void AdbKeyboardText_BroadcastsBase64Utf8()
+    {
+        const string prefix = "am broadcast -a ADB_INPUT_B64 --es msg '";
+        var cmd = AdbInputCommand.AdbKeyboardText("¹²³");
+        Assert.StartsWith(prefix, cmd);
+        Assert.EndsWith("'", cmd);
+        var b64 = cmd[prefix.Length..^1];
+        var decoded = System.Text.Encoding.UTF8.GetString(System.Convert.FromBase64String(b64));
+        Assert.Equal("¹²³", decoded);
+    }
+
+    [Fact]
+    public void AdbKeyboardText_Empty_EncodesEmptyPayload()
+        => Assert.Equal("am broadcast -a ADB_INPUT_B64 --es msg ''", AdbInputCommand.AdbKeyboardText(""));
+
+    [Fact]
+    public void ImeCommands_AreExact()
+    {
+        Assert.Equal("ime set com.android.adbkeyboard/.AdbIME", AdbInputCommand.SetIme("com.android.adbkeyboard/.AdbIME"));
+        Assert.Equal("ime enable com.android.adbkeyboard/.AdbIME", AdbInputCommand.EnableIme("com.android.adbkeyboard/.AdbIME"));
+        Assert.Equal("settings get secure default_input_method", AdbInputCommand.GetDefaultIme());
+        Assert.Equal("ime list -a -s", AdbInputCommand.ListImes());
+    }
 }
