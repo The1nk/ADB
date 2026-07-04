@@ -38,8 +38,8 @@ public class BuiltInActionsTests
             Assert.False(execs.TryGet(key, out _));
         }
 
-        Assert.Equal(51, defs.Count);
-        Assert.Equal(47, execs.Count);
+        Assert.Equal(53, defs.Count);
+        Assert.Equal(49, execs.Count);
     }
 
     [Fact]

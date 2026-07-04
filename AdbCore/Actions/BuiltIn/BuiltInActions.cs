@@ -60,6 +60,8 @@ public static class BuiltInActions
         Add(new PressBackAction(), definitions, executors);
         Add(new SendTextAction(), definitions, executors);
         Add(new PressKeyAction(), definitions, executors);
+        Add(new EnableAdbKeyboardAction(), definitions, executors);
+        Add(new RestoreKeyboardAction(), definitions, executors);
         Add(new LaunchAppAction(), definitions, executors);
         Add(new InstallApkAction(), definitions, executors);
         Add(new AndroidScreenshotAction(), definitions, executors);

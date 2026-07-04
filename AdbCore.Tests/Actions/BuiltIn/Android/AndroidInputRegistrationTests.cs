@@ -11,6 +11,8 @@ public class AndroidInputRegistrationTests
     [InlineData("android.longPress")]
     [InlineData("android.sendText")]
     [InlineData("android.pressKey")]
+    [InlineData("android.enableAdbKeyboard")]
+    [InlineData("android.restoreKeyboard")]
     public void AndroidInputAction_IsRegistered_AsDefinitionAndExecutor(string typeKey)
     {
         var defs = new ActionRegistry();
