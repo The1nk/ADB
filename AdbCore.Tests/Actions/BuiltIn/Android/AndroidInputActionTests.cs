@@ -100,4 +100,38 @@ public class AndroidInputActionTests
         Assert.Contains("Android", r.ErrorMessage);
     }
 
+    [Fact]
+    public async Task SendText_CallsDeviceWithRawText()
+    {
+        var action = new BotAction { Config = { ["text"] = "hello world" } };
+        var (ctx, dev) = WithDevice(action);
+
+        var r = await new SendTextAction().ExecuteAsync(ctx, default);
+
+        Assert.True(r.Success);
+        Assert.Equal("text hello world", dev.Calls.Single());
+    }
+
+    [Fact]
+    public async Task SendText_EmptyText_IsNoOpSuccess()
+    {
+        var action = new BotAction { Config = { ["text"] = "" } };
+        var (ctx, dev) = WithDevice(action);
+
+        var r = await new SendTextAction().ExecuteAsync(ctx, default);
+
+        Assert.True(r.Success);
+        Assert.Empty(dev.Calls);
+    }
+
+    [Fact]
+    public async Task SendText_SingleSpace_IsStillSent()
+    {
+        var action = new BotAction { Config = { ["text"] = " " } };
+        var (ctx, dev) = WithDevice(action);
+
+        await new SendTextAction().ExecuteAsync(ctx, default);
+
+        Assert.Equal("text  ", dev.Calls.Single()); // "text " + the space argument
+    }
 }
