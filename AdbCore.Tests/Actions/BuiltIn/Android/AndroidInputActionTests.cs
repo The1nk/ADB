@@ -233,7 +233,7 @@ public class AndroidInputActionTests
     [Fact]
     public async Task EnableAdbKeyboard_StashesPreviousAndActivates()
     {
-        var action = new BotAction(); // default previousImeVar = "PreviousIme"
+        var action = new BotAction { Config = { ["settleMs"] = 0 } }; // default previousImeVar = "PreviousIme"
         var (ctx, dev) = WithDevice(action);
         dev.ActiveIme = "com.original/.Ime";
         dev.AdbKeyboardInstalled = true;
@@ -245,12 +245,30 @@ public class AndroidInputActionTests
         Assert.Contains($"imeenable {AndroidImes.AdbKeyboard}", dev.Calls);
         Assert.Contains($"imeset {AndroidImes.AdbKeyboard}", dev.Calls);
         Assert.Equal(AndroidImes.AdbKeyboard, dev.ActiveIme);
+        // Verified activation by polling AFTER issuing the switch (not fire-and-forget):
+        Assert.True(dev.Calls.IndexOf($"imeset {AndroidImes.AdbKeyboard}") < dev.Calls.LastIndexOf("getime"));
+    }
+
+    [Fact]
+    public async Task EnableAdbKeyboard_TimesOut_WhenImeNeverActivates()
+    {
+        var action = new BotAction { Config = { ["settleMs"] = 0 } };
+        var (ctx, dev) = WithDevice(action);
+        dev.AdbKeyboardInstalled = true;
+        dev.SuppressImeActivation = true; // ime set never "takes"
+
+        var r = await new EnableAdbKeyboardAction(maxWaitMs: 50, pollIntervalMs: 5).ExecuteAsync(ctx, default);
+
+        Assert.False(r.Success);
+        Assert.Contains("did not become the active input method", r.ErrorMessage);
+        // Prior IME is still stashed before the (failed) switch, so Restore can recover:
+        Assert.Equal("com.original/.Ime", ctx.Context.Variables["PreviousIme"]);
     }
 
     [Fact]
     public async Task EnableAdbKeyboard_NotInstalled_FailsWithHint()
     {
-        var action = new BotAction();
+        var action = new BotAction { Config = { ["settleMs"] = 0 } };
         var (ctx, dev) = WithDevice(action);
         dev.AdbKeyboardInstalled = false;
 
@@ -265,7 +283,7 @@ public class AndroidInputActionTests
     public async Task EnableAdbKeyboard_NoDeviceBound_Fails()
     {
         var ctx = new BotExecutionContext();
-        var exec = new ActionExecutionContext(new BotAction(), ctx, _ => { });
+        var exec = new ActionExecutionContext(new BotAction { Config = { ["settleMs"] = 0 } }, ctx, _ => { });
 
         var r = await new EnableAdbKeyboardAction().ExecuteAsync(exec, default);
 
