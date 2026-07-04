@@ -51,6 +51,12 @@ public sealed class AdvancedSharpAdbDevice : IAndroidDevice
     public void Swipe(int x1, int y1, int x2, int y2, int durationMs)
         => Shell($"input swipe {x1} {y1} {x2} {y2} {durationMs}");
 
+    public void LongPress(int x, int y, int durationMs) => Shell(AdbInputCommand.LongPress(x, y, durationMs));
+
+    public void SendText(string text) => Shell(AdbInputCommand.Text(text));
+
+    public void KeyEvent(int keyCode, int count) => Shell(AdbInputCommand.KeyEvent(keyCode, count));
+
     public void PressBack() => Shell("input keyevent 4");
 
     public void LaunchApp(string package)

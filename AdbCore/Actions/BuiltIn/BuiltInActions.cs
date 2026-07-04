@@ -56,7 +56,10 @@ public static class BuiltInActions
         // Android (handle-based — the bound IAndroidDevice is the ResolvedTarget handle; no injection).
         Add(new TapAction(), definitions, executors);
         Add(new SwipeAction(), definitions, executors);
+        Add(new LongPressAction(), definitions, executors);
         Add(new PressBackAction(), definitions, executors);
+        Add(new SendTextAction(), definitions, executors);
+        Add(new PressKeyAction(), definitions, executors);
         Add(new LaunchAppAction(), definitions, executors);
         Add(new InstallApkAction(), definitions, executors);
         Add(new AndroidScreenshotAction(), definitions, executors);

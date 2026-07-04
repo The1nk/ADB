@@ -11,6 +11,9 @@ internal sealed class FakeAndroidDevice : IAndroidDevice
     public void Tap(int x, int y) => Calls.Add($"tap {x} {y}");
     public void Swipe(int x1, int y1, int x2, int y2, int durationMs) => Calls.Add($"swipe {x1} {y1} {x2} {y2} {durationMs}");
     public byte[] Screenshot() { Calls.Add("screenshot"); return ScreenshotBytes; }
+    public void LongPress(int x, int y, int durationMs) => Calls.Add($"longpress {x} {y} {durationMs}");
+    public void SendText(string text) => Calls.Add($"text {text}");
+    public void KeyEvent(int keyCode, int count) => Calls.Add($"keyevent {keyCode} {count}");
     public void PressBack() => Calls.Add("back");
     public void LaunchApp(string package) => Calls.Add($"launch {package}");
     public void InstallApk(string apkPath) => Calls.Add($"install {apkPath}");

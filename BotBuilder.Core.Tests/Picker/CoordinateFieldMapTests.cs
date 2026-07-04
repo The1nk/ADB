@@ -8,6 +8,7 @@ public class CoordinateFieldMapTests
 {
     [Theory]
     [InlineData("android.tap")]
+    [InlineData("android.longPress")]
     [InlineData("input.click")]
     [InlineData("input.rightClick")]
     [InlineData("input.doubleClick")]
