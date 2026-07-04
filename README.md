@@ -33,7 +33,7 @@ Why click 10,000 times when a damn bot will click 10,001 and never complain? ADB
 
 ## The arsenal
 
-- **Visual node-graph editor** — drag/drop palette, multi-select, copy/paste, undo/redo, **right-drag from a card's body to wire it up** (for those of us cursed with bad aim), and **"Tidy Up"** auto-layout for when your masterpiece looks like a plate of spaghetti.
+- **Visual node-graph editor** — drag/drop palette, multi-select, copy/paste, undo/redo, **right-drag from a card's body to wire it up** (for those of us cursed with bad aim), **drag a live wire's tail onto a node to drop it right into the flow** (hello, retroactive Delays), and **"Tidy Up"** auto-layout for when your masterpiece looks like a plate of spaghetti.
 - **Nested bots** — encapsulate a chunk of logic as a reusable sub-bot and drop it in as one **Nested Bot** card. Share it across as many cards as you like, edit it in its own window, optionally pass variables/targets in and pull variables back, and **import** an existing `.bot` to fold a copy into the parent file. Keeps a sprawling graph from collapsing into a 200-node hairball.
 - **Global error handler** — drop one **Error Handler** node and any unhandled faceplant routes *there* instead of killing the run. Wire its output back to "reboot the device and start over" and you've got a bot that dusts itself off and keeps grinding while you sleep. It even hands your recovery flow the wreckage — `${error.message}`, `${error.action}` — so it knows what just went wrong.
 - **Image matching** (OpenCvSharp) — find / wait-for / assert-absent template images on Screen *and* Android, with a coordinate & region picker. Show it the loot button once; it clicks it until the heat death of the universe.

@@ -225,7 +225,7 @@ reaches the Error Handler.
 | **Input Senders** | AdbCore/Input/Win32SendInputSender.cs, Win32PostMessageSender.cs | Send mouse/keyboard input to windows |
 | **Android Driver** | AdbCore/Android/AdvancedSharpAdbDevice.cs | ADB command wrapping (install APK, launch app, tap, swipe, screenshot, send text, key events, IME query/switch). Send Text has two methods: **Input Text** (`input text`, ASCII only) and **ADB Keyboard** (base64 `ADB_INPUT_B64` broadcast for Unicode; needs the ADBKeyboard IME installed and made active by the **Enable ADB Keyboard** node, which stashes the prior IME for **Restore Keyboard** — id in `AndroidImes.AdbKeyboard`). |
 | **Playwright Driver** | AdbCore/Browser/PlaywrightBrowserPage.cs | Playwright automation (navigate, click, type, querySelector) |
-| **Canvas VM** | BotBuilder.Core/BotEditorViewModel.cs | Editor state: nodes, connections, undo/redo, selection, copy/paste |
+| **Canvas VM** | BotBuilder.Core/BotEditorViewModel.cs | Editor state: nodes, connections, undo/redo, selection, copy/paste. Dragging from an **already-connected** output calls `ConnectOrMove`: moves that wire to the dropped node and, when the dropped node has exactly one unset output, forwards it to the old destination (insert-into-wire) — one undoable command. |
 | **Palette VM** | BotBuilder.Core/Palette/PaletteViewModel.cs | Action discovery, category filtering, dependency availability probing |
 | **Serialization** | AdbCore/Serialization/BotSerializer.cs | `.bot` file (JSON) read/write |
 
