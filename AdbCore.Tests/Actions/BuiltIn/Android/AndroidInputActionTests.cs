@@ -229,4 +229,47 @@ public class AndroidInputActionTests
         Assert.Equal(ConfigFieldType.Enum, key.Type);
         Assert.Equal(AdbCore.Android.AndroidKeyCodes.Names, key.Options);
     }
+
+    [Fact]
+    public async Task EnableAdbKeyboard_StashesPreviousAndActivates()
+    {
+        var action = new BotAction(); // default previousImeVar = "PreviousIme"
+        var (ctx, dev) = WithDevice(action);
+        dev.ActiveIme = "com.original/.Ime";
+        dev.AdbKeyboardInstalled = true;
+
+        var r = await new EnableAdbKeyboardAction().ExecuteAsync(ctx, default);
+
+        Assert.True(r.Success);
+        Assert.Equal("com.original/.Ime", ctx.Context.Variables["PreviousIme"]);
+        Assert.Contains($"imeenable {AndroidImes.AdbKeyboard}", dev.Calls);
+        Assert.Contains($"imeset {AndroidImes.AdbKeyboard}", dev.Calls);
+        Assert.Equal(AndroidImes.AdbKeyboard, dev.ActiveIme);
+    }
+
+    [Fact]
+    public async Task EnableAdbKeyboard_NotInstalled_FailsWithHint()
+    {
+        var action = new BotAction();
+        var (ctx, dev) = WithDevice(action);
+        dev.AdbKeyboardInstalled = false;
+
+        var r = await new EnableAdbKeyboardAction().ExecuteAsync(ctx, default);
+
+        Assert.False(r.Success);
+        Assert.Contains("ADBKeyboard is not installed", r.ErrorMessage);
+        Assert.DoesNotContain(dev.Calls, c => c.StartsWith("imeset"));
+    }
+
+    [Fact]
+    public async Task EnableAdbKeyboard_NoDeviceBound_Fails()
+    {
+        var ctx = new BotExecutionContext();
+        var exec = new ActionExecutionContext(new BotAction(), ctx, _ => { });
+
+        var r = await new EnableAdbKeyboardAction().ExecuteAsync(exec, default);
+
+        Assert.False(r.Success);
+        Assert.Contains("Android", r.ErrorMessage);
+    }
 }
