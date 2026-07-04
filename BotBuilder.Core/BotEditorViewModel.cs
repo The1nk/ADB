@@ -254,6 +254,60 @@ public partial class BotEditorViewModel : ObservableObject
         return ConnectionError.None;
     }
 
+    /// <summary>Connects like <see cref="Connect"/> when the source port is free; when it already drives
+    /// an edge, MOVES that edge to <paramref name="target"/> and — if the dropped node has exactly one
+    /// unset output — forwards it to the old destination (inserting the node into the wire). One undo.</summary>
+    public ConnectionError ConnectOrMove(NodeViewModel source, PortViewModel sourcePort,
+                                         NodeViewModel target, PortViewModel targetPort)
+    {
+        var existing = Connections.FirstOrDefault(c =>
+            ReferenceEquals(c.Source, source) && c.SourcePort.Name == sourcePort.Name);
+        if (existing is null)
+        {
+            return Connect(source, sourcePort, target, targetPort);
+        }
+
+        // Dropping back onto the wire's current destination is a no-op — the same duplicate rejection
+        // Connect() would give, not a self-move. (Validating against "others" below excludes `existing`,
+        // so this exact case needs its own check first.)
+        if (ReferenceEquals(target, existing.Target) && targetPort.Name == existing.TargetPort.Name)
+        {
+            return ConnectionError.Duplicate;
+        }
+
+        var others = Connections.Where(c => !ReferenceEquals(c, existing)).ToList();
+        var moveError = ConnectionValidator.Validate(others, source, sourcePort, target, targetPort);
+        if (moveError != ConnectionError.None)
+        {
+            return moveError;
+        }
+
+        var primary = new ConnectionViewModel(Guid.NewGuid(), source, sourcePort, target, targetPort);
+
+        ConnectionViewModel? forward = null;
+        if (target.OutputPorts.Count == 1)
+        {
+            var singleOut = target.OutputPorts[0];
+            var outOccupied = others.Any(c =>
+                ReferenceEquals(c.Source, target) && c.SourcePort.Name == singleOut.Name);
+            if (!outOccupied)
+            {
+                var afterMove = others.Append(primary).ToList();
+                var fwdError = ConnectionValidator.Validate(
+                    afterMove, target, singleOut, existing.Target, existing.TargetPort);
+                if (fwdError == ConnectionError.None)
+                {
+                    forward = new ConnectionViewModel(
+                        Guid.NewGuid(), target, singleOut, existing.Target, existing.TargetPort);
+                }
+            }
+        }
+
+        _undo.Execute(new InsertOrMoveConnectionCommand(this, existing, primary, forward));
+        AfterEdit();
+        return ConnectionError.None;
+    }
+
     public void Disconnect(ConnectionViewModel connection)
     {
         _undo.Execute(new DisconnectCommand(this, connection));
