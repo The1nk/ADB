@@ -87,6 +87,9 @@ internal sealed class FakeAndroidDevice : AdbCore.Android.IAndroidDevice
 
     public void Tap(int x, int y) { }
     public void Swipe(int x1, int y1, int x2, int y2, int durationMs) { }
+    public void LongPress(int x, int y, int durationMs) { }
+    public void SendText(string text) { }
+    public void KeyEvent(int keyCode, int count) { }
     public void PressBack() { }
     public void LaunchApp(string package) { }
     public void InstallApk(string apkPath) { }
