@@ -168,27 +168,30 @@ public partial class BotEditorViewModel : ObservableObject
         Viewport.FitTo(minX, minY, maxX, maxY, viewportWidth, viewportHeight);
     }
 
-    /// <summary>Re-arranges all nodes into a tidy left-to-right layered layout, as one undoable step.</summary>
-    public void AutoLayout()
+    /// <summary>Re-arranges all nodes into a tidy serpentine layout, as one undoable step. When
+    /// <paramref name="availableWidth"/> is given, bands wrap to fit that canvas width; otherwise a balanced
+    /// aspect ratio is used.</summary>
+    public void AutoLayout(double? availableWidth = null)
     {
         if (Nodes.Count == 0) return;
         var nodes = Nodes.Select(n => (n.Id, n.Height)).ToList();
         var edges = Connections
             .Select(c => (c.Source.Id, c.Target.Id, c.SourcePort.AnchorOffset.Y, c.TargetPort.AnchorOffset.Y))
             .ToList();
-        var positions = BotBuilder.Core.Layout.AutoLayout.Arrange(nodes, edges);
+        var placements = BotBuilder.Core.Layout.AutoLayout.Arrange(nodes, edges, availableWidth);
 
-        var moves = new List<(NodeViewModel Node, double OldX, double OldY)>();
+        var items = new List<(NodeViewModel, double, double, bool, double, double, bool)>();
         foreach (var node in Nodes)
         {
-            if (positions.TryGetValue(node.Id, out var p))
-            {
-                var oldX = node.X; var oldY = node.Y;
-                node.X = p.X; node.Y = p.Y;
-                moves.Add((node, oldX, oldY));
-            }
+            if (!placements.TryGetValue(node.Id, out var p)) continue;
+            if (node.X == p.X && node.Y == p.Y && node.PortsFlipped == p.Flipped) continue;
+            items.Add((node, node.X, node.Y, node.PortsFlipped, p.X, p.Y, p.Flipped));
         }
-        CommitMoves(moves);   // records a single MoveNodesCommand (no-op-safe)
+        if (items.Count == 0) return;
+
+        foreach (var m in items) { m.Item1.X = m.Item5; m.Item1.Y = m.Item6; m.Item1.SetPortsFlipped(m.Item7); }
+        _undo.PushExecuted(new LayoutNodesCommand(items));
+        AfterEdit();
     }
 
     /// <summary>Recomputes back-route lanes for all connections so return/loop wires don't overlap, then
@@ -204,7 +207,7 @@ public partial class BotEditorViewModel : ObservableObject
         {
             var s = (c.Source.X + c.SourcePort.AnchorOffset.X, c.Source.Y + c.SourcePort.AnchorOffset.Y);
             var t = (c.Target.X + c.TargetPort.AnchorOffset.X, c.Target.Y + c.TargetPort.AnchorOffset.Y);
-            return new BackRouteInput(c.Id, s.Item1, s.Item2, t.Item1, t.Item2);
+            return new BackRouteInput(c.Id, s.Item1, s.Item2, t.Item1, t.Item2, c.SourcePort.Edge);
         }).ToList();
 
         var plans = BackRoutePlanner.Plan(inputs, leftX, rightX, ComputeClearBands());

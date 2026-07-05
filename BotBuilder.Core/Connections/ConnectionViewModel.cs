@@ -39,7 +39,7 @@ public partial class ConnectionViewModel : ObservableObject
         {
             var start = Anchor(Source, SourcePort);
             var end = Anchor(Target, TargetPort);
-            if (_lane is { } lane && end.X < start.X)
+            if (_lane is { } lane && ConnectionGeometry.IsBackward(start, SourcePort.Edge, end))
                 return ConnectionGeometry.BuildLanedBackRoute(
                     start, SourcePort.Edge, end, TargetPort.Edge,
                     lane.RightCornerX, lane.LeftCornerX, lane.GutterY);

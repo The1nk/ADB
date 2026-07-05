@@ -1,7 +1,10 @@
+using BotBuilder.Core;
+
 namespace BotBuilder.Core.Connections;
 
-/// <summary>A candidate connection for back-route planning: absolute source/target anchor positions.</summary>
-public readonly record struct BackRouteInput(Guid Id, double StartX, double StartY, double EndX, double EndY);
+/// <summary>A candidate connection for back-route planning: absolute source/target anchor positions plus
+/// the source port's edge, so a flipped (serpentine) band's return wires are detected by facing direction.</summary>
+public readonly record struct BackRouteInput(Guid Id, double StartX, double StartY, double EndX, double EndY, PortEdge SourceEdge);
 
 /// <summary>The lane a back-route was assigned: the vertical corridor X on each side and the gutter Y for
 /// its horizontal run. The corridors are distinct per route (monotonic in lane index) and carry the
@@ -27,8 +30,8 @@ public static class BackRoutePlanner
         // Backward edges only (target strictly left of source), ordered narrowest-span first so the
         // narrowest nests in the innermost lane and wider spans wrap around the outside.
         var back = routes
-            .Where(r => r.EndX < r.StartX)
-            .OrderBy(r => r.StartX - r.EndX)
+            .Where(r => ConnectionGeometry.IsBackward(new CanvasPoint(r.StartX, r.StartY), r.SourceEdge, new CanvasPoint(r.EndX, r.EndY)))
+            .OrderBy(r => Math.Abs(r.StartX - r.EndX))
             .ThenBy(r => r.StartY)
             .ThenBy(r => r.Id)
             .ToList();

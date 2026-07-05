@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using BotBuilder.Core;
 using BotBuilder.Core.Connections;
 using Xunit;
 
@@ -8,7 +9,7 @@ namespace BotBuilder.Core.Tests;
 public class BackRoutePlannerTests
 {
     private static BackRouteInput In(Guid id, double sx, double sy, double ex, double ey)
-        => new(id, sx, sy, ex, ey);
+        => new(id, sx, sy, ex, ey, PortEdge.Right);
 
     [Fact]
     public void OnlyBackwardEdgesGetLanes()
