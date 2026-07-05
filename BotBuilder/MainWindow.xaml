@@ -290,14 +290,14 @@
                                     <Path Data="{Binding PathData}" StrokeThickness="2" IsHitTestVisible="False">
                                         <Path.Style>
                                             <Style TargetType="Path">
-                                                <Setter Property="Stroke" Value="#DDDDDD" />
+                                                <Setter Property="Stroke" Value="{DynamicResource PrimaryTextBrush}" />
                                                 <Style.Triggers>
                                                     <DataTrigger Binding="{Binding IsBackEdge}" Value="True">
                                                         <Setter Property="Stroke" Value="{DynamicResource SecondaryTextBrush}" />
                                                         <Setter Property="StrokeDashArray" Value="4 3" />
                                                     </DataTrigger>
                                                     <DataTrigger Binding="{Binding IsSelected}" Value="True">
-                                                        <Setter Property="Stroke" Value="#296FD6" />
+                                                        <Setter Property="Stroke" Value="{DynamicResource AccentBrush}" />
                                                     </DataTrigger>
                                                 </Style.Triggers>
                                             </Style>
