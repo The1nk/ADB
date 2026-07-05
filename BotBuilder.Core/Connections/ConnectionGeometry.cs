@@ -25,13 +25,23 @@ public static class ConnectionGeometry
                 new CanvasPoint(end.X + e.X * pull, end.Y + e.Y * pull));
     }
 
+    /// <summary>Whether a connection runs "backwards" relative to its source port's facing direction — i.e.
+    /// a loop-back / return wire that must be routed through a gutter rather than drawn as a forward curve.
+    /// A Right/Bottom output faces right, so a target to its left is backward; a Left output (a flipped
+    /// serpentine band) faces left, so a target to its right is backward.</summary>
+    public static bool IsBackward(CanvasPoint start, PortEdge startEdge, CanvasPoint end) => startEdge switch
+    {
+        PortEdge.Left => end.X > start.X + BackRouteMargin,
+        _ => end.X < start.X - BackRouteMargin,
+    };
+
     /// <summary>A WPF path mini-language string in invariant culture. Forward edges curve as a cubic
     /// bezier; an edge whose target sits to the left of its source (a wrap "return" wire or loop-back,
     /// which a bezier would drag straight back across the nodes between them) is routed orthogonally
     /// down into the gap between rows, across, and up into the target.</summary>
     public static string BuildPath(CanvasPoint start, PortEdge startEdge, CanvasPoint end, PortEdge endEdge)
     {
-        if (end.X < start.X - BackRouteMargin)
+        if (IsBackward(start, startEdge, end))
             return BuildBackRoute(start, startEdge, end, endEdge);
 
         var (c1, c2) = ControlPoints(start, startEdge, end, endEdge);
