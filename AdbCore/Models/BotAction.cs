@@ -22,6 +22,10 @@ public class BotAction
     /// <summary>Optional per-action retry configuration.</summary>
     public RetryPolicy? Retry { get; set; }
 
+    /// <summary>True when the editor flipped this node's ports for a right-to-left serpentine band
+    /// (inputs on the right, outputs on the left). Optional; defaults false for older files.</summary>
+    public bool PortsFlipped { get; set; }
+
     [JsonPropertyName("position")]
     public Position CanvasPosition { get; set; } = new();
 
@@ -37,5 +41,6 @@ public class BotAction
         Config = config,
         Retry = Retry,
         CanvasPosition = CanvasPosition,
+        PortsFlipped = PortsFlipped,
     };
 }
