@@ -167,6 +167,28 @@ public class AutoLayoutTests
     }
 
     [Fact]
+    public void BranchFanOut_UpperPortFeedsUpperChild_NoCrossing()
+    {
+        // A single 2-output node (e.g. a Branch: upper "true" port, lower "false" port) fanning out to two
+        // children. Even when the children are supplied in the "wrong" input order (upperChild created
+        // AFTER lowerChild), the port-aware barycenter tie-break must order them by feeding-port Y so the
+        // upper port's child sits above the lower port's child -> the two wires never cross.
+        var branch = Guid.NewGuid();
+        var lowerChild = Guid.NewGuid();   // created first, fed by the LOWER output port
+        var upperChild = Guid.NewGuid();   // created second, fed by the UPPER output port
+        var pos = AutoLayout.Arrange(
+            new[] { N(branch), N(lowerChild), N(upperChild) },
+            new[]
+            {
+                (branch, lowerChild, 50.0, 35.0),   // branch lower port (Y=50) -> lowerChild
+                (branch, upperChild, 20.0, 35.0),   // branch upper port (Y=20) -> upperChild
+            });
+
+        Assert.Equal(pos[lowerChild].X, pos[upperChild].X);   // both children share the next column
+        Assert.True(pos[upperChild].Y < pos[lowerChild].Y);   // upper port's child above -> uncrossed wires
+    }
+
+    [Fact]
     public void BackCompatOverload_KeepsInputOrder_WhenNoPortData()
     {
         // Same graph as PortAware_OrdersSiblingsByFeedingPort, but via the (Guid,Guid) overload (no port Y).
