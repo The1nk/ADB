@@ -211,15 +211,41 @@ public partial class MainWindow : Window
         PropertiesRail.Visibility = collapsed ? Visibility.Visible : Visibility.Collapsed;
     }
 
+    /// <summary>Root-window guard: prompt to save if dirty before a New/Open/close. Returns true to proceed.</summary>
+    private bool ConfirmDiscardIfDirty()
+        => UnsavedChangesGuard.ConfirmProceed(() => _editor.IsDirty, AskSaveChanges, TrySaveForGuard);
+
+    private SaveChoice AskSaveChanges()
+    {
+        var result = MessageBox.Show(this,
+            $"Save changes to \"{_editor.BotName}\" before continuing?",
+            "ADB Bot Builder", MessageBoxButton.YesNoCancel, MessageBoxImage.Warning);
+        return result switch
+        {
+            MessageBoxResult.Yes => SaveChoice.Save,
+            MessageBoxResult.No => SaveChoice.DontSave,
+            _ => SaveChoice.Cancel,
+        };
+    }
+
+    private bool TrySaveForGuard()
+    {
+        if (_editor.FilePath is not null) { _editor.Save(); return true; }
+        if (PromptForBotPath() is string path) { _editor.SaveAsNew(path); return true; }
+        return false;   // user cancelled the path dialog -> abort the New/Open/close
+    }
+
     private void New_Click(object sender, RoutedEventArgs e)
     {
         if (_isChild) { return; } // disabled in child mode; menu item is also IsEnabled=false
+        if (!ConfirmDiscardIfDirty()) return;
         _editor.New();
     }
 
     private void Open_Click(object sender, RoutedEventArgs e)
     {
         if (_isChild) { return; } // disabled in child mode; menu item is also IsEnabled=false
+        if (!ConfirmDiscardIfDirty()) return;
         var dialog = new OpenFileDialog { Filter = BotFilter };
         if (dialog.ShowDialog(this) == true)
         {
@@ -1210,6 +1236,13 @@ public partial class MainWindow : Window
         {
             // Best-effort: scaffold failure must not prevent the editor from opening.
         }
+    }
+
+    protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
+    {
+        base.OnClosing(e);
+        if (_isChild) return;   // child windows sync back automatically; nothing to lose to disk
+        if (!ConfirmDiscardIfDirty()) e.Cancel = true;
     }
 
     protected override void OnClosed(EventArgs e)
