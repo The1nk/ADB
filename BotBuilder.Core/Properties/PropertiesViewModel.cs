@@ -61,20 +61,23 @@ public partial class PropertiesViewModel : ObservableObject
         set
         {
             if (Node is null) { return; }
-            if (value is Guid id)
+            if (value is not Guid id)
             {
-                if (_editor.NestedBotLibrary.WouldCreateCycle(_editor.BotId, id))
-                {
-                    CycleWarning = "That would make this bot run itself (a nested-bot cycle).";
-                    OnPropertyChanged(nameof(SelectedNestedBotId)); // snap the picker back
-                    return;
-                }
-                Node.Config[NestedBotAction.NestedBotIdKey] = id.ToString();
+                // The picker has no "unassigned" item, so a null from the binding is always spurious: WPF
+                // pushes it when the ComboBox's ItemsSource swaps and the prior selection's Bot instance was
+                // replaced by reference (e.g. after a nested bot was edited and synced back). Ignore it and
+                // snap the picker back to the node's real value. Deliberate unassignment goes through
+                // RemoveSelectedNestedBot(), which clears the config directly.
+                OnPropertyChanged(nameof(SelectedNestedBotId));
+                return;
             }
-            else
+            if (_editor.NestedBotLibrary.WouldCreateCycle(_editor.BotId, id))
             {
-                Node.Config.Remove(NestedBotAction.NestedBotIdKey);
+                CycleWarning = "That would make this bot run itself (a nested-bot cycle).";
+                OnPropertyChanged(nameof(SelectedNestedBotId)); // snap the picker back
+                return;
             }
+            Node.Config[NestedBotAction.NestedBotIdKey] = id.ToString();
             CycleWarning = null;
             _editor.MarkDirty();
             _editor.RefreshNestedBotSubtitles();
@@ -124,15 +127,20 @@ public partial class PropertiesViewModel : ObservableObject
         return entry;
     }
 
-    /// <summary>Removes the selected entry from the library and unassigns the card.</summary>
+    /// <summary>Removes the selected entry from the library and unassigns the card. Clears the config key
+    /// directly rather than via the SelectedNestedBotId setter (which now ignores null as a spurious
+    /// picker writeback).</summary>
     public void RemoveSelectedNestedBot()
     {
-        if (SelectedNestedBotId is Guid id)
-        {
-            _editor.NestedBotLibrary.Remove(id);
-            SelectedNestedBotId = null;
-            OnPropertyChanged(nameof(NestedBotEntries));
-        }
+        if (Node is null || SelectedNestedBotId is not Guid id) { return; }
+        _editor.NestedBotLibrary.Remove(id);
+        Node.Config.Remove(NestedBotAction.NestedBotIdKey);
+        _editor.MarkDirty();
+        _editor.RefreshNestedBotSubtitles();
+        OnPropertyChanged(nameof(NestedBotEntries));
+        OnPropertyChanged(nameof(SelectedNestedBotId));
+        OnPropertyChanged(nameof(SelectedNestedBotName));
+        OnPropertyChanged(nameof(SelectedNestedBotEditableName));
     }
 
     /// <summary>The selected node's assigned target id (null = the default first target).</summary>

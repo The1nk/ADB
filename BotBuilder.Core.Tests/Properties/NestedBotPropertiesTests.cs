@@ -94,4 +94,21 @@ public class NestedBotPropertiesTests
         Assert.Empty(editor.NestedBotLibrary.Entries);
         Assert.Null(editor.Properties.SelectedNestedBotId);
     }
+
+    [Fact]
+    public void SelectedNestedBotId_NullFromPicker_KeepsAssignment()
+    {
+        var editor = NewEditor();
+        var node = editor.AddNode(NestedBotAction.NestedBotTypeKey, 0, 0);
+        editor.Select(node);
+        var bot = editor.NestedBotLibrary.AddNew("Sub");
+        editor.Properties.SelectedNestedBotId = bot.Id;
+
+        // Simulates the spurious WPF writeback: the ComboBox pushes null when its ItemsSource swaps and the
+        // previously-selected Bot instance was replaced by reference (after a nested bot was edited/synced back).
+        editor.Properties.SelectedNestedBotId = null;
+
+        Assert.Equal(bot.Id, editor.Properties.SelectedNestedBotId);
+        Assert.Equal(bot.Id.ToString(), node.Config[NestedBotAction.NestedBotIdKey]);
+    }
 }
