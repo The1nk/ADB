@@ -135,6 +135,7 @@ public partial class PropertiesViewModel : ObservableObject
         if (Node is null || SelectedNestedBotId is not Guid id) { return; }
         _editor.NestedBotLibrary.Remove(id);
         Node.Config.Remove(NestedBotAction.NestedBotIdKey);
+        CycleWarning = null;   // clear any stale cyclic-assignment warning when the card is emptied
         _editor.MarkDirty();
         _editor.RefreshNestedBotSubtitles();
         OnPropertyChanged(nameof(NestedBotEntries));
