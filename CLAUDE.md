@@ -211,6 +211,12 @@ wired back to an earlier node yields a reboot/retry loop; iterative, cancellable
 behavior is unchanged. `Run Parallel` aggregates branch failures at the Join first; only a resulting halt
 reaches the Error Handler.
 
+A **Throw Error** node (`control.throwError`, `ThrowErrorAction`) deliberately fails the run with a
+configurable (`message`, `${var}`-interpolated) message: it has one input and no outputs, so its failure
+always propagates — escaping an enclosing Loop and, from inside a nested bot, returning control to the
+parent (caught by an Error Handler if one is present). Use it where `End` won't do, e.g. to bail out of a
+loop inside a nested bot.
+
 ## Key Modules
 
 | Module | Location | Purpose |
