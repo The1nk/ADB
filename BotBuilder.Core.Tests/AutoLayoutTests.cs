@@ -144,6 +144,29 @@ public class AutoLayoutTests
     }
 
     [Fact]
+    public void LongChain_Serpentine_AlternatesFlip()
+    {
+        var ids = LinearChain(12, out var edges);
+        var pos = AutoLayout.Arrange(ids.Select(id => N(id)).ToArray(), edges);
+
+        Assert.False(pos[ids[0]].Flipped);              // band 0 is left-to-right
+        Assert.Contains(pos.Values, p => p.Flipped);     // at least one reversed band
+        Assert.Contains(pos.Values, p => !p.Flipped);
+    }
+
+    [Fact]
+    public void FitToWidth_LimitsColumnsPerBand()
+    {
+        var ids = LinearChain(10, out var edges);
+        var portEdges = edges.Select(e => (e.Item1, e.Item2, 0.0, 0.0)).ToArray();
+        // Room for 4 columns: (4-1)*ColGap + card width.
+        var target = 3 * AutoLayout.ColGap + 160;
+        var pos = AutoLayout.Arrange(ids.Select(id => N(id)).ToArray(), portEdges, targetWidth: target);
+
+        Assert.True(pos.Values.Select(p => p.X).Distinct().Count() <= 4);
+    }
+
+    [Fact]
     public void BackCompatOverload_KeepsInputOrder_WhenNoPortData()
     {
         // Same graph as PortAware_OrdersSiblingsByFeedingPort, but via the (Guid,Guid) overload (no port Y).

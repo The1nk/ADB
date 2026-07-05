@@ -1,14 +1,17 @@
 namespace BotBuilder.Core.Layout;
 
+/// <summary>A node's computed layout position plus whether its band runs right-to-left (ports flipped).</summary>
+public readonly record struct NodePlacement(double X, double Y, bool Flipped);
+
 /// <summary>Layered left-to-right graph layout ("Tidy Up"). Assigns each node a layer by longest path
 /// on the back-edge-removed DAG (cycles are safe), reduces edge crossings with alternating barycenter
 /// sweeps, packs each layer's column top-to-bottom by height, and wraps long flows into stacked
 /// left-to-right bands sized toward a balanced aspect ratio so they don't run off-screen.</summary>
 public static class AutoLayout
 {
-    public const double ColGap = 240;
+    public const double ColGap = 200;
     public const double RowGap = 30;
-    public const double BandGap = 80;     // vertical gap between wrapped row-bands (> RowGap: gutter for return wires)
+    public const double BandGap = 48;     // vertical gap between wrapped row-bands
     public const double OriginX = 40;
     public const double OriginY = 40;
 
@@ -19,18 +22,20 @@ public static class AutoLayout
 
     /// <summary>Back-compat overload: edges without port positions (port Y defaults to 0, so ties fall
     /// back to input order exactly as before).</summary>
-    public static IReadOnlyDictionary<Guid, (double X, double Y)> Arrange(
+    public static IReadOnlyDictionary<Guid, NodePlacement> Arrange(
         IReadOnlyList<(Guid Id, double Height)> nodes,
-        IReadOnlyList<(Guid Source, Guid Target)> edges)
-        => Arrange(nodes, edges.Select(e => (e.Source, e.Target, 0.0, 0.0)).ToList());
+        IReadOnlyList<(Guid Source, Guid Target)> edges,
+        double? targetWidth = null)
+        => Arrange(nodes, edges.Select(e => (e.Source, e.Target, 0.0, 0.0)).ToList(), targetWidth);
 
     /// <summary>Port-aware layout: each edge carries the source/target port Y (relative to the card top),
     /// so siblings fed from a single parent are ordered by feeding-port height (prevents crossed outputs).</summary>
-    public static IReadOnlyDictionary<Guid, (double X, double Y)> Arrange(
+    public static IReadOnlyDictionary<Guid, NodePlacement> Arrange(
         IReadOnlyList<(Guid Id, double Height)> nodes,
-        IReadOnlyList<(Guid Source, Guid Target, double SourcePortY, double TargetPortY)> edges)
+        IReadOnlyList<(Guid Source, Guid Target, double SourcePortY, double TargetPortY)> edges,
+        double? targetWidth = null)
     {
-        var result = new Dictionary<Guid, (double X, double Y)>();
+        var result = new Dictionary<Guid, NodePlacement>();
         if (nodes.Count == 0) return result;
 
         var ids = nodes.Select(n => n.Id).ToList();
@@ -138,7 +143,9 @@ public static class AutoLayout
         var colHeight = layers
             .Select(lyr => lyr.Sum(id => height[id]) + Math.Max(0, lyr.Count - 1) * RowGap)
             .ToList();
-        var k = L <= NoWrapMaxLayers ? L : ChooseBandWidth(L, colHeight);
+        var k = targetWidth is double tw
+            ? ChooseBandWidthForWidth(L, tw)
+            : (L <= NoWrapMaxLayers ? L : ChooseBandWidth(L, colHeight));
 
         // 6) position: row-reset bands. Band b holds layers [b*k, b*k+k); each band restarts at OriginX,
         //    stacked below the previous band by that band's tallest column + BandGap.
@@ -157,15 +164,31 @@ public static class AutoLayout
         {
             var band = l / k;
             var localCol = l % k;
-            var x = OriginX + localCol * ColGap;
+            var colsInBand = Math.Min(k, L - band * k);
+            var flipped = band % 2 == 1;
+            var effectiveCol = flipped ? colsInBand - 1 - localCol : localCol;
+            var x = OriginX + effectiveCol * ColGap;
             var y = bandTop[band];
             foreach (var id in layers[l])
             {
-                result[id] = (x, y);
+                result[id] = new NodePlacement(x, y, flipped);
                 y += height[id] + RowGap;
             }
         }
         return result;
+    }
+
+    /// <summary>Largest columns-per-band whose band width (<c>(k-1)*ColGap + NodeWidth</c>) still fits
+    /// <paramref name="targetWidth"/>; at least 1, at most the layer count.</summary>
+    private static int ChooseBandWidthForWidth(int layerCount, double targetWidth)
+    {
+        var best = 1;
+        for (var k = 1; k <= layerCount; k++)
+        {
+            var width = (k - 1) * ColGap + NodeWidth;
+            if (width <= targetWidth) { best = k; } else { break; }
+        }
+        return best;
     }
 
     /// <summary>Brute-forces the band width (1..layerCount) whose resulting block aspect (width:height)
