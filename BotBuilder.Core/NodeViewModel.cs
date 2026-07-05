@@ -124,6 +124,7 @@ public partial class NodeViewModel : ObservableObject
 
         ReanchorRightOutputsAndInputs(height);
         Height = height;
+        if (PortsFlipped) { SetPortsFlipped(true); }
     }
 
     /// <summary>Replaces the output ports with the given instances (used by the undoable branch-count command).
@@ -141,6 +142,7 @@ public partial class NodeViewModel : ObservableObject
         var height = NodeLayout.CardHeight(rightCount);
         ReanchorRightOutputsAndInputs(height);
         Height = height;
+        if (PortsFlipped) { SetPortsFlipped(true); }
     }
 
     /// <summary>Re-places right-edge outputs and all inputs onto the given height, centering each block.

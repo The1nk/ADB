@@ -164,9 +164,8 @@ public static class AutoLayout
         {
             var band = l / k;
             var localCol = l % k;
-            var colsInBand = Math.Min(k, L - band * k);
             var flipped = band % 2 == 1;
-            var effectiveCol = flipped ? colsInBand - 1 - localCol : localCol;
+            var effectiveCol = flipped ? (k - 1 - localCol) : localCol;
             var x = OriginX + effectiveCol * ColGap;
             var y = bandTop[band];
             foreach (var id in layers[l])
