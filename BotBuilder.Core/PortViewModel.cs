@@ -21,10 +21,19 @@ public sealed partial class PortViewModel : ObservableObject
     public string Name { get; }
     public PortDirection Direction { get; }
 
-    /// <summary>Which edge of the card this port sits on (drives its anchor and connector direction).</summary>
-    public PortEdge Edge { get; }
+    /// <summary>Which edge of the card this port sits on (drives its anchor and connector direction).
+    /// Mutable so a node can flip its ports for a reversed serpentine band.</summary>
+    public PortEdge Edge { get; private set; }
 
     /// <summary>Re-place this port (used when a node's layout recomputes, e.g. Run Parallel branch count).
     /// Raises a change notification so the bound canvas port + its connectors re-route.</summary>
     public void MoveTo(CanvasPoint anchorOffset) => AnchorOffset = anchorOffset;
+
+    /// <summary>Move this port to a new edge + anchor at once (used when a node flips its ports). Raises the
+    /// anchor change notification so the bound canvas port + its connectors re-route.</summary>
+    public void Reposition(PortEdge edge, CanvasPoint anchorOffset)
+    {
+        Edge = edge;
+        AnchorOffset = anchorOffset;
+    }
 }

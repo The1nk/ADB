@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Linq;
 using AdbCore.Actions;
 using AdbCore.Actions.BuiltIn;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -43,6 +44,11 @@ public partial class NodeViewModel : ObservableObject
     public Guid Id { get; }
     public string TypeKey { get; }
     public string Category { get; }
+
+    /// <summary>True when this node's ports are flipped for a right-to-left serpentine band: inputs on the
+    /// Right edge, non-failure outputs on the Left edge. Persisted so a saved-then-reloaded tidy graph stays
+    /// clean. Failure (bottom-edge) ports are unaffected.</summary>
+    public bool PortsFlipped { get; private set; }
 
     /// <summary>Action-specific settings, keyed by config-field key.</summary>
     public Dictionary<string, object> Config { get; } = new();
@@ -154,6 +160,32 @@ public partial class NodeViewModel : ObservableObject
         for (var i = 0; i < InputPorts.Count; i++)
         {
             InputPorts[i].MoveTo(NodeLayout.LeftAnchor(i, InputPorts.Count, height));
+        }
+    }
+
+    /// <summary>Flips (or restores) port sides for a serpentine reversed band. Preserves port instances so
+    /// wired connections keep their endpoint identity; only failure/bottom ports are left in place.</summary>
+    public void SetPortsFlipped(bool flipped)
+    {
+        PortsFlipped = flipped;
+        var inputEdge = flipped ? PortEdge.Right : PortEdge.Left;
+        var outEdge = flipped ? PortEdge.Left : PortEdge.Right;
+
+        for (var i = 0; i < InputPorts.Count; i++)
+        {
+            var anchor = flipped
+                ? NodeLayout.RightAnchor(i, InputPorts.Count, Height)
+                : NodeLayout.LeftAnchor(i, InputPorts.Count, Height);
+            InputPorts[i].Reposition(inputEdge, anchor);
+        }
+
+        var sideOutputs = OutputPorts.Where(p => p.Edge is PortEdge.Left or PortEdge.Right).ToList();
+        for (var i = 0; i < sideOutputs.Count; i++)
+        {
+            var anchor = flipped
+                ? NodeLayout.LeftAnchor(i, sideOutputs.Count, Height)
+                : NodeLayout.RightAnchor(i, sideOutputs.Count, Height);
+            sideOutputs[i].Reposition(outEdge, anchor);
         }
     }
 }
