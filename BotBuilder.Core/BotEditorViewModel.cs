@@ -194,6 +194,55 @@ public partial class BotEditorViewModel : ObservableObject
         AfterEdit();
     }
 
+    /// <summary>Derived, non-persisted display pass: for every connection that is the SOLE wire on both a
+    /// single-output source and a single-input target (a clean 1-out→1-in link, not a branch/join/failure
+    /// fan), orient its two ports toward each other — a clearly-below neighbor becomes a vertical
+    /// bottom-out→top-in drop, a clearly-above one a top-out→bottom-in drop, otherwise the ports keep their
+    /// horizontal (flip-aware) sides. Every node is first reset to its band default so the pass is fully
+    /// idempotent and self-heals after a drag. Recomputed on commit/load only (via <see cref="AfterEdit"/>
+    /// and <see cref="DocumentMapper.Populate"/>), alongside <see cref="RerouteBackEdges"/>; never serialized.</summary>
+    public void OrientSingleConnectionPorts()
+    {
+        foreach (var n in Nodes) { n.ResetPortEdgesToDefault(); }
+        if (Connections.Count == 0) { return; }
+
+        var outDegree = new Dictionary<NodeViewModel, int>();
+        var inDegree = new Dictionary<NodeViewModel, int>();
+        foreach (var c in Connections)
+        {
+            outDegree[c.Source] = outDegree.GetValueOrDefault(c.Source) + 1;
+            inDegree[c.Target] = inDegree.GetValueOrDefault(c.Target) + 1;
+        }
+
+        foreach (var c in Connections)
+        {
+            // Sole-1-1 only: a single-output source (excludes branch / Run Parallel, which have >1 output
+            // port) whose one output drives exactly this wire, and a single-input target fed by exactly this
+            // wire (excludes joins / multi-inbound). Failure (Bottom-designated) source ports keep their edge.
+            if (c.Source.OutputPorts.Count != 1 || c.Target.InputPorts.Count != 1) { continue; }
+            if (outDegree[c.Source] != 1 || inDegree[c.Target] != 1) { continue; }
+            if (c.Source.IsFailurePortName(c.SourcePort.Name)) { continue; }
+
+            // Dominant direction from source-card center to target-card center (centers avoid the default
+            // port-side bias so a node directly below reads as vertical regardless of flip state).
+            var dx = (c.Target.X + NodeLayout.CardWidth / 2) - (c.Source.X + NodeLayout.CardWidth / 2);
+            var dy = (c.Target.Y + c.Target.Height / 2) - (c.Source.Y + c.Source.Height / 2);
+
+            if (Math.Abs(dy) > Math.Abs(dx))
+            {
+                var (srcEdge, tgtEdge) = dy > 0 ? (PortEdge.Bottom, PortEdge.Top) : (PortEdge.Top, PortEdge.Bottom);
+                c.Source.OrientPortTo(c.SourcePort, srcEdge);
+                c.Target.OrientPortTo(c.TargetPort, tgtEdge);
+            }
+            else
+            {
+                var (srcEdge, tgtEdge) = dx >= 0 ? (PortEdge.Right, PortEdge.Left) : (PortEdge.Left, PortEdge.Right);
+                c.Source.OrientPortTo(c.SourcePort, srcEdge);
+                c.Target.OrientPortTo(c.TargetPort, tgtEdge);
+            }
+        }
+    }
+
     /// <summary>Recomputes back-route lanes for all connections so return/loop wires don't overlap, then
     /// applies each lane (or clears it) on its connection. Derived display state — not undoable, not saved.</summary>
     public void RerouteBackEdges()
@@ -665,6 +714,7 @@ public partial class BotEditorViewModel : ObservableObject
         RaiseUndoState();
         RefreshTargetBadges();
         RefreshNestedBotSubtitles();
+        OrientSingleConnectionPorts();
         RerouteBackEdges();
     }
 

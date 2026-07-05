@@ -32,12 +32,19 @@ public static class NodeLayout
     public static CanvasPoint BottomAnchor(int index, int count, double height)
         => new(CardWidth * (index + 1) / (count + 1), height);
 
+    /// <summary>Top-edge anchor for port <paramref name="index"/> of <paramref name="count"/>, distributed
+    /// evenly across the card's top edge (y = 0). Mirrors <see cref="BottomAnchor"/>; used by the derived
+    /// single-connection orientation pass so a band-turn's target input can face upward.</summary>
+    public static CanvasPoint TopAnchor(int index, int count)
+        => new(CardWidth * (index + 1) / (count + 1), 0);
+
     /// <summary>Unit outward normal for a port edge (the direction a connector leaves/approaches the port).</summary>
     public static CanvasPoint Outward(PortEdge edge) => edge switch
     {
         PortEdge.Left => new(-1, 0),
         PortEdge.Right => new(1, 0),
         PortEdge.Bottom => new(0, 1),
+        PortEdge.Top => new(0, -1),
         _ => new(1, 0),
     };
 }

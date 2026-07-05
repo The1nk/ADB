@@ -16,14 +16,27 @@ public static class ConnectionGeometry
     public static (CanvasPoint C1, CanvasPoint C2) ControlPoints(
         CanvasPoint start, PortEdge startEdge, CanvasPoint end, PortEdge endEdge)
     {
-        var dx = end.X - start.X;
-        var dy = end.Y - start.Y;
-        var pull = Math.Max(MinPull, Math.Sqrt(dx * dx + dy * dy) / 2);
+        var dx = Math.Abs(end.X - start.X);
+        var dy = Math.Abs(end.Y - start.Y);
+        // Scale each endpoint's pull by the delta ALONG THAT ENDPOINT'S OWN AXIS — horizontal ports
+        // (Left/Right) by |dx|, vertical ports (Top/Bottom) by |dy| — so a near-vertical connector on
+        // horizontal ports (or a near-horizontal one on vertical ports) stays tight instead of ballooning
+        // out along the port normal. The MinPull floor keeps short connectors from collapsing.
+        var startPull = Math.Max(MinPull, AxisDelta(startEdge, dx, dy) / 2);
+        var endPull = Math.Max(MinPull, AxisDelta(endEdge, dx, dy) / 2);
         var s = NodeLayout.Outward(startEdge);
         var e = NodeLayout.Outward(endEdge);
-        return (new CanvasPoint(start.X + s.X * pull, start.Y + s.Y * pull),
-                new CanvasPoint(end.X + e.X * pull, end.Y + e.Y * pull));
+        return (new CanvasPoint(start.X + s.X * startPull, start.Y + s.Y * startPull),
+                new CanvasPoint(end.X + e.X * endPull, end.Y + e.Y * endPull));
     }
+
+    /// <summary>The endpoint-distance along a port edge's own axis: |dx| for horizontal (Left/Right) ports,
+    /// |dy| for vertical (Top/Bottom) ports.</summary>
+    private static double AxisDelta(PortEdge edge, double dx, double dy) => edge switch
+    {
+        PortEdge.Top or PortEdge.Bottom => dy,
+        _ => dx,
+    };
 
     /// <summary>Whether a connection runs "backwards" relative to its source port's facing direction — i.e.
     /// a loop-back / return wire that must be routed through a gutter rather than drawn as a forward curve.
@@ -36,6 +49,9 @@ public static class ConnectionGeometry
         PortEdge.Left => end.X > start.X + BackRouteMargin,
         PortEdge.Right => end.X < start.X - BackRouteMargin,
         PortEdge.Bottom => sourceFlipped ? end.X > start.X + BackRouteMargin : end.X < start.X - BackRouteMargin,
+        // A Top output routes vertically (up into a Bottom input) — it is never a horizontal back-edge, so
+        // a clean vertical band-turn drop renders as a forward bezier rather than an orthogonal gutter route.
+        PortEdge.Top => false,
         _ => end.X < start.X - BackRouteMargin,
     };
 

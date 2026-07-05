@@ -45,6 +45,47 @@ public class ConnectionGeometryTests
     }
 
     [Fact]
+    public void PureHorizontalEdge_PullEqualsHalfDx_Unchanged()
+    {
+        // dx=200, dy=0: horizontal ports pull by |dx|/2 = 100 — identical to the old euclidean/2.
+        var (c1, c2) = ConnectionGeometry.ControlPoints(new(0, 50), PortEdge.Right, new(200, 50), PortEdge.Left);
+        Assert.Equal(100, c1.X);
+        Assert.Equal(100, c2.X);
+    }
+
+    [Fact]
+    public void NearVerticalEdge_HorizontalPorts_StayTight()
+    {
+        // A stacked (near-vertical) connector on horizontal Left/Right ports: dx=100, dy=400.
+        // New: horizontal pull scales by |dx| only -> 50, NOT the euclidean/2 (~206) that ballooned sideways.
+        var (c1, c2) = ConnectionGeometry.ControlPoints(new(0, 0), PortEdge.Right, new(100, 400), PortEdge.Left);
+        Assert.Equal(50, c1.X);          // start.X + |dx|/2
+        Assert.Equal(0, c1.Y);           // horizontal tangent unchanged
+        Assert.Equal(50, c2.X);          // end.X - |dx|/2 = 100 - 50
+        Assert.Equal(400, c2.Y);
+    }
+
+    [Fact]
+    public void NearHorizontalEdge_VerticalPorts_StayTight()
+    {
+        // A near-horizontal connector on vertical Bottom->Top ports: dx=400, dy=100.
+        // Vertical pull scales by |dy| only -> 50, not the euclidean/2 (~206).
+        var (c1, c2) = ConnectionGeometry.ControlPoints(new(0, 0), PortEdge.Bottom, new(400, 100), PortEdge.Top);
+        Assert.Equal(0, c1.X);           // vertical tangent unchanged
+        Assert.Equal(50, c1.Y);          // start.Y + |dy|/2
+        Assert.Equal(400, c2.X);
+        Assert.Equal(50, c2.Y);          // end.Y - |dy|/2 = 100 - 50
+    }
+
+    [Fact]
+    public void ControlPoints_KeepMinPullFloor()
+    {
+        // Tiny axis delta (dx=20): pull is floored at MinPull (40), not 10.
+        var (c1, _) = ConnectionGeometry.ControlPoints(new(0, 0), PortEdge.Right, new(20, 5), PortEdge.Left);
+        Assert.Equal(40, c1.X);
+    }
+
+    [Fact]
     public void BackwardEdge_RoutesOrthogonally()
     {
         // Target is left of (and below) the source: a wrap-return / loop-back wire.

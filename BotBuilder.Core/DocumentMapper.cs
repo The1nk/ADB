@@ -94,6 +94,7 @@ public static class DocumentMapper
         }
         editor.RefreshTargetBadges();
         editor.RefreshNestedBotSubtitles();
+        editor.OrientSingleConnectionPorts();
         editor.RerouteBackEdges();
     }
 

@@ -64,6 +64,10 @@ public partial class NodeViewModel : ObservableObject
     private static PortEdge OutputEdge(string portName) =>
         FailurePortNames.Contains(portName) ? PortEdge.Bottom : PortEdge.Right;
 
+    /// <summary>True when <paramref name="portName"/> is a failure output (onFailure/someFailed), which
+    /// stays Bottom-designated and is excluded from the single-connection orientation pass.</summary>
+    public bool IsFailurePortName(string portName) => FailurePortNames.Contains(portName);
+
     /// <summary>Builds a node from an action definition, deriving ports/category from it. Right-edge outputs
     /// drive the card height; failure outputs (onFailure/someFailed) drop to the bottom edge.</summary>
     public static NodeViewModel FromDefinition(IActionDefinition definition, Guid id, string label, double x, double y)
@@ -190,4 +194,49 @@ public partial class NodeViewModel : ObservableObject
             sideOutputs[i].Reposition(outEdge, anchor);
         }
     }
+
+    /// <summary>Restores every port to its canonical band-default edge + anchor: inputs and non-failure
+    /// outputs on the side dictated by <see cref="PortsFlipped"/>, failure outputs on Bottom. Unlike
+    /// <see cref="SetPortsFlipped"/> this also re-homes any port the single-connection orientation pass
+    /// previously parked on Top/Bottom, so that derived pass is idempotent and self-heals after a drag.</summary>
+    public void ResetPortEdgesToDefault()
+    {
+        var inputEdge = PortsFlipped ? PortEdge.Right : PortEdge.Left;
+        for (var i = 0; i < InputPorts.Count; i++)
+        {
+            var anchor = PortsFlipped
+                ? NodeLayout.RightAnchor(i, InputPorts.Count, Height)
+                : NodeLayout.LeftAnchor(i, InputPorts.Count, Height);
+            InputPorts[i].Reposition(inputEdge, anchor);
+        }
+
+        var sideEdge = PortsFlipped ? PortEdge.Left : PortEdge.Right;
+        var sideOutputs = OutputPorts.Where(p => !FailurePortNames.Contains(p.Name)).ToList();
+        for (var i = 0; i < sideOutputs.Count; i++)
+        {
+            var anchor = PortsFlipped
+                ? NodeLayout.LeftAnchor(i, sideOutputs.Count, Height)
+                : NodeLayout.RightAnchor(i, sideOutputs.Count, Height);
+            sideOutputs[i].Reposition(sideEdge, anchor);
+        }
+
+        var failOutputs = OutputPorts.Where(p => FailurePortNames.Contains(p.Name)).ToList();
+        for (var j = 0; j < failOutputs.Count; j++)
+        {
+            failOutputs[j].Reposition(PortEdge.Bottom, NodeLayout.BottomAnchor(j, failOutputs.Count, Height));
+        }
+    }
+
+    /// <summary>Moves a single input/output port to <paramref name="edge"/> with the centered sole-port
+    /// anchor for that edge. Used only by the derived orientation pass on sole-1-1 connections.</summary>
+    public void OrientPortTo(PortViewModel port, PortEdge edge) => port.Reposition(edge, SolePortAnchor(edge));
+
+    private CanvasPoint SolePortAnchor(PortEdge edge) => edge switch
+    {
+        PortEdge.Left => NodeLayout.LeftAnchor(0, 1, Height),
+        PortEdge.Right => NodeLayout.RightAnchor(0, 1, Height),
+        PortEdge.Bottom => NodeLayout.BottomAnchor(0, 1, Height),
+        PortEdge.Top => NodeLayout.TopAnchor(0, 1),
+        _ => NodeLayout.RightAnchor(0, 1, Height),
+    };
 }
