@@ -3,18 +3,21 @@
 **Date:** 2026-07-04
 **Status:** Approved (design), pending implementation plan
 
-Five independent editor-usability improvements, brainstormed together. Each ships as its own
-branch. Two are backend-only (self-merge); three are visual (parked for user sign-off).
+Five editor-usability improvements, brainstormed together, shipping as **two** units of work:
 
-| # | Item | Layer | Merge |
-|---|------|-------|-------|
-| 1 | Nested-bot selection-clearing bug fix | `BotBuilder.Core` | self-merge (backend-only) |
-| 2 | "Throw Error" action | `AdbCore` | self-merge (backend-only) |
-| 3 | Serpentine "Tidy Up" overhaul | `BotBuilder.Core` + WPF + `.bot` schema | park (visual) |
-| 4 | Collapsible toolbox / properties panels | WPF + settings | park (visual) |
-| 5 | Unsaved-changes prompt on New/Open/Exit | `BotBuilder.Core` + WPF | park (visual) |
+- **Plan A (backend-only, self-merge):** items 1 + 2.
+- **Plan B (visual, one PR parked for user review):** items 3 + 4 + 5.
 
-Items 3, 4, 5 are independent of each other and of 1/2.
+| # | Item | Layer | Ships in |
+|---|------|-------|----------|
+| 1 | Nested-bot selection-clearing bug fix | `BotBuilder.Core` | Plan A (self-merge) |
+| 2 | "Throw Error" action | `AdbCore` | Plan A (self-merge) |
+| 3 | Serpentine "Tidy Up" overhaul | `BotBuilder.Core` + WPF + `.bot` schema | Plan B (parked PR) |
+| 4 | Collapsible toolbox / properties panels | WPF + settings | Plan B (parked PR) |
+| 5 | Unsaved-changes prompt on New/Open/Exit | `BotBuilder.Core` + WPF | Plan B (parked PR) |
+
+Items 3, 4, 5 are independent of each other and of 1/2; they are bundled into a single PR only for
+review convenience.
 
 ---
 
