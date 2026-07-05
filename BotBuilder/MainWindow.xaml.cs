@@ -24,6 +24,10 @@ public partial class MainWindow : Window
 {
     private const string BotFilter = "Bot files (*.bot)|*.bot|All files (*.*)|*.*";
 
+    private const double ToolboxWidthPx = 220;
+    private const double PropertiesWidthPx = 240;
+    private const double RailWidthPx = 24;
+
     private readonly BotEditorViewModel _editor;
     private readonly BotBuilder.Core.Integration.RunStatusTracker _runStatus = new();
     private readonly FrameCapturer _frameCapturer = new();
@@ -61,6 +65,7 @@ public partial class MainWindow : Window
         _editor = new BotEditorViewModel(registry);
         Wire(_editor);
         _nestedEditors = new NestedEditorManager(registry, _editor, this, () => Save_Click(this, new RoutedEventArgs()));
+        Loaded += (_, _) => ApplySavedPanelState();
     }
 
     /// <summary>Child-window constructor: reuses an already-built session and the root's manager.</summary>
@@ -150,6 +155,60 @@ public partial class MainWindow : Window
         ThemeLightItem.IsChecked = selection == ThemeSelection.Light;
         ThemeDarkItem.IsChecked = selection == ThemeSelection.Dark;
         ThemeHighContrastItem.IsChecked = selection == ThemeSelection.HighContrast;
+    }
+
+    private void ToggleToolbox_Click(object sender, RoutedEventArgs e)
+        => SetToolboxCollapsed(ToolboxRail.Visibility != Visibility.Visible);
+
+    private void ToggleProperties_Click(object sender, RoutedEventArgs e)
+        => SetPropertiesCollapsed(PropertiesRail.Visibility != Visibility.Visible);
+
+    private void SetToolboxCollapsed(bool collapsed)
+    {
+        ToolboxColumn.Width = collapsed ? new GridLength(RailWidthPx) : new GridLength(ToolboxWidthPx);
+        ToolboxPanel.Visibility = collapsed ? Visibility.Collapsed : Visibility.Visible;
+        ToolboxRail.Visibility = collapsed ? Visibility.Visible : Visibility.Collapsed;
+        PersistPanelState();
+    }
+
+    private void SetPropertiesCollapsed(bool collapsed)
+    {
+        PropertiesColumn.Width = collapsed ? new GridLength(RailWidthPx) : new GridLength(PropertiesWidthPx);
+        PropertiesPanel.Visibility = collapsed ? Visibility.Collapsed : Visibility.Visible;
+        PropertiesRail.Visibility = collapsed ? Visibility.Visible : Visibility.Collapsed;
+        PersistPanelState();
+    }
+
+    private void PersistPanelState()
+    {
+        if (_isChild) return;   // only the root window owns the persisted layout
+        var store = ((App)Application.Current).Settings;
+        store.Save(store.Load() with
+        {
+            ToolboxCollapsed = ToolboxRail.Visibility == Visibility.Visible,
+            PropertiesCollapsed = PropertiesRail.Visibility == Visibility.Visible,
+        });
+    }
+
+    private void ApplySavedPanelState()
+    {
+        var s = ((App)Application.Current).Settings.Load();
+        SetToolboxCollapsedNoPersist(s.ToolboxCollapsed);
+        SetPropertiesCollapsedNoPersist(s.PropertiesCollapsed);
+    }
+
+    private void SetToolboxCollapsedNoPersist(bool collapsed)
+    {
+        ToolboxColumn.Width = collapsed ? new GridLength(RailWidthPx) : new GridLength(ToolboxWidthPx);
+        ToolboxPanel.Visibility = collapsed ? Visibility.Collapsed : Visibility.Visible;
+        ToolboxRail.Visibility = collapsed ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    private void SetPropertiesCollapsedNoPersist(bool collapsed)
+    {
+        PropertiesColumn.Width = collapsed ? new GridLength(RailWidthPx) : new GridLength(PropertiesWidthPx);
+        PropertiesPanel.Visibility = collapsed ? Visibility.Collapsed : Visibility.Visible;
+        PropertiesRail.Visibility = collapsed ? Visibility.Visible : Visibility.Collapsed;
     }
 
     private void New_Click(object sender, RoutedEventArgs e)
@@ -388,6 +447,18 @@ public partial class MainWindow : Window
         if (e.Key == System.Windows.Input.Key.F5)
         {
             TestRun_Click(this, new RoutedEventArgs());
+            e.Handled = true;
+            return;
+        }
+        if (e.Key == Key.OemOpenBrackets && Keyboard.Modifiers == ModifierKeys.Control)
+        {
+            ToggleToolbox_Click(this, new RoutedEventArgs());
+            e.Handled = true;
+            return;
+        }
+        if (e.Key == Key.OemCloseBrackets && Keyboard.Modifiers == ModifierKeys.Control)
+        {
+            ToggleProperties_Click(this, new RoutedEventArgs());
             e.Handled = true;
             return;
         }
