@@ -225,7 +225,7 @@ reaches the Error Handler.
 | **Input Senders** | AdbCore/Input/Win32SendInputSender.cs, Win32PostMessageSender.cs | Send mouse/keyboard input to windows |
 | **Android Driver** | AdbCore/Android/AdvancedSharpAdbDevice.cs | ADB command wrapping (install APK, launch app, tap, swipe, screenshot, send text, key events, IME query/switch). Send Text has two methods: **Input Text** (`input text`, ASCII only) and **ADB Keyboard** (base64 `ADB_INPUT_B64` broadcast for Unicode; needs the ADBKeyboard IME installed and made active by the **Enable ADB Keyboard** node, which stashes the prior IME for **Restore Keyboard** — id in `AndroidImes.AdbKeyboard`). Enable **waits until the device reports ADBKeyboard active** (bounded ~3 s poll) then settles a configurable **Settle (ms)** (`settleMs`, default 400), so a following broadcast/Send Text isn't dropped — no manual Delay needed. |
 | **Playwright Driver** | AdbCore/Browser/PlaywrightBrowserPage.cs | Playwright automation (navigate, click, type, querySelector) |
-| **Canvas VM** | BotBuilder.Core/BotEditorViewModel.cs | Editor state: nodes, connections, undo/redo, selection, copy/paste. Dragging from an **already-connected** output calls `ConnectOrMove`: moves that wire to the dropped node and, when the dropped node has exactly one unset output, forwards it to the old destination (insert-into-wire) — one undoable command. |
+| **Canvas VM** | BotBuilder.Core/BotEditorViewModel.cs | Editor state: nodes, connections, undo/redo, selection, copy/paste. Dragging from an **already-connected** output calls `ConnectOrMove`: moves that wire to the dropped node and, when the dropped node has exactly one unset output, forwards it to the old destination (insert-into-wire) — one undoable command. **Tidy Up** (`AutoLayout`, Ctrl+L) now lays long flows out as a **serpentine**: bands alternate direction, reversed bands flip their ports (`portsFlipped`), connection routing picks forward-vs-back by port facing (not raw X), and bands wrap to the live canvas width. The toolbox/properties side panels **collapse to rails** (chevrons, Ctrl+[ / Ctrl+], persisted in settings.json); collapsing widens the canvas that Tidy Up then wraps into. |
 | **Palette VM** | BotBuilder.Core/Palette/PaletteViewModel.cs | Action discovery, category filtering, dependency availability probing |
 | **Serialization** | AdbCore/Serialization/BotSerializer.cs | `.bot` file (JSON) read/write |
 
@@ -419,8 +419,9 @@ dotnet test ADB.slnx --collect:"XPlat Code Coverage"        # With code coverage
 - Both BotBuilder and BotCapture read/write `%AppData%/ADB/settings.json` via `JsonSettingsStore`
   (atomic temp-file-then-rename write; missing/corrupt file falls back to defaults).
 - `AppSettings` is a general bag: `Theme` and `ExternalEditorCommand` (the command the Lua "Edit" button
-  runs, default `notepad $filename`). Both writers must **round-trip** existing settings (`Load() with { … }`)
-  so they don't clobber each other's fields.
+  runs, default `notepad $filename`). It also carries `ToolboxCollapsed` / `PropertiesCollapsed` (BotBuilder
+  side-panel rail state, default `false`). Both writers must **round-trip** existing settings
+  (`Load() with { … }`) so they don't clobber each other's fields.
 
 **WPF Control Templating Note**
 - ComboBox and ListBox dropdowns require full XAML templating for theme support (property bindings alone insufficient)
@@ -506,6 +507,9 @@ Notes:
   references an entry via its config `nestedBotId`. During a run, actions inside a nested bot emit a
   `[<BotName>]`-prefixed trace to the log sink (prefixes compose for deep nesting) — `NestedBotExecutor`
   wraps the child's `Log` sink and feeds the child a synchronous progress→log adapter.
+- **`portsFlipped`** (per action, optional, default `false`) records that "Tidy Up" placed the node in a
+  right-to-left serpentine band, so its ports render input-right / output-left. Persisted so a saved tidy
+  graph reloads clean.
 
 ## Platform-Native Production Patterns
 
