@@ -47,12 +47,26 @@ public partial class ConnectionViewModel : ObservableObject
         }
     }
 
+    /// <summary>True when this connection currently routes as a backward/return (loop) wire — i.e. it has
+    /// been assigned a back-route lane and its geometry faces backward. Derived display state used to render
+    /// return wires dashed + muted so loops read as loops. Recomputed whenever <see cref="PathData"/> is.</summary>
+    public bool IsBackEdge
+    {
+        get
+        {
+            var start = Anchor(Source, SourcePort);
+            var end = Anchor(Target, TargetPort);
+            return _lane is not null && ConnectionGeometry.IsBackward(start, SourcePort.Edge, end, Source.PortsFlipped);
+        }
+    }
+
     /// <summary>Assigns (or clears) this connection's back-route lane and re-renders its path. Lanes are
     /// derived display state computed by <see cref="BackRoutePlanner"/> after layout/move/load.</summary>
     public void SetLane(BackRoutePlan? lane)
     {
         _lane = lane;
         OnPropertyChanged(nameof(PathData));
+        OnPropertyChanged(nameof(IsBackEdge));
     }
 
     /// <summary>(Re)subscribes to endpoint move notifications. Idempotent.</summary>
@@ -76,6 +90,7 @@ public partial class ConnectionViewModel : ObservableObject
         if (e.PropertyName is nameof(NodeViewModel.X) or nameof(NodeViewModel.Y) or nameof(NodeViewModel.Height))
         {
             OnPropertyChanged(nameof(PathData));
+            OnPropertyChanged(nameof(IsBackEdge));
         }
     }
 

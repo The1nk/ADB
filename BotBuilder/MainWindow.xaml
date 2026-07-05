@@ -284,8 +284,25 @@
                                 <Canvas>
                                     <Path Data="{Binding PathData}" Stroke="Transparent" StrokeThickness="10"
                                           MouseLeftButtonDown="Connection_MouseLeftButtonDown" />
-                                    <Path Data="{Binding PathData}" StrokeThickness="2" IsHitTestVisible="False"
-                                          Stroke="{Binding IsSelected, Converter={x:Static local:SelectionBorderConverter.Instance}}" />
+                                    <!-- Visible wire. Forward = solid grey; back-edge (loop/return) = dashed +
+                                         muted theme tint; selection overrides the colour. Style triggers are used
+                                         (not a converter) so the muted tint can be a DynamicResource theme brush. -->
+                                    <Path Data="{Binding PathData}" StrokeThickness="2" IsHitTestVisible="False">
+                                        <Path.Style>
+                                            <Style TargetType="Path">
+                                                <Setter Property="Stroke" Value="#DDDDDD" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsBackEdge}" Value="True">
+                                                        <Setter Property="Stroke" Value="{DynamicResource SecondaryTextBrush}" />
+                                                        <Setter Property="StrokeDashArray" Value="4 3" />
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                                        <Setter Property="Stroke" Value="#296FD6" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Path.Style>
+                                    </Path>
                                 </Canvas>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
