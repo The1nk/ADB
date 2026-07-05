@@ -27,11 +27,15 @@ public static class ConnectionGeometry
 
     /// <summary>Whether a connection runs "backwards" relative to its source port's facing direction — i.e.
     /// a loop-back / return wire that must be routed through a gutter rather than drawn as a forward curve.
-    /// A Right/Bottom output faces right, so a target to its left is backward; a Left output (a flipped
-    /// serpentine band) faces left, so a target to its right is backward.</summary>
-    public static bool IsBackward(CanvasPoint start, PortEdge startEdge, CanvasPoint end) => startEdge switch
+    /// A Right output faces right, so a target to its left is backward; a Left output (a flipped serpentine
+    /// band) faces left, so a target to its right is backward. A Bottom (failure) port stays on the bottom
+    /// edge regardless of flip, but the band's forward direction still reverses when flipped, so
+    /// <paramref name="sourceFlipped"/> (the source node's <c>PortsFlipped</c>) picks which side is forward.</summary>
+    public static bool IsBackward(CanvasPoint start, PortEdge startEdge, CanvasPoint end, bool sourceFlipped = false) => startEdge switch
     {
         PortEdge.Left => end.X > start.X + BackRouteMargin,
+        PortEdge.Right => end.X < start.X - BackRouteMargin,
+        PortEdge.Bottom => sourceFlipped ? end.X > start.X + BackRouteMargin : end.X < start.X - BackRouteMargin,
         _ => end.X < start.X - BackRouteMargin,
     };
 
@@ -39,9 +43,9 @@ public static class ConnectionGeometry
     /// bezier; an edge whose target sits to the left of its source (a wrap "return" wire or loop-back,
     /// which a bezier would drag straight back across the nodes between them) is routed orthogonally
     /// down into the gap between rows, across, and up into the target.</summary>
-    public static string BuildPath(CanvasPoint start, PortEdge startEdge, CanvasPoint end, PortEdge endEdge)
+    public static string BuildPath(CanvasPoint start, PortEdge startEdge, CanvasPoint end, PortEdge endEdge, bool sourceFlipped = false)
     {
-        if (IsBackward(start, startEdge, end))
+        if (IsBackward(start, startEdge, end, sourceFlipped))
             return BuildBackRoute(start, startEdge, end, endEdge);
 
         var (c1, c2) = ControlPoints(start, startEdge, end, endEdge);

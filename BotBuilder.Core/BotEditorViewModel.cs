@@ -207,7 +207,7 @@ public partial class BotEditorViewModel : ObservableObject
         {
             var s = (c.Source.X + c.SourcePort.AnchorOffset.X, c.Source.Y + c.SourcePort.AnchorOffset.Y);
             var t = (c.Target.X + c.TargetPort.AnchorOffset.X, c.Target.Y + c.TargetPort.AnchorOffset.Y);
-            return new BackRouteInput(c.Id, s.Item1, s.Item2, t.Item1, t.Item2, c.SourcePort.Edge);
+            return new BackRouteInput(c.Id, s.Item1, s.Item2, t.Item1, t.Item2, c.SourcePort.Edge, c.Source.PortsFlipped);
         }).ToList();
 
         var plans = BackRoutePlanner.Plan(inputs, leftX, rightX, ComputeClearBands());
