@@ -17,7 +17,7 @@ three documentation surfaces **in the same unit of work**, so they never drift o
 
 1. **`CLAUDE.md`** (this file) — the engineering reference. Plain and precise.
 2. **`README.md`** — the public overview. Keep the goblin voice; keep every fact accurate.
-3. **The wiki** (`ADB.wiki/` submodule → the GitHub wiki) — the detailed technical reference.
+3. **The wiki** (sibling clone at `../ADB.wiki` → the GitHub wiki) — the detailed technical reference.
 
 **When this applies** — treat it as triggered by any change to: an action's set / TypeKey / config keys /
 defaults / ports, selector formats, the `.bot` file schema or serializer, the BotRunner CLI (flags, exit
@@ -31,9 +31,10 @@ change**.
   defaults, and tables. Ground every claim in the code you just wrote.
 - The three surfaces must agree. If a fact lives in more than one, change it everywhere (config keys and
   defaults especially — see the *Skill Advantage Contract* on centralizing repeated facts).
-- **The wiki is a separate git repo** mounted as the `ADB.wiki/` submodule (remote `ADB.wiki.git`). To update
-  it: edit files under `ADB.wiki/`, `commit` + `push` **in that repo** (default branch `master`), then bump
-  the submodule pointer in the main repo so the superproject references the new wiki commit.
+- **The wiki is a separate git repo** cloned as a **sibling** of this repo at `../ADB.wiki` (i.e.
+  `C:/git/ADB.wiki`; remote `ADB.wiki.git`) — it is **not** a submodule. To update it: edit files under
+  `../ADB.wiki`, then `commit` + `push` **in that repo** (default branch `master`). No pointer bump — the
+  main repo does not track the wiki, so its commits are pushed independently.
 - Before calling a change done, re-read the doc edits against the actual diff and downgrade any claim the code
   doesn't back to a TODO (or implement it).
 
