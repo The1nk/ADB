@@ -29,18 +29,22 @@ public class BackRouteRoutingTests
     [Fact]
     public void RerouteBackEdges_LanesBackwardConnectionsOnly()
     {
-        // Build an editor with two nodes wired forward, then position the target to the LEFT of the
-        // source so the connection becomes a back-route; reroute; assert it switched to a LANED
+        // A branch output is a multi-output (non-sole-1-1) port, so the derived orientation pass never
+        // straightens it toward its target — it stays a genuine geometric back-edge when its target is laid
+        // out to the LEFT. (A plain sole-1-1 link would instead be oriented to point at its neighbor, so it
+        // could never remain backward.) Position the branch's target to its left, run the full derived
+        // display pipeline (orient + reroute) as the app does, and assert the wire switched to a LANED
         // orthogonal route (distinct from a plain back-route) routed out to its right corridor.
         var editor = NewEditor();
-        var a = editor.AddNode("control.start", 500, 500);
+        var a = editor.AddNode("control.branch", 500, 500);
         var b = editor.AddNode("data.log", 30, 200);
-        Connect(editor, a, "out", b, "in");
+        Connect(editor, a, "true", b, "in");
 
-        // place the source (a) to the right of the target (b) -> the a->b connection is now backward
+        // place the source branch (a) to the right of the target (b) -> the a.true->b connection is backward
         a.X = 600; a.Y = 100;
         b.X = 40; b.Y = 300;
 
+        editor.OrientSingleConnectionPorts();
         editor.RerouteBackEdges();
 
         var path = editor.Connections[0].PathData;

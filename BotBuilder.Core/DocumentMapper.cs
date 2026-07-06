@@ -28,6 +28,7 @@ public static class DocumentMapper
                 TargetId = node.TargetId,
                 CanvasPosition = new Position { X = node.X, Y = node.Y },
                 Config = new Dictionary<string, object>(node.Config),
+                PortsFlipped = node.PortsFlipped,
             };
             if (node.RetryMaxAttempts > 1)
             {
@@ -93,6 +94,7 @@ public static class DocumentMapper
         }
         editor.RefreshTargetBadges();
         editor.RefreshNestedBotSubtitles();
+        editor.OrientSingleConnectionPorts();
         editor.RerouteBackEdges();
     }
 
@@ -144,6 +146,7 @@ public static class DocumentMapper
         }
         node.RetryMaxAttempts = action.Retry?.MaxAttempts ?? 1;
         node.RetryDelayMs = action.Retry?.DelayMs ?? 0;
+        if (action.PortsFlipped) { node.SetPortsFlipped(true); }
         return node;
     }
 }

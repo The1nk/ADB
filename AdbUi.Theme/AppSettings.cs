@@ -11,4 +11,10 @@ public sealed record AppSettings
     /// <summary>The command used to open a Lua script in an external editor. Use <c>$filename</c> as a
     /// placeholder for the (quoted) temp file path. Example: <c>code --wait $filename</c>.</summary>
     public string ExternalEditorCommand { get; init; } = "notepad $filename";
+
+    /// <summary>Whether the BotBuilder toolbox (left palette) panel is collapsed to a rail.</summary>
+    public bool ToolboxCollapsed { get; init; }
+
+    /// <summary>Whether the BotBuilder properties (right) panel is collapsed to a rail.</summary>
+    public bool PropertiesCollapsed { get; init; }
 }

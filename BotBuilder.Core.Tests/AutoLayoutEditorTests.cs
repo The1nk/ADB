@@ -37,6 +37,29 @@ public class AutoLayoutEditorTests
         Assert.NotEqual(ax, a.X);               // sanity: layout had moved them
     }
 
+    [Fact]
+    public void AutoLayout_FlipsReversedBand_AndUndoRestoresFlip()
+    {
+        var defs = new AdbCore.Actions.ActionRegistry();
+        AdbCore.Actions.BuiltIn.BuiltInActions.Register(defs, new AdbCore.Execution.ActionExecutorRegistry());
+        var editor = new BotEditorViewModel(defs);
+
+        // A 12-node chain wraps into serpentine bands; at least one node ends up flipped.
+        BotBuilder.Core.NodeViewModel? prev = null;
+        for (var i = 0; i < 12; i++)
+        {
+            var n = editor.AddNode("control.delay", 0, 0);
+            if (prev is not null) { editor.Connect(prev, prev.OutputPorts[0], n, n.InputPorts[0]); }
+            prev = n;
+        }
+
+        editor.AutoLayout();
+        Assert.Contains(editor.Nodes, n => n.PortsFlipped);
+
+        editor.Undo();
+        Assert.All(editor.Nodes, n => Assert.False(n.PortsFlipped));
+    }
+
     private static void Connect(BotEditorViewModel editor, NodeViewModel s, string sp, NodeViewModel t, string tp)
     {
         var sport = s.OutputPorts.First(p => p.Name == sp);

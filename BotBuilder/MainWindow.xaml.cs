@@ -24,6 +24,10 @@ public partial class MainWindow : Window
 {
     private const string BotFilter = "Bot files (*.bot)|*.bot|All files (*.*)|*.*";
 
+    private const double ToolboxWidthPx = 220;
+    private const double PropertiesWidthPx = 240;
+    private const double RailWidthPx = 24;
+
     private readonly BotEditorViewModel _editor;
     private readonly BotBuilder.Core.Integration.RunStatusTracker _runStatus = new();
     private readonly FrameCapturer _frameCapturer = new();
@@ -61,6 +65,7 @@ public partial class MainWindow : Window
         _editor = new BotEditorViewModel(registry);
         Wire(_editor);
         _nestedEditors = new NestedEditorManager(registry, _editor, this, () => Save_Click(this, new RoutedEventArgs()));
+        Loaded += (_, _) => ApplySavedPanelState();
     }
 
     /// <summary>Child-window constructor: reuses an already-built session and the root's manager.</summary>
@@ -152,15 +157,95 @@ public partial class MainWindow : Window
         ThemeHighContrastItem.IsChecked = selection == ThemeSelection.HighContrast;
     }
 
+    private void ToggleToolbox_Click(object sender, RoutedEventArgs e)
+        => SetToolboxCollapsed(ToolboxRail.Visibility != Visibility.Visible);
+
+    private void ToggleProperties_Click(object sender, RoutedEventArgs e)
+        => SetPropertiesCollapsed(PropertiesRail.Visibility != Visibility.Visible);
+
+    private void SetToolboxCollapsed(bool collapsed)
+    {
+        ToolboxColumn.Width = collapsed ? new GridLength(RailWidthPx) : new GridLength(ToolboxWidthPx);
+        ToolboxPanel.Visibility = collapsed ? Visibility.Collapsed : Visibility.Visible;
+        ToolboxRail.Visibility = collapsed ? Visibility.Visible : Visibility.Collapsed;
+        PersistPanelState();
+    }
+
+    private void SetPropertiesCollapsed(bool collapsed)
+    {
+        PropertiesColumn.Width = collapsed ? new GridLength(RailWidthPx) : new GridLength(PropertiesWidthPx);
+        PropertiesPanel.Visibility = collapsed ? Visibility.Collapsed : Visibility.Visible;
+        PropertiesRail.Visibility = collapsed ? Visibility.Visible : Visibility.Collapsed;
+        PersistPanelState();
+    }
+
+    private void PersistPanelState()
+    {
+        if (_isChild) return;   // only the root window owns the persisted layout
+        var store = ((App)Application.Current).Settings;
+        store.Save(store.Load() with
+        {
+            ToolboxCollapsed = ToolboxRail.Visibility == Visibility.Visible,
+            PropertiesCollapsed = PropertiesRail.Visibility == Visibility.Visible,
+        });
+    }
+
+    private void ApplySavedPanelState()
+    {
+        var s = ((App)Application.Current).Settings.Load();
+        SetToolboxCollapsedNoPersist(s.ToolboxCollapsed);
+        SetPropertiesCollapsedNoPersist(s.PropertiesCollapsed);
+    }
+
+    private void SetToolboxCollapsedNoPersist(bool collapsed)
+    {
+        ToolboxColumn.Width = collapsed ? new GridLength(RailWidthPx) : new GridLength(ToolboxWidthPx);
+        ToolboxPanel.Visibility = collapsed ? Visibility.Collapsed : Visibility.Visible;
+        ToolboxRail.Visibility = collapsed ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    private void SetPropertiesCollapsedNoPersist(bool collapsed)
+    {
+        PropertiesColumn.Width = collapsed ? new GridLength(RailWidthPx) : new GridLength(PropertiesWidthPx);
+        PropertiesPanel.Visibility = collapsed ? Visibility.Collapsed : Visibility.Visible;
+        PropertiesRail.Visibility = collapsed ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    /// <summary>Root-window guard: prompt to save if dirty before a New/Open/close. Returns true to proceed.</summary>
+    private bool ConfirmDiscardIfDirty()
+        => UnsavedChangesGuard.ConfirmProceed(() => _editor.IsDirty, AskSaveChanges, TrySaveForGuard);
+
+    private SaveChoice AskSaveChanges()
+    {
+        var result = MessageBox.Show(this,
+            $"Save changes to \"{_editor.BotName}\" before continuing?",
+            "ADB Bot Builder", MessageBoxButton.YesNoCancel, MessageBoxImage.Warning);
+        return result switch
+        {
+            MessageBoxResult.Yes => SaveChoice.Save,
+            MessageBoxResult.No => SaveChoice.DontSave,
+            _ => SaveChoice.Cancel,
+        };
+    }
+
+    private bool TrySaveForGuard()
+    {
+        if (_editor.FilePath is not null) { _editor.Save(); return true; }
+        if (PromptForBotPath() is string path) { _editor.SaveAsNew(path); return true; }
+        return false;   // user cancelled the path dialog -> abort the New/Open/close
+    }
+
     private void New_Click(object sender, RoutedEventArgs e)
     {
         if (_isChild) { return; } // disabled in child mode; menu item is also IsEnabled=false
+        if (!ConfirmDiscardIfDirty()) return;
         _editor.New();
     }
 
     private void Open_Click(object sender, RoutedEventArgs e)
     {
         if (_isChild) { return; } // disabled in child mode; menu item is also IsEnabled=false
+        if (!ConfirmDiscardIfDirty()) return;
         var dialog = new OpenFileDialog { Filter = BotFilter };
         if (dialog.ShowDialog(this) == true)
         {
@@ -380,13 +465,26 @@ public partial class MainWindow : Window
     private void Undo_Click(object sender, RoutedEventArgs e) => _editor.Undo();
     private void Redo_Click(object sender, RoutedEventArgs e) => _editor.Redo();
     private void Delete_Click(object sender, RoutedEventArgs e) => _editor.DeleteSelection();
-    private void TidyUp_Click(object sender, RoutedEventArgs e) => _editor.AutoLayout();
+    private void TidyUp_Click(object sender, RoutedEventArgs e)
+        => _editor.AutoLayout(ViewportHost.ActualWidth > 0 ? ViewportHost.ActualWidth : (double?)null);
 
     private void Window_KeyDown(object sender, KeyEventArgs e)
     {
         if (e.Key == System.Windows.Input.Key.F5)
         {
             TestRun_Click(this, new RoutedEventArgs());
+            e.Handled = true;
+            return;
+        }
+        if (e.Key == Key.OemOpenBrackets && Keyboard.Modifiers == ModifierKeys.Control)
+        {
+            ToggleToolbox_Click(this, new RoutedEventArgs());
+            e.Handled = true;
+            return;
+        }
+        if (e.Key == Key.OemCloseBrackets && Keyboard.Modifiers == ModifierKeys.Control)
+        {
+            ToggleProperties_Click(this, new RoutedEventArgs());
             e.Handled = true;
             return;
         }
@@ -420,7 +518,7 @@ public partial class MainWindow : Window
         else if (e.Key == Key.L && Keyboard.Modifiers == ModifierKeys.Control)
         {
             if (e.OriginalSource is TextBox) return;   // let the textbox handle Ctrl+L if focused
-            _editor.AutoLayout();
+            _editor.AutoLayout(ViewportHost.ActualWidth > 0 ? ViewportHost.ActualWidth : (double?)null);
             e.Handled = true;
         }
         else if ((e.Key == Key.D0 || e.Key == Key.NumPad0) && Keyboard.Modifiers == ModifierKeys.Control)
@@ -1138,6 +1236,13 @@ public partial class MainWindow : Window
         {
             // Best-effort: scaffold failure must not prevent the editor from opening.
         }
+    }
+
+    protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
+    {
+        base.OnClosing(e);
+        if (_isChild) return;   // child windows sync back automatically; nothing to lose to disk
+        if (!ConfirmDiscardIfDirty()) e.Cancel = true;
     }
 
     protected override void OnClosed(EventArgs e)

@@ -144,6 +144,51 @@ public class AutoLayoutTests
     }
 
     [Fact]
+    public void LongChain_Serpentine_AlternatesFlip()
+    {
+        var ids = LinearChain(12, out var edges);
+        var pos = AutoLayout.Arrange(ids.Select(id => N(id)).ToArray(), edges);
+
+        Assert.False(pos[ids[0]].Flipped);              // band 0 is left-to-right
+        Assert.Contains(pos.Values, p => p.Flipped);     // at least one reversed band
+        Assert.Contains(pos.Values, p => !p.Flipped);
+    }
+
+    [Fact]
+    public void FitToWidth_LimitsColumnsPerBand()
+    {
+        var ids = LinearChain(10, out var edges);
+        var portEdges = edges.Select(e => (e.Item1, e.Item2, 0.0, 0.0)).ToArray();
+        // Room for 4 columns: (4-1)*ColGap + card width.
+        var target = 3 * AutoLayout.ColGap + 160;
+        var pos = AutoLayout.Arrange(ids.Select(id => N(id)).ToArray(), portEdges, targetWidth: target);
+
+        Assert.True(pos.Values.Select(p => p.X).Distinct().Count() <= 4);
+    }
+
+    [Fact]
+    public void BranchFanOut_UpperPortFeedsUpperChild_NoCrossing()
+    {
+        // A single 2-output node (e.g. a Branch: upper "true" port, lower "false" port) fanning out to two
+        // children. Even when the children are supplied in the "wrong" input order (upperChild created
+        // AFTER lowerChild), the port-aware barycenter tie-break must order them by feeding-port Y so the
+        // upper port's child sits above the lower port's child -> the two wires never cross.
+        var branch = Guid.NewGuid();
+        var lowerChild = Guid.NewGuid();   // created first, fed by the LOWER output port
+        var upperChild = Guid.NewGuid();   // created second, fed by the UPPER output port
+        var pos = AutoLayout.Arrange(
+            new[] { N(branch), N(lowerChild), N(upperChild) },
+            new[]
+            {
+                (branch, lowerChild, 50.0, 35.0),   // branch lower port (Y=50) -> lowerChild
+                (branch, upperChild, 20.0, 35.0),   // branch upper port (Y=20) -> upperChild
+            });
+
+        Assert.Equal(pos[lowerChild].X, pos[upperChild].X);   // both children share the next column
+        Assert.True(pos[upperChild].Y < pos[lowerChild].Y);   // upper port's child above -> uncrossed wires
+    }
+
+    [Fact]
     public void BackCompatOverload_KeepsInputOrder_WhenNoPortData()
     {
         // Same graph as PortAware_OrdersSiblingsByFeedingPort, but via the (Guid,Guid) overload (no port Y).

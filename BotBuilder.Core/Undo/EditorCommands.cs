@@ -31,6 +31,15 @@ internal sealed class MoveNodesCommand : IUndoableCommand
     public void Undo() { foreach (var m in _moves) { m.Node.X = m.OldX; m.Node.Y = m.OldY; } }
 }
 
+/// <summary>Applies a Tidy-Up layout (position + serpentine port-flip) as one undoable step.</summary>
+internal sealed class LayoutNodesCommand : IUndoableCommand
+{
+    private readonly IReadOnlyList<(NodeViewModel Node, double OldX, double OldY, bool OldFlip, double NewX, double NewY, bool NewFlip)> _items;
+    public LayoutNodesCommand(IReadOnlyList<(NodeViewModel, double, double, bool, double, double, bool)> items) { _items = items; }
+    public void Do()   { foreach (var m in _items) { m.Node.X = m.NewX; m.Node.Y = m.NewY; m.Node.SetPortsFlipped(m.NewFlip); } }
+    public void Undo() { foreach (var m in _items) { m.Node.X = m.OldX; m.Node.Y = m.OldY; m.Node.SetPortsFlipped(m.OldFlip); } }
+}
+
 internal sealed class ConnectCommand : IUndoableCommand
 {
     private readonly BotEditorViewModel _editor;

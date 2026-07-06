@@ -168,27 +168,79 @@ public partial class BotEditorViewModel : ObservableObject
         Viewport.FitTo(minX, minY, maxX, maxY, viewportWidth, viewportHeight);
     }
 
-    /// <summary>Re-arranges all nodes into a tidy left-to-right layered layout, as one undoable step.</summary>
-    public void AutoLayout()
+    /// <summary>Re-arranges all nodes into a tidy serpentine layout, as one undoable step. When
+    /// <paramref name="availableWidth"/> is given, bands wrap to fit that canvas width; otherwise a balanced
+    /// aspect ratio is used.</summary>
+    public void AutoLayout(double? availableWidth = null)
     {
         if (Nodes.Count == 0) return;
         var nodes = Nodes.Select(n => (n.Id, n.Height)).ToList();
         var edges = Connections
             .Select(c => (c.Source.Id, c.Target.Id, c.SourcePort.AnchorOffset.Y, c.TargetPort.AnchorOffset.Y))
             .ToList();
-        var positions = BotBuilder.Core.Layout.AutoLayout.Arrange(nodes, edges);
+        var placements = BotBuilder.Core.Layout.AutoLayout.Arrange(nodes, edges, availableWidth);
 
-        var moves = new List<(NodeViewModel Node, double OldX, double OldY)>();
+        var items = new List<(NodeViewModel, double, double, bool, double, double, bool)>();
         foreach (var node in Nodes)
         {
-            if (positions.TryGetValue(node.Id, out var p))
+            if (!placements.TryGetValue(node.Id, out var p)) continue;
+            if (node.X == p.X && node.Y == p.Y && node.PortsFlipped == p.Flipped) continue;
+            items.Add((node, node.X, node.Y, node.PortsFlipped, p.X, p.Y, p.Flipped));
+        }
+        if (items.Count == 0) return;
+
+        foreach (var m in items) { m.Item1.X = m.Item5; m.Item1.Y = m.Item6; m.Item1.SetPortsFlipped(m.Item7); }
+        _undo.PushExecuted(new LayoutNodesCommand(items));
+        AfterEdit();
+    }
+
+    /// <summary>Derived, non-persisted display pass: for every connection that is the SOLE wire on both a
+    /// single-output source and a single-input target (a clean 1-out→1-in link, not a branch/join/failure
+    /// fan), orient its two ports toward each other — a clearly-below neighbor becomes a vertical
+    /// bottom-out→top-in drop, a clearly-above one a top-out→bottom-in drop, otherwise the ports keep their
+    /// horizontal (flip-aware) sides. Every node is first reset to its band default so the pass is fully
+    /// idempotent and self-heals after a drag. Recomputed on commit/load only (via <see cref="AfterEdit"/>
+    /// and <see cref="DocumentMapper.Populate"/>), alongside <see cref="RerouteBackEdges"/>; never serialized.</summary>
+    public void OrientSingleConnectionPorts()
+    {
+        foreach (var n in Nodes) { n.ResetPortEdgesToDefault(); }
+        if (Connections.Count == 0) { return; }
+
+        var outDegree = new Dictionary<NodeViewModel, int>();
+        var inDegree = new Dictionary<NodeViewModel, int>();
+        foreach (var c in Connections)
+        {
+            outDegree[c.Source] = outDegree.GetValueOrDefault(c.Source) + 1;
+            inDegree[c.Target] = inDegree.GetValueOrDefault(c.Target) + 1;
+        }
+
+        foreach (var c in Connections)
+        {
+            // Sole-1-1 only: a single-output source (excludes branch / Run Parallel, which have >1 output
+            // port) whose one output drives exactly this wire, and a single-input target fed by exactly this
+            // wire (excludes joins / multi-inbound). Failure (Bottom-designated) source ports keep their edge.
+            if (c.Source.OutputPorts.Count != 1 || c.Target.InputPorts.Count != 1) { continue; }
+            if (outDegree[c.Source] != 1 || inDegree[c.Target] != 1) { continue; }
+            if (c.Source.IsFailurePortName(c.SourcePort.Name)) { continue; }
+
+            // Dominant direction from source-card center to target-card center (centers avoid the default
+            // port-side bias so a node directly below reads as vertical regardless of flip state).
+            var dx = (c.Target.X + NodeLayout.CardWidth / 2) - (c.Source.X + NodeLayout.CardWidth / 2);
+            var dy = (c.Target.Y + c.Target.Height / 2) - (c.Source.Y + c.Source.Height / 2);
+
+            if (Math.Abs(dy) > Math.Abs(dx))
             {
-                var oldX = node.X; var oldY = node.Y;
-                node.X = p.X; node.Y = p.Y;
-                moves.Add((node, oldX, oldY));
+                var (srcEdge, tgtEdge) = dy > 0 ? (PortEdge.Bottom, PortEdge.Top) : (PortEdge.Top, PortEdge.Bottom);
+                c.Source.OrientPortTo(c.SourcePort, srcEdge);
+                c.Target.OrientPortTo(c.TargetPort, tgtEdge);
+            }
+            else
+            {
+                var (srcEdge, tgtEdge) = dx >= 0 ? (PortEdge.Right, PortEdge.Left) : (PortEdge.Left, PortEdge.Right);
+                c.Source.OrientPortTo(c.SourcePort, srcEdge);
+                c.Target.OrientPortTo(c.TargetPort, tgtEdge);
             }
         }
-        CommitMoves(moves);   // records a single MoveNodesCommand (no-op-safe)
     }
 
     /// <summary>Recomputes back-route lanes for all connections so return/loop wires don't overlap, then
@@ -204,7 +256,7 @@ public partial class BotEditorViewModel : ObservableObject
         {
             var s = (c.Source.X + c.SourcePort.AnchorOffset.X, c.Source.Y + c.SourcePort.AnchorOffset.Y);
             var t = (c.Target.X + c.TargetPort.AnchorOffset.X, c.Target.Y + c.TargetPort.AnchorOffset.Y);
-            return new BackRouteInput(c.Id, s.Item1, s.Item2, t.Item1, t.Item2);
+            return new BackRouteInput(c.Id, s.Item1, s.Item2, t.Item1, t.Item2, c.SourcePort.Edge, c.Source.PortsFlipped);
         }).ToList();
 
         var plans = BackRoutePlanner.Plan(inputs, leftX, rightX, ComputeClearBands());
@@ -662,6 +714,7 @@ public partial class BotEditorViewModel : ObservableObject
         RaiseUndoState();
         RefreshTargetBadges();
         RefreshNestedBotSubtitles();
+        OrientSingleConnectionPorts();
         RerouteBackEdges();
     }
 

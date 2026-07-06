@@ -39,11 +39,24 @@ public partial class ConnectionViewModel : ObservableObject
         {
             var start = Anchor(Source, SourcePort);
             var end = Anchor(Target, TargetPort);
-            if (_lane is { } lane && end.X < start.X)
+            if (_lane is { } lane && ConnectionGeometry.IsBackward(start, SourcePort.Edge, end, Source.PortsFlipped))
                 return ConnectionGeometry.BuildLanedBackRoute(
                     start, SourcePort.Edge, end, TargetPort.Edge,
                     lane.RightCornerX, lane.LeftCornerX, lane.GutterY);
-            return ConnectionGeometry.BuildPath(start, SourcePort.Edge, end, TargetPort.Edge);
+            return ConnectionGeometry.BuildPath(start, SourcePort.Edge, end, TargetPort.Edge, Source.PortsFlipped);
+        }
+    }
+
+    /// <summary>True when this connection currently routes as a backward/return (loop) wire — i.e. it has
+    /// been assigned a back-route lane and its geometry faces backward. Derived display state used to render
+    /// return wires dashed + muted so loops read as loops. Recomputed whenever <see cref="PathData"/> is.</summary>
+    public bool IsBackEdge
+    {
+        get
+        {
+            var start = Anchor(Source, SourcePort);
+            var end = Anchor(Target, TargetPort);
+            return _lane is not null && ConnectionGeometry.IsBackward(start, SourcePort.Edge, end, Source.PortsFlipped);
         }
     }
 
@@ -53,6 +66,7 @@ public partial class ConnectionViewModel : ObservableObject
     {
         _lane = lane;
         OnPropertyChanged(nameof(PathData));
+        OnPropertyChanged(nameof(IsBackEdge));
     }
 
     /// <summary>(Re)subscribes to endpoint move notifications. Idempotent.</summary>
@@ -76,6 +90,7 @@ public partial class ConnectionViewModel : ObservableObject
         if (e.PropertyName is nameof(NodeViewModel.X) or nameof(NodeViewModel.Y) or nameof(NodeViewModel.Height))
         {
             OnPropertyChanged(nameof(PathData));
+            OnPropertyChanged(nameof(IsBackEdge));
         }
     }
 

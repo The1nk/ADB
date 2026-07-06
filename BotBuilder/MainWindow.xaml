@@ -139,6 +139,9 @@
                 <MenuItem Header="_Fit to Window" Click="FitToWindow_Click" InputGestureText="Ctrl+Shift+0" />
                 <MenuItem Header="Reset _Zoom" Click="ResetZoom_Click" InputGestureText="Ctrl+0" />
                 <Separator />
+                <MenuItem Header="Toggle _Toolbox" InputGestureText="Ctrl+[" Click="ToggleToolbox_Click" />
+                <MenuItem Header="Toggle _Properties" InputGestureText="Ctrl+]" Click="ToggleProperties_Click" />
+                <Separator />
                 <MenuItem Header="_Settings…" Click="Settings_Click" />
             </MenuItem>
         </Menu>
@@ -196,12 +199,15 @@
 
         <Grid>
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="220" />
+                <ColumnDefinition x:Name="ToolboxColumn" Width="220" />
                 <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="240" />
+                <ColumnDefinition x:Name="PropertiesColumn" Width="240" />
             </Grid.ColumnDefinitions>
 
-            <DockPanel Grid.Column="0" Background="{DynamicResource PanelBackgroundBrush}">
+            <DockPanel Grid.Column="0" x:Name="ToolboxPanel" Background="{DynamicResource PanelBackgroundBrush}">
+                <Button DockPanel.Dock="Top" Content="&#x2039;" Click="ToggleToolbox_Click"
+                        HorizontalAlignment="Right" Padding="6,0" Margin="0,0,2,2"
+                        ToolTip="Collapse toolbox (Ctrl+[)" AutomationProperties.Name="Collapse toolbox" />
                 <TextBox DockPanel.Dock="Top" Margin="6"
                          Text="{Binding Palette.SearchText, UpdateSourceTrigger=PropertyChanged}" />
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
@@ -251,6 +257,12 @@
                 </ScrollViewer>
             </DockPanel>
 
+            <Border x:Name="ToolboxRail" Grid.Column="0" Visibility="Collapsed"
+                    Background="{DynamicResource PanelBackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,1,0">
+                <Button Content="&#x203A;" Click="ToggleToolbox_Click" VerticalAlignment="Top" Margin="0,6,0,0"
+                        ToolTip="Expand toolbox (Ctrl+[)" AutomationProperties.Name="Expand toolbox" />
+            </Border>
+
             <Border Grid.Column="1" x:Name="ViewportHost" Background="{DynamicResource CanvasBackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1,0,1,0"
                     ClipToBounds="True" AllowDrop="True" Drop="Canvas_Drop" Focusable="True" FocusVisualStyle="{x:Null}"
                     PreviewMouseDown="ViewportHost_PreviewMouseDown"
@@ -272,8 +284,25 @@
                                 <Canvas>
                                     <Path Data="{Binding PathData}" Stroke="Transparent" StrokeThickness="10"
                                           MouseLeftButtonDown="Connection_MouseLeftButtonDown" />
-                                    <Path Data="{Binding PathData}" StrokeThickness="2" IsHitTestVisible="False"
-                                          Stroke="{Binding IsSelected, Converter={x:Static local:SelectionBorderConverter.Instance}}" />
+                                    <!-- Visible wire. Forward = solid grey; back-edge (loop/return) = dashed +
+                                         muted theme tint; selection overrides the colour. Style triggers are used
+                                         (not a converter) so the muted tint can be a DynamicResource theme brush. -->
+                                    <Path Data="{Binding PathData}" StrokeThickness="2" IsHitTestVisible="False">
+                                        <Path.Style>
+                                            <Style TargetType="Path">
+                                                <Setter Property="Stroke" Value="{DynamicResource PrimaryTextBrush}" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsBackEdge}" Value="True">
+                                                        <Setter Property="Stroke" Value="{DynamicResource SecondaryTextBrush}" />
+                                                        <Setter Property="StrokeDashArray" Value="4 3" />
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                                        <Setter Property="Stroke" Value="{DynamicResource AccentBrush}" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Path.Style>
+                                    </Path>
                                 </Canvas>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
@@ -373,7 +402,11 @@
                 </Grid>
             </Border>
 
-            <Border Grid.Column="2" Background="{DynamicResource PanelBackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1,0,0,0">
+            <Border Grid.Column="2" x:Name="PropertiesPanel" Background="{DynamicResource PanelBackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1,0,0,0">
+              <DockPanel>
+                <Button DockPanel.Dock="Top" Content="&#x203A;" Click="ToggleProperties_Click"
+                        HorizontalAlignment="Left" Padding="6,0" Margin="2,0,0,2"
+                        ToolTip="Collapse properties (Ctrl+])" AutomationProperties.Name="Collapse properties" />
                 <Grid DataContext="{Binding Properties}">
                     <TextBlock Text="Select a node to edit its properties." Foreground="{DynamicResource SecondaryTextBrush}" Margin="8" TextWrapping="Wrap">
                         <TextBlock.Style>
@@ -453,6 +486,13 @@
                         </StackPanel>
                     </ScrollViewer>
                 </Grid>
+              </DockPanel>
+            </Border>
+
+            <Border x:Name="PropertiesRail" Grid.Column="2" Visibility="Collapsed"
+                    Background="{DynamicResource PanelBackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1,0,0,0">
+                <Button Content="&#x2039;" Click="ToggleProperties_Click" VerticalAlignment="Top" Margin="0,6,0,0"
+                        ToolTip="Expand properties (Ctrl+])" AutomationProperties.Name="Expand properties" />
             </Border>
         </Grid>
     </DockPanel>
