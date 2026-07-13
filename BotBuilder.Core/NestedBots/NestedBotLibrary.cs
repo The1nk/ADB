@@ -115,6 +115,49 @@ public sealed class NestedBotLibrary
         return top;
     }
 
+    /// <summary>Builds a self-contained standalone bot from the library entry <paramref name="id"/>: its own graph
+    /// as the top-level bot, with every transitively-referenced nested bot hoisted into
+    /// <see cref="Bot.NestedBots"/>. Ids are preserved so the file is internally consistent; the source library is
+    /// not modified. The inverse of <see cref="Import"/>.</summary>
+    public Bot Export(Guid id)
+    {
+        var entry = Get(id)
+            ?? throw new InvalidOperationException($"Nested bot '{id}' is not in the library.");
+
+        var reachable = ReachableFrom(id);                       // includes id itself
+        var identity = reachable.ToDictionary(g => g, g => g);   // preserve ids through CloneBot
+
+        var top = CloneBot(entry, identity);
+        foreach (var candidate in _entries)
+        {
+            if (candidate.Id != id && reachable.Contains(candidate.Id))
+            {
+                top.NestedBots.Add(CloneBot(candidate, identity));
+            }
+        }
+        return top;
+    }
+
+    /// <summary>The transitive closure of nested-bot ids reachable from <paramref name="rootId"/> (inclusive),
+    /// following Nested Bot card references. Dangling references (no matching entry) are simply skipped when
+    /// bundling.</summary>
+    private HashSet<Guid> ReachableFrom(Guid rootId)
+    {
+        var reachable = new HashSet<Guid>();
+        var stack = new Stack<Guid>();
+        stack.Push(rootId);
+        while (stack.Count > 0)
+        {
+            var current = stack.Pop();
+            if (!reachable.Add(current)) { continue; }
+            if (Get(current) is { } bot)
+            {
+                foreach (var referenced in ReferencedIds(bot)) { stack.Push(referenced); }
+            }
+        }
+        return reachable;
+    }
+
     private static Bot CloneBot(Bot src, IReadOnlyDictionary<Guid, Guid> idMap) => new()
     {
         Id = idMap[src.Id],

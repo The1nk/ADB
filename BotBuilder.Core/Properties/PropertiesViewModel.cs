@@ -117,6 +117,12 @@ public partial class PropertiesViewModel : ObservableObject
         return entry;
     }
 
+    /// <summary>Builds a standalone, self-contained bot for the currently-selected nested-bot card's entry, ready
+    /// to serialize to its own .bot file (bundles transitively-referenced nested bots). Returns null when no entry
+    /// is selected. Non-destructive — the library is untouched.</summary>
+    public Bot? ExportSelectedNestedBot()
+        => SelectedNestedBotId is Guid id ? _editor.NestedBotLibrary.Export(id) : null;
+
     /// <summary>Creates a new empty library entry and assigns it to the selected card. Returns the entry so the
     /// caller can open a child editor for it.</summary>
     public AdbCore.Models.Bot NewNestedBot()

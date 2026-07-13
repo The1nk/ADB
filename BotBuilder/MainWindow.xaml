@@ -114,6 +114,9 @@
                 <MenuItem x:Name="OpenMenuItem" Header="_Open..." Click="Open_Click" InputGestureText="Ctrl+O" />
                 <MenuItem Header="_Save" Click="Save_Click" InputGestureText="Ctrl+S" />
                 <MenuItem x:Name="SaveAsMenuItem" Header="Save _As..." Click="SaveAs_Click" InputGestureText="Ctrl+Shift+S" />
+                <MenuItem x:Name="ExportStandaloneMenuItem" Header="_Export standalone .bot..." Click="ExportStandalone_Click"
+                          Visibility="Collapsed"
+                          ToolTip="Save this nested bot as its own standalone .bot file" />
                 <Separator />
                 <MenuItem Header="P_roperties..." Click="Properties_Click" />
             </MenuItem>
@@ -451,12 +454,16 @@
                                 <TextBlock Text="Name" FontSize="11" Foreground="{DynamicResource SecondaryTextBrush}" />
                                 <TextBox Text="{Binding SelectedNestedBotEditableName, UpdateSourceTrigger=LostFocus}" Margin="0,0,0,4"
                                          ToolTip="Rename this nested bot (updates every card that uses it)" />
-                                <StackPanel Orientation="Horizontal">
-                                    <Button Content="New" Click="NewNestedBot_Click" Padding="6,2" Margin="0,0,4,0"
+                                <!-- WrapPanel (not a horizontal StackPanel) so the buttons flow onto a second row
+                                     instead of running off the edge of the fixed-width properties panel. -->
+                                <WrapPanel>
+                                    <Button Content="New" Click="NewNestedBot_Click" Padding="6,2" Margin="0,0,4,4"
                                             ToolTip="Create a new empty nested bot and open its editor" />
-                                    <Button Content="Import .bot…" Click="ImportNestedBot_Click" Padding="6,2" Margin="0,0,4,0" />
-                                    <Button Content="Remove" Click="RemoveNestedBot_Click" Padding="6,2" />
-                                </StackPanel>
+                                    <Button Content="Import .bot…" Click="ImportNestedBot_Click" Padding="6,2" Margin="0,0,4,4" />
+                                    <Button Content="Export .bot…" Click="ExportNestedBot_Click" Padding="6,2" Margin="0,0,4,4"
+                                            ToolTip="Save this nested bot as its own standalone .bot file" />
+                                    <Button Content="Remove" Click="RemoveNestedBot_Click" Padding="6,2" Margin="0,0,4,4" />
+                                </WrapPanel>
                                 <TextBlock Text="{Binding CycleWarning}" FontSize="11" TextWrapping="Wrap" Margin="0,2,0,0"
                                            Foreground="{DynamicResource ErrorBrush}"
                                            Visibility="{Binding CycleWarning, Converter={x:Static local:NullToCollapsedConverter.Instance}}" />

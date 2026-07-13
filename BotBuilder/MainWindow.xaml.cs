@@ -105,6 +105,9 @@ public partial class MainWindow : Window
         // Hide Save As — a nested entry has no independent file
         SaveAsMenuItem.Visibility = Visibility.Collapsed;
 
+        // Reveal Export standalone — a nested entry CAN be pulled out into its own file
+        ExportStandaloneMenuItem.Visibility = Visibility.Visible;
+
         // Replace the WindowTitle binding with a breadcrumb title
         BindingOperations.ClearBinding(this, TitleProperty);
         UpdateChildTitle();
@@ -1085,6 +1088,54 @@ public partial class MainWindow : Window
         }
 
         _editor.Properties.ImportNestedBot(external);
+    }
+
+    private void ExportNestedBot_Click(object sender, RoutedEventArgs e)
+    {
+        // No-op when no library entry is assigned, mirroring Remove.
+        if (_editor.Properties.ExportSelectedNestedBot() is { } bot)
+        {
+            SaveExportedBot(bot);
+        }
+    }
+
+    private void ExportStandalone_Click(object sender, RoutedEventArgs e)
+    {
+        if (!_isChild || _childSession is null)
+        {
+            return;
+        }
+
+        _childSession.SyncBack(); // capture in-flight edits into the library entry first
+        SaveExportedBot(_editor.NestedBotLibrary.Export(_childSession.NestedBotId));
+    }
+
+    // Shared by the Properties-panel export button and the child editor's Export-standalone menu item:
+    // prompts for a path (pre-filled with a sanitized bot name) and writes a self-contained .bot.
+    private void SaveExportedBot(AdbCore.Models.Bot bot)
+    {
+        var suggested = string.Join("_", bot.Name.Split(Path.GetInvalidFileNameChars()));
+        var dialog = new SaveFileDialog
+        {
+            Filter = BotFilter,
+            DefaultExt = ".bot",
+            AddExtension = true,
+            FileName = string.IsNullOrWhiteSpace(suggested) ? "nested" : suggested,
+        };
+        if (dialog.ShowDialog(this) != true)
+        {
+            return;
+        }
+
+        try
+        {
+            new AdbCore.Serialization.BotSerializer().Save(bot, dialog.FileName);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Couldn't export that bot: {ex.Message}", "Export nested bot",
+                MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
     }
 
     private void RemoveNestedBot_Click(object sender, RoutedEventArgs e)

@@ -513,7 +513,12 @@ Notes:
 - **`nestedBots`** is the flat reusable sub-bot library; only the root bot populates it. A Nested Bot card
   references an entry via its config `nestedBotId`. During a run, actions inside a nested bot emit a
   `[<BotName>]`-prefixed trace to the log sink (prefixes compose for deep nesting) — `NestedBotExecutor`
-  wraps the child's `Log` sink and feeds the child a synchronous progress→log adapter.
+  wraps the child's `Log` sink and feeds the child a synchronous progress→log adapter. A library entry can be
+  pulled back out into its own standalone `.bot` via **Export** (`NestedBotLibrary.Export`, the inverse of
+  `Import`): the entry's graph becomes the top-level bot and every transitively-referenced nested bot is
+  hoisted into that file's `nestedBots` (ids preserved, source library untouched), so the exported file runs
+  standalone. Exposed as an **Export .bot…** button in the nested-bot properties panel and an **Export
+  standalone .bot…** item in the child editor's File menu.
 - **`portsFlipped`** (per action, optional, default `false`) records that "Tidy Up" placed the node in a
   right-to-left serpentine band, so its ports render input-right / output-left. Persisted so a saved tidy
   graph reloads clean.
