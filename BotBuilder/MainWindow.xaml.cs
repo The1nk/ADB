@@ -105,6 +105,9 @@ public partial class MainWindow : Window
         // Hide Save As — a nested entry has no independent file
         SaveAsMenuItem.Visibility = Visibility.Collapsed;
 
+        // Reveal Export standalone — a nested entry CAN be pulled out into its own file
+        ExportStandaloneMenuItem.Visibility = Visibility.Visible;
+
         // Replace the WindowTitle binding with a breadcrumb title
         BindingOperations.ClearBinding(this, TitleProperty);
         UpdateChildTitle();
@@ -1094,6 +1097,17 @@ public partial class MainWindow : Window
         {
             SaveExportedBot(bot);
         }
+    }
+
+    private void ExportStandalone_Click(object sender, RoutedEventArgs e)
+    {
+        if (!_isChild || _childSession is null)
+        {
+            return;
+        }
+
+        _childSession.SyncBack(); // capture in-flight edits into the library entry first
+        SaveExportedBot(_editor.NestedBotLibrary.Export(_childSession.NestedBotId));
     }
 
     // Shared by the Properties-panel export button and the child editor's Export-standalone menu item:
