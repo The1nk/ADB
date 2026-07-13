@@ -218,6 +218,17 @@ always propagates — escaping an enclosing Loop and, from inside a nested bot, 
 parent (caught by an Error Handler if one is present). Use it where `End` won't do, e.g. to bail out of a
 loop inside a nested bot.
 
+**Loop modes.** `LoopAction` (`control.loop`) repeats its `body` sub-path in one of three `mode`s, then
+leaves via `done`: `Count` (N times, default `1` so a freshly dropped Loop iterates once), `ForEach`, or
+`Forever` (requires a wired Body; exit via `Loop-Break` or a Body failure). **`ForEach` iterates a
+comma-separated string, not a collection object** — `collectionVariable` names a run variable whose value
+`LoopControlFlowExecutor.SplitItems` splits on `,` and trims, binding each piece to `itemVariable` and the
+0-based index to `indexVariable` (an item therefore cannot contain a comma). This is bounded by the variable
+model: run variables hold **scalars only** (string/number/bool), and a Lua table written back to `vars`
+flattens to text (`LuaValues.ToClr`), so there is no "table of objects" to walk. For structured data, either
+loop entirely inside a **Run Lua Script** action, or `ForEach` over a comma-separated list of keys and
+`json.parse` each record in the Body.
+
 ## Key Modules
 
 | Module | Location | Purpose |
