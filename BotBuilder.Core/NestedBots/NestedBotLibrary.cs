@@ -139,8 +139,8 @@ public sealed class NestedBotLibrary
     }
 
     /// <summary>The transitive closure of nested-bot ids reachable from <paramref name="rootId"/> (inclusive),
-    /// following Nested Bot card references. Dangling references (no matching entry) are still included so the
-    /// identity id-map stays complete.</summary>
+    /// following Nested Bot card references. Dangling references (no matching entry) are simply skipped when
+    /// bundling.</summary>
     private HashSet<Guid> ReachableFrom(Guid rootId)
     {
         var reachable = new HashSet<Guid>();

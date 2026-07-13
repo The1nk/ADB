@@ -47,6 +47,34 @@ public class NestedBotExportTests
     }
 
     [Fact]
+    public void Export_BundlesMultiLevelTransitiveReferences()
+    {
+        var lib = new NestedBotLibrary();
+        var outer = lib.AddNew("Outer");
+        var inner = lib.AddNew("Inner");
+        var grandchild = lib.AddNew("Grandchild");
+
+        outer.Actions.Add(new BotAction
+        {
+            Id = Guid.NewGuid(),
+            TypeKey = NestedBotAction.NestedBotTypeKey,
+            Config = { [NestedBotAction.NestedBotIdKey] = inner.Id.ToString() },
+        });
+        inner.Actions.Add(new BotAction
+        {
+            Id = Guid.NewGuid(),
+            TypeKey = NestedBotAction.NestedBotTypeKey,
+            Config = { [NestedBotAction.NestedBotIdKey] = grandchild.Id.ToString() },
+        });
+
+        var exported = lib.Export(outer.Id);
+
+        Assert.Contains(exported.NestedBots, b => b.Id == inner.Id);
+        Assert.Contains(exported.NestedBots, b => b.Id == grandchild.Id);
+        Assert.Equal(2, exported.NestedBots.Count);
+    }
+
+    [Fact]
     public void Export_PreservesIdsAndReferences()
     {
         var (lib, outer, inner, _) = BuildLibrary();
@@ -61,15 +89,16 @@ public class NestedBotExportTests
     [Fact]
     public void Export_IsDeepCopy_DoesNotMutateLibrary()
     {
-        var (lib, outer, _, _) = BuildLibrary();
+        var (lib, outer, inner, _) = BuildLibrary();
         var countBefore = lib.Entries.Count;
 
         var exported = lib.Export(outer.Id);
+        exported.NestedBots[0].Name = "Bundled renamed";
         exported.Name = "Renamed after export";
-        exported.NestedBots.Clear();
 
         Assert.Equal(countBefore, lib.Entries.Count);
         Assert.Equal("Outer", lib.Get(outer.Id)!.Name);   // source untouched
+        Assert.Equal("Inner", lib.Get(inner.Id)!.Name);   // bundled source untouched
         Assert.NotSame(outer, exported);
     }
 
@@ -81,9 +110,29 @@ public class NestedBotExportTests
     }
 
     [Fact]
+    public void Export_ToleratesDanglingReference()
+    {
+        var lib = new NestedBotLibrary();
+        var outer = lib.AddNew("Outer");
+        var danglingId = Guid.NewGuid();
+        outer.Actions.Add(new BotAction
+        {
+            Id = Guid.NewGuid(),
+            TypeKey = NestedBotAction.NestedBotTypeKey,
+            Config = { [NestedBotAction.NestedBotIdKey] = danglingId.ToString() },
+        });
+
+        var exported = lib.Export(outer.Id);
+
+        Assert.Empty(exported.NestedBots);
+        var card = exported.Actions.Single(a => a.TypeKey == NestedBotAction.NestedBotTypeKey);
+        Assert.Equal(danglingId.ToString(), card.Config[NestedBotAction.NestedBotIdKey]);
+    }
+
+    [Fact]
     public void Import_OfExport_RoundTripsToEquivalentGraph()
     {
-        var (lib, outer, _, _) = BuildLibrary();
+        var (lib, outer, inner, _) = BuildLibrary();
         var exported = lib.Export(outer.Id);
 
         var target = new NestedBotLibrary();
@@ -95,5 +144,7 @@ public class NestedBotExportTests
         var card = reimported.Actions.Single(a => a.TypeKey == NestedBotAction.NestedBotTypeKey);
         var newInnerId = Guid.Parse(card.Config[NestedBotAction.NestedBotIdKey].ToString()!);
         Assert.Equal("Inner", target.Get(newInnerId)!.Name);
+        Assert.NotEqual(outer.Id, reimported.Id);
+        Assert.NotEqual(inner.Id, newInnerId);
     }
 }
