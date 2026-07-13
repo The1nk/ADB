@@ -455,6 +455,8 @@
                                     <Button Content="New" Click="NewNestedBot_Click" Padding="6,2" Margin="0,0,4,0"
                                             ToolTip="Create a new empty nested bot and open its editor" />
                                     <Button Content="Import .bot…" Click="ImportNestedBot_Click" Padding="6,2" Margin="0,0,4,0" />
+                                    <Button Content="Export .bot…" Click="ExportNestedBot_Click" Padding="6,2" Margin="0,0,4,0"
+                                            ToolTip="Save this nested bot as its own standalone .bot file" />
                                     <Button Content="Remove" Click="RemoveNestedBot_Click" Padding="6,2" />
                                 </StackPanel>
                                 <TextBlock Text="{Binding CycleWarning}" FontSize="11" TextWrapping="Wrap" Margin="0,2,0,0"
