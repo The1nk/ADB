@@ -111,4 +111,30 @@ public class NestedBotPropertiesTests
         Assert.Equal(bot.Id, editor.Properties.SelectedNestedBotId);
         Assert.Equal(bot.Id.ToString(), node.Config[NestedBotAction.NestedBotIdKey]);
     }
+
+    [Fact]
+    public void ExportSelectedNestedBot_ReturnsStandaloneBotForSelection()
+    {
+        var editor = NewEditor();
+        var node = editor.AddNode(NestedBotAction.NestedBotTypeKey, 0, 0);
+        editor.Select(node);
+        var bot = editor.NestedBotLibrary.AddNew("Sub");
+        editor.Properties.SelectedNestedBotId = bot.Id;
+
+        var exported = editor.Properties.ExportSelectedNestedBot();
+
+        Assert.NotNull(exported);
+        Assert.Equal(bot.Id, exported!.Id);
+        Assert.Equal("Sub", exported.Name);
+    }
+
+    [Fact]
+    public void ExportSelectedNestedBot_ReturnsNullWhenNothingSelected()
+    {
+        var editor = NewEditor();
+        var node = editor.AddNode(NestedBotAction.NestedBotTypeKey, 0, 0);
+        editor.Select(node);   // card selected, but no entry assigned
+
+        Assert.Null(editor.Properties.ExportSelectedNestedBot());
+    }
 }
