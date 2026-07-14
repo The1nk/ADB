@@ -238,6 +238,7 @@ loop entirely inside a **Run Lua Script** action, or `ForEach` over a comma-sepa
 | **Target Resolution** | AdbCore/Targets/WindowResolver.cs, AdbCore/Android/AdbSelector.cs, AdbCore/Browser/BrowserSelector.cs | Bind named targets to live handles (windows, devices, browsers) |
 | **Window Capture** | AdbCore/Screen/Win32WindowCapture.cs | PerMonitorV2 DPI-aware screenshot capture |
 | **Template Matching** | AdbCore/Screen/OpenCvSharpTemplateMatcher.cs | OpenCV-based image matching with region & confidence bounds |
+| **Frame Store** | AdbCore/Execution/FrameStore.cs (+ AdbCore/Screen/FrameSnapshot.cs) | Per-run named capture cache. **Capture Frame** (`screen.captureFrame` / `android.captureFrame`) grabs the target once into a named `FrameSnapshot` (immutable BGRA buffer); image readers with **Source = Stored** (`FrameSourceConfig`) match against it instead of re-capturing. Runtime-only, never serialized. |
 | **OCR** | AdbCore/Ocr/OcrEngine.cs (with TesseractOcrEngine) | Tesseract text recognition on images |
 | **Lua Scripting** | AdbCore/Scripting/LuaScriptHost.cs | MoonSharp host with http, json, fs, process, log modules |
 | **Input Senders** | AdbCore/Input/Win32SendInputSender.cs, Win32PostMessageSender.cs | Send mouse/keyboard input to windows |
@@ -533,6 +534,12 @@ Notes:
 - **`portsFlipped`** (per action, optional, default `false`) records that "Tidy Up" placed the node in a
   right-to-left serpentine band, so its ports render input-right / output-left. Persisted so a saved tidy
   graph reloads clean.
+- **Frame source.** Find Image / Wait For Image / Assert Image Absent (Screen **and** Android) carry a
+  `source` key (`Fresh` default | `Stored`) plus `frameName` (default `frame`). `Stored` reuses a frame
+  captured earlier by a **Capture Frame** action (`screen.captureFrame` / `android.captureFrame`), so a batch
+  of reads costs one capture. `Stored` reads a static snapshot (Wait For Image polling a stored frame will
+  not see changes unless another Capture Frame overwrites that name). The frame store is runtime-only and
+  never written to the `.bot`.
 
 ## Platform-Native Production Patterns
 
