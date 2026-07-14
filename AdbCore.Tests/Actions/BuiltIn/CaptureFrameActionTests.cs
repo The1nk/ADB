@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using AdbCore.Actions.BuiltIn;
 using AdbCore.Execution;
 using AdbCore.Models;
+using AdbCore.Screen;
 using AdbCore.Tests.Screen;
 using AdbCore.Tests.Targets;
 using Xunit;
@@ -47,6 +48,19 @@ public class CaptureFrameActionTests
         await new CaptureFrameAction(new FakeWindowCapture(8, 8)).ExecuteAsync(Exec(action, ctx), default);
 
         Assert.True(ctx.Frames.TryGet("frame", out _));
+    }
+
+    [Fact]
+    public async Task Capture_UsesBitBltMethod_WhenConfigured()
+    {
+        var id = Guid.NewGuid();
+        var ctx = WindowContext(id, (IntPtr)5);
+        var capture = new FakeWindowCapture(8, 8);
+        var action = new BotAction { TargetId = id, Config = { [ScreenActionBase.CaptureMethodKey] = "BitBlt" } };
+
+        await new CaptureFrameAction(capture).ExecuteAsync(Exec(action, ctx), default);
+
+        Assert.Equal(ScreenCaptureMethod.BitBlt, capture.LastMethod);
     }
 
     [Fact]

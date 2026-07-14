@@ -41,7 +41,7 @@ public sealed class CaptureFrameAction : IActionDefinition, IActionExecutor
         var wh = TargetResolution.ResolveHandle<IWindowHandle>(context);
         if (wh?.GetLiveHandle() is not IntPtr hwnd || hwnd == IntPtr.Zero)
         {
-            return Task.FromResult(ActionResult.Fail("Capture Frame requires a resolved Window target (HWND)."));
+            return Task.FromResult(ActionResult.Fail($"{DisplayName} requires a resolved Window target (HWND)."));
         }
 
         var method = string.Equals(
