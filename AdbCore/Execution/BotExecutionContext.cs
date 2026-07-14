@@ -10,6 +10,10 @@ public class BotExecutionContext
     /// <summary>Variables read/written by actions, keyed by name.</summary>
     public ConcurrentDictionary<string, object> Variables { get; } = new();
 
+    /// <summary>Named captured frames, written by Capture Frame actions and read by readers set to the
+    /// "Stored" source. Runtime-only; never serialized.</summary>
+    public FrameStore Frames { get; } = new();
+
     /// <summary>Targets resolved at run start, keyed by <c>BotTarget.Id</c>.</summary>
     public Dictionary<Guid, ResolvedTarget> Targets { get; } = new();
 
