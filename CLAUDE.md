@@ -539,7 +539,10 @@ Notes:
   captured earlier by a **Capture Frame** action (`screen.captureFrame` / `android.captureFrame`), so a batch
   of reads costs one capture. `Stored` reads a static snapshot (Wait For Image polling a stored frame will
   not see changes unless another Capture Frame overwrites that name). The frame store is runtime-only and
-  never written to the `.bot`.
+  never written to the `.bot`. It is also **per-run and does not cross a Nested Bot boundary**: a nested bot
+  starts with an empty frame store (unlike run variables, which a Nested Bot card can opt into sharing via
+  `sendVars`), so a `Stored` reader inside a nested bot can only reuse a frame that the *same* nested bot
+  captured — capture the frame inside the nested bot, or read it in the parent.
 
 ## Platform-Native Production Patterns
 
