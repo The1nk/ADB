@@ -92,4 +92,20 @@ public class StoredFrameSourceTests
         Assert.Contains(def.ConfigFields, f => f.Key == FrameSourceConfig.SourceKey);
         Assert.Contains(def.ConfigFields, f => f.Key == FrameSourceConfig.FrameNameKey);
     }
+
+    [Fact]
+    public void WaitForImage_Definition_IncludesSourceFields()
+    {
+        var def = new WaitForImageAction(new FakeWindowCapture(8, 8), new FakeTemplateMatcher(null), new FixedRandomSource(0));
+        Assert.Contains(def.ConfigFields, f => f.Key == FrameSourceConfig.SourceKey);
+        Assert.Contains(def.ConfigFields, f => f.Key == FrameSourceConfig.FrameNameKey);
+    }
+
+    [Fact]
+    public void AssertImageAbsent_Definition_IncludesSourceFields()
+    {
+        var def = new AssertImageAbsentAction(new FakeWindowCapture(8, 8), new FakeTemplateMatcher(null));
+        Assert.Contains(def.ConfigFields, f => f.Key == FrameSourceConfig.SourceKey);
+        Assert.Contains(def.ConfigFields, f => f.Key == FrameSourceConfig.FrameNameKey);
+    }
 }
