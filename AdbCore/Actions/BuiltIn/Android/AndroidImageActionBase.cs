@@ -22,6 +22,8 @@ public abstract class AndroidImageActionBase : AndroidActionBase
     public override List<ConfigField> ConfigFields => _configFields ??=
     [
         .. ActionConfigFields,
+        // Source fields live on the base because EVERY subclass here is a reader (no writer shares this
+        // base, unlike ScreenActionBase which ScreenshotAction shares — hence Screen adds them per-reader).
         .. FrameSourceConfig.Fields(),
         .. TemplateMatchCore.RegionFields(),
     ];
