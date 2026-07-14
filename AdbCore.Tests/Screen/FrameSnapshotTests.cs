@@ -45,4 +45,13 @@ public class FrameSnapshotTests
         var snap = FrameSnapshot.FromBitmap(bmp);
         Assert.Throws<ArgumentOutOfRangeException>(() => snap.GetPixel(1, 0));
     }
+
+    [Fact]
+    public void GetPixel_YOutOfRange_Throws()
+    {
+        using var bmp = new Bitmap(1, 1, PixelFormat.Format32bppArgb);
+        var snap = FrameSnapshot.FromBitmap(bmp);
+        var ex = Assert.Throws<ArgumentOutOfRangeException>(() => snap.GetPixel(0, 1));
+        Assert.Equal("y", ex.ParamName);
+    }
 }

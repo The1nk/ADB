@@ -51,7 +51,9 @@ public sealed class FrameSnapshot
     {
         if ((uint)x >= (uint)Width || (uint)y >= (uint)Height)
         {
-            throw new ArgumentOutOfRangeException(nameof(x), $"Pixel ({x},{y}) is outside the {Width}x{Height} frame.");
+            throw new ArgumentOutOfRangeException(
+                (uint)x >= (uint)Width ? nameof(x) : nameof(y),
+                $"Pixel ({x},{y}) is outside the {Width}x{Height} frame.");
         }
         var i = (y * Width + x) * 4;
         return Color.FromArgb(_bgra[i + 3], _bgra[i + 2], _bgra[i + 1], _bgra[i]); // A,R,G,B from B,G,R,A
