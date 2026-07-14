@@ -42,6 +42,7 @@ public sealed class WaitForImageAction : ScreenActionBase
         ResultVarField(),
         new ConfigField { Key = TimeoutMsKey, Label = "Timeout (ms)", Type = ConfigFieldType.Number, DefaultValue = DefaultTimeoutMs },
         new ConfigField { Key = PollIntervalMsKey, Label = "Poll Interval (ms)", Type = ConfigFieldType.Number, DefaultValue = DefaultPollIntervalMs },
+        .. FrameSourceConfig.Fields(),
     ];
 
     public override async Task<ActionResult> ExecuteAsync(ActionExecutionContext context, CancellationToken ct)

@@ -105,12 +105,30 @@ public abstract class ScreenActionBase : IActionDefinition, IActionExecutor
         }
     }
 
-    /// <summary>Captures the window's client area via the chosen method, then crops to any ROI, matches the
-    /// configured template, and returns the match in full-window client coordinates (null if none ≥ confidence).</summary>
+    /// <summary>Captures the window's client area via the chosen method (or reuses a stored frame, per
+    /// <see cref="AcquireHaystack"/>), then crops to any ROI, matches the configured template, and returns
+    /// the match in full-window client coordinates (null if none ≥ confidence).</summary>
     protected MatchResult? CaptureAndMatch(ActionExecutionContext context, IntPtr hwnd, ITemplateMatcher matcher, double confidence)
     {
-        using var shot = _capture.Capture(hwnd, CaptureMethodOf(context));
+        using var shot = AcquireHaystack(context, hwnd);
         return TemplateMatchCore.MatchInRegion(shot, context.Action.Config, matcher, confidence);
+    }
+
+    /// <summary>Returns the haystack to match against: a fresh capture (default), or a stored
+    /// <see cref="FrameSnapshot"/> from the run's frame store when Source = Stored. Throws when the named
+    /// stored frame is absent (surfaced by the engine as a clear action failure). Caller disposes.</summary>
+    private Bitmap AcquireHaystack(ActionExecutionContext context, IntPtr hwnd)
+    {
+        if (FrameSourceConfig.UsesStoredFrame(context.Action.Config))
+        {
+            var name = FrameSourceConfig.FrameNameOf(context.Action.Config);
+            if (!context.Context.Frames.TryGet(name, out var snapshot) || snapshot is null)
+            {
+                throw new InvalidOperationException($"No stored frame named '{name}'. Add a Capture Frame action before this one.");
+            }
+            return snapshot.ToBitmap();
+        }
+        return _capture.Capture(hwnd, CaptureMethodOf(context));
     }
 
     /// <summary>Writes a match's region edges, center, a random in-region point, and the score to run

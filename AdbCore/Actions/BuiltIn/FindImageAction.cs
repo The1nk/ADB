@@ -35,6 +35,7 @@ public sealed class FindImageAction : ScreenActionBase
         TemplateNameField(),
         ConfidenceField(),
         ResultVarField(),
+        .. FrameSourceConfig.Fields(),
     ];
 
     public override Task<ActionResult> ExecuteAsync(ActionExecutionContext context, CancellationToken ct)
