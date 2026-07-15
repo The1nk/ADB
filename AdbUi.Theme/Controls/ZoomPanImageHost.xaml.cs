@@ -39,6 +39,7 @@ public partial class ZoomPanImageHost : UserControl
         Scroller.PreviewMouseDown += OnPreviewMouseDown;
         Scroller.PreviewMouseMove += OnPreviewMouseMove;
         Scroller.PreviewMouseUp += OnPreviewMouseUp;
+        Scroller.LostMouseCapture += OnScrollerLostMouseCapture;
 
         FrameImage.MouseLeftButtonDown += OnImageLeftDown;
         FrameImage.MouseMove += OnImageMove;
@@ -226,6 +227,12 @@ public partial class ZoomPanImageHost : UserControl
             return;
         }
 
+        if (e.MiddleButton != MouseButtonState.Pressed)
+        {
+            Scroller.ReleaseMouseCapture(); // fires LostMouseCapture -> EndPan()
+            return;
+        }
+
         var p = e.GetPosition(Scroller);
         Scroller.ScrollToHorizontalOffset(_panStartH - (p.X - _panStart.X));
         Scroller.ScrollToVerticalOffset(_panStartV - (p.Y - _panStart.Y));
@@ -239,10 +246,22 @@ public partial class ZoomPanImageHost : UserControl
             return;
         }
 
-        _panning = false;
         Scroller.ReleaseMouseCapture();
-        Cursor = Cursors.Arrow;
+        EndPan();
         e.Handled = true;
+    }
+
+    private void OnScrollerLostMouseCapture(object sender, MouseEventArgs e) => EndPan();
+
+    private void EndPan()
+    {
+        if (!_panning)
+        {
+            return;
+        }
+
+        _panning = false;
+        Cursor = null;
     }
 
     private void OnImageLeftDown(object sender, MouseButtonEventArgs e)

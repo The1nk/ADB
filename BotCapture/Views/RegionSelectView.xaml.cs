@@ -33,7 +33,6 @@ public partial class RegionSelectView : UserControl
     {
         DataContext = vm;
         Viewer.SetImage(BitmapInterop.ToImageSource(vm.Source));
-        Viewer.ClearOverlay();
         _dragging = false;
     }
 

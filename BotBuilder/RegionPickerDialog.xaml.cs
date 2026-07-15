@@ -29,6 +29,7 @@ public partial class RegionPickerDialog : Window
 
     private void OnDown(object? sender, ImagePointerEventArgs e)
     {
+        // No InsideImage guard: a region drag may start at a clamped edge; coords are already in-bounds.
         _dragging = true;
         _startX = e.SourceX;
         _startY = e.SourceY;
