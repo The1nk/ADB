@@ -532,8 +532,9 @@ Notes:
   standalone .bot…** item in the child editor's File menu. Because the library is independent of the cards
   that reference it, deleting a card doesn't delete its entry — orphans accumulate until pruned via **Edit ▸
   Manage Nested Bot Library…** (`NestedBotLibraryDialog`, backed by `NestedBotLibraryManagerViewModel` /
-  `NestedBotUsage`), which lists every entry with a **usage count** (Nested Bot cards referencing it, summed
-  across the top-level graph and every other entry's own cards) and removes them either one at a time
+  `NestedBotUsage`), which lists every entry with a **usage count** (how many Nested Bot cards in the
+  *reachable* graph reference it — the top-level plus reachable entries; references from other orphaned entries
+  don't count, so usage is 0 exactly when the entry is unused) and removes them either one at a time
   (warning if still referenced — the referencing card then shows "(missing bot)") or via **Remove Unused**,
   which purges every entry **not transitively reachable** from the top-level graph's Nested Bot cards (so an
   entry referenced only by another orphan is still unused, not saved). Removals mark the document dirty and

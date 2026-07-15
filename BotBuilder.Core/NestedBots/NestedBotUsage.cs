@@ -7,17 +7,25 @@ namespace BotBuilder.Core.NestedBots;
 /// that can be purged).</summary>
 public static class NestedBotUsage
 {
-    /// <summary>Total Nested Bot cards referencing <paramref name="entryId"/> — across the top-level graph
-    /// (<paramref name="topLevelRefs"/>) and every library entry's own cards.</summary>
+    /// <summary>How many <em>live</em> Nested Bot cards reference <paramref name="entryId"/>: cards on the
+    /// top-level graph, plus cards inside library entries that are themselves reachable from the top level.
+    /// References from orphaned entries (unreachable from the top level) are deliberately NOT counted — otherwise
+    /// an entry could show usage &gt; 0 yet still be purged by <see cref="UnusedEntries"/> (e.g. an orphan chain
+    /// A→B: B's only referrer A is itself unused). Because a reachable referrer can only point at a reachable
+    /// entry, this is always 0 for an unreachable entry, so usage is 0 exactly when the entry is unused.</summary>
     public static int UsageCount(NestedBotLibrary library, IReadOnlyList<Guid> topLevelRefs, Guid entryId)
     {
         ArgumentNullException.ThrowIfNull(library);
         ArgumentNullException.ThrowIfNull(topLevelRefs);
 
+        var reachable = ReachableFromTopLevel(library, topLevelRefs);
         var count = topLevelRefs.Count(r => r == entryId);
         foreach (var entry in library.Entries)
         {
-            count += NestedBotLibrary.ReferencedIds(entry).Count(r => r == entryId);
+            if (reachable.Contains(entry.Id))
+            {
+                count += NestedBotLibrary.ReferencedIds(entry).Count(r => r == entryId);
+            }
         }
         return count;
     }

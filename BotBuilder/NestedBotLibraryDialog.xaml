@@ -7,7 +7,7 @@
     <DockPanel Margin="12">
         <TextBlock DockPanel.Dock="Top" TextWrapping="Wrap" Margin="0,0,0,8"
                    Foreground="{DynamicResource SecondaryTextBrush}" FontSize="11"
-                   Text="Reusable nested bots stored in this file. 'Usage' counts the Nested Bot cards referencing each entry. Removing an entry that's still in use leaves those cards showing '(missing bot)'. 'Remove Unused' drops every entry not reachable from the top-level graph." />
+                   Text="Reusable nested bots stored in this file. 'Usage' is how many cards actually use each entry — references from other unused entries don't count, so 0 means unused. Removing an entry that's still in use leaves those cards showing '(missing bot)'. 'Remove Unused' drops every entry not reachable from the top-level graph." />
         <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
             <Button Content="Remove Unused" Width="120" Click="RemoveUnused_Click"
                     AutomationProperties.Name="Remove unused nested bots" />

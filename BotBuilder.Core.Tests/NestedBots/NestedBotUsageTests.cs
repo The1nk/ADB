@@ -70,6 +70,20 @@ public class NestedBotUsageTests
     }
 
     [Fact]
+    public void UsageCount_IgnoresReferencesFromUnreachableEntries()
+    {
+        // The PokeGo case: orphan A references orphan B; nothing is reachable from the (empty) top level.
+        // B's only referrer (A) is itself unused, so B's usage must be 0 — consistent with UnusedEntries
+        // removing it, not the misleading "usage 1".
+        var a = Guid.NewGuid();
+        var b = Guid.NewGuid();
+        var lib = LibraryOf(Entry(a, "A", b), Entry(b, "B"));
+
+        Assert.Equal(0, NestedBotUsage.UsageCount(lib, Array.Empty<Guid>(), b));
+        Assert.Equal(0, NestedBotUsage.UsageCount(lib, Array.Empty<Guid>(), a));
+    }
+
+    [Fact]
     public void UnusedEntries_KeepsReachableChainButDropsIslands()
     {
         var used = Guid.NewGuid();
