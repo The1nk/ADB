@@ -1159,6 +1159,13 @@ public partial class MainWindow : Window
         // vm.Save() is called inside SettingsDialog on OK. No action needed on Cancel.
     }
 
+    private void ManageNestedBotLibrary_Click(object sender, RoutedEventArgs e)
+    {
+        var vm = new BotBuilder.Core.NestedBots.NestedBotLibraryManagerViewModel(_editor);
+        var dialog = new NestedBotLibraryDialog(vm) { Owner = this };
+        dialog.ShowDialog();
+    }
+
     // -------------------------------------------------------------------------
     // External editor session management
     // -------------------------------------------------------------------------

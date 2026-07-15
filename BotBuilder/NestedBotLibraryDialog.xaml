@@ -1,0 +1,31 @@
+<Window x:Class="BotBuilder.NestedBotLibraryDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Manage Nested Bot Library" Height="380" Width="560"
+        WindowStartupLocation="CenterOwner"
+        Background="{DynamicResource WindowBackgroundBrush}">
+    <DockPanel Margin="12">
+        <TextBlock DockPanel.Dock="Top" TextWrapping="Wrap" Margin="0,0,0,8"
+                   Foreground="{DynamicResource SecondaryTextBrush}" FontSize="11"
+                   Text="Reusable nested bots stored in this file. 'Usage' counts the Nested Bot cards referencing each entry. Removing an entry that's still in use leaves those cards showing '(missing bot)'. 'Remove Unused' drops every entry not reachable from the top-level graph." />
+        <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
+            <Button Content="Remove Unused" Width="120" Click="RemoveUnused_Click"
+                    AutomationProperties.Name="Remove unused nested bots" />
+            <Button Content="Remove" Width="90" Margin="8,0,0,0" Click="Remove_Click"
+                    AutomationProperties.Name="Remove selected nested bot" />
+            <Button Content="Close" Width="90" Margin="8,0,0,0" Click="Close_Click" IsCancel="True"
+                    AutomationProperties.Name="Close" />
+        </StackPanel>
+        <ListView x:Name="EntriesList" ItemsSource="{Binding Entries}"
+                  Background="{DynamicResource WindowBackgroundBrush}"
+                  AutomationProperties.Name="Nested bot library entries">
+            <ListView.View>
+                <GridView>
+                    <GridViewColumn Header="Name" Width="260" DisplayMemberBinding="{Binding Name}" />
+                    <GridViewColumn Header="Actions" Width="90" DisplayMemberBinding="{Binding ActionCount}" />
+                    <GridViewColumn Header="Usage" Width="90" DisplayMemberBinding="{Binding UsageCount}" />
+                </GridView>
+            </ListView.View>
+        </ListView>
+    </DockPanel>
+</Window>
