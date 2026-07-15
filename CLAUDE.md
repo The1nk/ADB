@@ -537,7 +537,16 @@ Notes:
   `Import`): the entry's graph becomes the top-level bot and every transitively-referenced nested bot is
   hoisted into that file's `nestedBots` (ids preserved, source library untouched), so the exported file runs
   standalone. Exposed as an **Export .bot…** button in the nested-bot properties panel and an **Export
-  standalone .bot…** item in the child editor's File menu.
+  standalone .bot…** item in the child editor's File menu. Because the library is independent of the cards
+  that reference it, deleting a card doesn't delete its entry — orphans accumulate until pruned via **Edit ▸
+  Manage Nested Bot Library…** (`NestedBotLibraryDialog`, backed by `NestedBotLibraryManagerViewModel` /
+  `NestedBotUsage`), which lists every entry with a **usage count** (how many Nested Bot cards in the
+  *reachable* graph reference it — the top-level plus reachable entries; references from other orphaned entries
+  don't count, so usage is 0 exactly when the entry is unused) and removes them either one at a time
+  (warning if still referenced — the referencing card then shows "(missing bot)") or via **Remove Unused**,
+  which purges every entry **not transitively reachable** from the top-level graph's Nested Bot cards (so an
+  entry referenced only by another orphan is still unused, not saved). Removals mark the document dirty and
+  aren't written to disk until the file is saved.
 - **`portsFlipped`** (per action, optional, default `false`) records that "Tidy Up" placed the node in a
   right-to-left serpentine band, so its ports render input-right / output-left. Persisted so a saved tidy
   graph reloads clean.
