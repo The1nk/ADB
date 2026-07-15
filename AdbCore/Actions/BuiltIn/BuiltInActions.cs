@@ -47,6 +47,7 @@ public static class BuiltInActions
         Add(new AssertImageAbsentAction(windowCapture, templateMatcher), definitions, executors);
         Add(new ScreenshotAction(windowCapture), definitions, executors);
         Add(new CaptureFrameAction(windowCapture), definitions, executors);
+        Add(new MeasureBarAction(windowCapture), definitions, executors);
 
         // Screen OCR (Tesseract; reuses the window capture + RNG. The engine is internally locked for concurrency.)
         var ocrEngine = new AdbCore.Ocr.TesseractOcrEngine();
