@@ -71,6 +71,11 @@ public static class BarMeasureCore
             throw new ArgumentException("Measure Bar requires a Fill Color or an Empty Color (at least one).");
         }
 
+        if (fill is Color fc && empty is Color ec && fc.ToArgb() == ec.ToArgb())
+        {
+            throw new ArgumentException("Measure Bar Fill Color and Empty Color must differ.");
+        }
+
         var roi = TemplateMatchCore.ResolveRegion(config, frame.Width, frame.Height)
             ?? throw new ArgumentException("Measure Bar requires a Region (ROI) with positive width and height.");
 

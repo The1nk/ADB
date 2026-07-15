@@ -37,6 +37,23 @@ public class BarMeasureCoreTests
         return c;
     }
 
+    // Builds a 1xheight vertical bar: first `filledPx` rows are `fill`, the rest `empty`.
+    private static FrameSnapshot VBar(int height, int filledPx, Color fill, Color empty)
+    {
+        using var bmp = new Bitmap(1, height, PixelFormat.Format32bppArgb);
+        for (var y = 0; y < height; y++) { bmp.SetPixel(0, y, y < filledPx ? fill : empty); }
+        return FrameSnapshot.FromBitmap(bmp);
+    }
+
+    private static Dictionary<string, object> VConfig(int width, int height, string fill, string empty, string dir)
+        => new()
+        {
+            [TemplateMatchCore.RegionXKey] = 0, [TemplateMatchCore.RegionYKey] = 0,
+            [TemplateMatchCore.RegionWidthKey] = width, [TemplateMatchCore.RegionHeightKey] = height,
+            [BarMeasureCore.FillColorKey] = fill, [BarMeasureCore.EmptyColorKey] = empty,
+            [BarMeasureCore.DirectionKey] = dir,
+        };
+
     [Fact]
     public void BothColors_HalfFilled_YieldsHalfOfRange()
     {
@@ -107,5 +124,75 @@ public class BarMeasureCoreTests
         Assert.Contains(BarMeasureCore.EmptyColorKey, keys);
         Assert.Contains(BarMeasureCore.DirectionKey, keys);
         Assert.Contains(BarMeasureCore.ResultVarKey, keys);
+    }
+
+    [Fact]
+    public void SameFillAndEmpty_Throws()
+    {
+        var frame = HBar(20, 10, Color.Red, Color.Black);
+        Assert.Throws<ArgumentException>(() => BarMeasureCore.Measure(frame, Config("#FF0000", "#FF0000")));
+    }
+
+    [Fact]
+    public void TopToBottom_MeasuresFromTop()
+    {
+        var frame = VBar(20, 10, Color.Red, Color.Black);
+        var r = BarMeasureCore.Measure(frame, VConfig(1, 20, "#FF0000", "#000000", "TopToBottom"));
+        Assert.Equal(0.5, r.Fraction, 3);
+    }
+
+    [Fact]
+    public void BottomToTop_MeasuresFromBottom()
+    {
+        using var bmp = new Bitmap(1, 20, PixelFormat.Format32bppArgb);
+        for (var y = 0; y < 20; y++) { bmp.SetPixel(0, y, y >= 12 ? Color.Red : Color.Black); } // bottom 8 filled
+        var frame = FrameSnapshot.FromBitmap(bmp);
+        var r = BarMeasureCore.Measure(frame, VConfig(1, 20, "#FF0000", "#000000", "BottomToTop"));
+        Assert.Equal(0.4, r.Fraction, 3); // 8/20
+    }
+
+    [Fact]
+    public void FillOnly_ToleranceBoundary_IsInclusive()
+    {
+        using var bmp = new Bitmap(2, 1, PixelFormat.Format32bppArgb);
+        bmp.SetPixel(0, 0, Color.FromArgb(130, 100, 100)); // Chebyshev distance 30 from fill
+        bmp.SetPixel(1, 0, Color.FromArgb(200, 100, 100)); // distance 100
+        var frame = FrameSnapshot.FromBitmap(bmp);
+        var c = new Dictionary<string, object>
+        {
+            [TemplateMatchCore.RegionXKey] = 0, [TemplateMatchCore.RegionYKey] = 0,
+            [TemplateMatchCore.RegionWidthKey] = 2, [TemplateMatchCore.RegionHeightKey] = 1,
+            [BarMeasureCore.FillColorKey] = "#646464", // (100,100,100)
+            [BarMeasureCore.ToleranceKey] = 30,
+        };
+        var r = BarMeasureCore.Measure(frame, c);
+        Assert.Equal(0.5, r.Fraction, 3); // boundary pixel counts as filled (<=), next does not
+    }
+
+    [Fact]
+    public void HorizontalScan_MultiRowRoi_SamplesCenterRow()
+    {
+        using var bmp = new Bitmap(20, 3, PixelFormat.Format32bppArgb);
+        for (var yy = 0; yy < 3; yy++)
+            for (var x = 0; x < 20; x++)
+                bmp.SetPixel(x, yy, (yy == 1 && x < 10) ? Color.Red : Color.Black);
+        var frame = FrameSnapshot.FromBitmap(bmp);
+        var c = new Dictionary<string, object>
+        {
+            [TemplateMatchCore.RegionXKey] = 0, [TemplateMatchCore.RegionYKey] = 0,
+            [TemplateMatchCore.RegionWidthKey] = 20, [TemplateMatchCore.RegionHeightKey] = 3,
+            [BarMeasureCore.FillColorKey] = "#FF0000", [BarMeasureCore.EmptyColorKey] = "#000000",
+        };
+        var r = BarMeasureCore.Measure(frame, c); // centerline y = 0 + 3/2 = 1 → the half-filled row
+        Assert.Equal(0.5, r.Fraction, 3);
+    }
+
+    [Fact]
+    public void WriteResult_WritesValueAndFraction_Invariant()
+    {
+        var vars = new Dictionary<string, object>();
+        BarMeasureCore.WriteResult(vars, "hp", new BarResult(8, 0.5));
+        Assert.Equal("8", vars["hp"]);
+        Assert.Equal("0.5", vars["hpFraction"]);
     }
 }
