@@ -60,7 +60,10 @@ public class BotExecutor
 
         // Serialize the shared log + progress sinks so concurrent Run Parallel branches can't corrupt a
         // non-thread-safe sink (file writer, UI list, etc.). A single per-run lock; uncontended for the common
-        // single-threaded run. Monitor is reentrant, so a progress handler that itself logs won't deadlock.
+        // single-threaded run.
+        // ONE shared gate for both sinks (not two): a handler that logs from inside a progress callback — or
+        // reports from inside a log call — would deadlock across two separate locks (AB-BA), but cannot across
+        // one. Each (nested) run allocates its own gate, so cross-run nesting is strictly child→parent.
         var sinkGate = new object();
         var rawLog = options.Log ?? (_ => { });
         void SynchronizedLog(string message) { lock (sinkGate) { rawLog(message); } }

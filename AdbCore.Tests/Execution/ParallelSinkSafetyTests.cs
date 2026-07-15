@@ -76,6 +76,33 @@ public class ParallelSinkSafetyTests
         return bot;
     }
 
+    /// <summary>Each branch is a CHAIN of <paramref name="actionsPerBranch"/> actions (not a single leaf), so
+    /// Progress.Report fires once per action per branch — enough concurrent pressure across branches for a
+    /// progress-sink race to actually surface.</summary>
+    private static Bot FanOutChain(int branches, int actionsPerBranch)
+    {
+        var rp = RunParallel(out var rpId, branches);
+        var join = Node(JoinAction.JoinTypeKey, out var joinId);
+        var bot = new Bot { Name = "sink-safety-chain" };
+        bot.Actions.Add(rp);
+        for (var b = 0; b < branches; b++)
+        {
+            Guid prevId = default;
+            for (var a = 0; a < actionsPerBranch; a++)
+            {
+                var node = Node($"b{b}n{a}", out var nodeId);
+                bot.Actions.Add(node);
+                bot.Connections.Add(a == 0
+                    ? Edge(rpId, RunParallelAction.BranchPort(b + 1), nodeId)
+                    : Edge(prevId, "out", nodeId));
+                prevId = nodeId;
+            }
+            bot.Connections.Add(Edge(prevId, "out", joinId));
+        }
+        bot.Actions.Add(join);
+        return bot;
+    }
+
     [Fact(Timeout = 20000)]
     public async Task ConcurrentBranches_LogSink_IsSerialized_NoOverlapNoLostMessages()
     {
@@ -109,19 +136,20 @@ public class ParallelSinkSafetyTests
     public async Task ConcurrentBranches_ProgressSink_IsSerialized_NoOverlap()
     {
         const int branches = 4;
-        var bot = FanOut(branches);
+        const int actionsPerBranch = 40;
+        var bot = FanOutChain(branches, actionsPerBranch);
 
         var detector = new OverlapDetector();
         var registry = new ActionExecutorRegistry();
-        for (var i = 0; i < branches; i++)
-        {
-            registry.Register(new LoggingExecutor { TypeKey = $"leaf{i}", Times = 50 });
-        }
+        for (var b = 0; b < branches; b++)
+            for (var a = 0; a < actionsPerBranch; a++)
+                registry.Register(new FakeExecutor { TypeKey = $"b{b}n{a}", Behavior = c => ActionResult.Ok("out") });
 
         IProgress<ExecutionProgress> progress = new DelegateProgress(_ => detector.Enter());
         var result = await new BotExecutor(registry).RunAsync(bot, new ExecutionOptions(), progress, default);
 
         Assert.True(result.Success);
         Assert.False(detector.Overlapped);
+        Assert.Equal(branches * actionsPerBranch, detector.Count); // one Progress.Report per executed action, no losses
     }
 }
