@@ -50,7 +50,7 @@ public class AndroidMeasureBarActionTests
     };
 
     [Fact]
-    public async Task Measure_WritesValue_RoutesOut()
+    public async Task Measure_WritesValueAndFraction_RoutesOut()
     {
         var id = Guid.NewGuid();
         var (ctx, dev) = DeviceContext(id, HalfBarPng());
@@ -60,6 +60,7 @@ public class AndroidMeasureBarActionTests
         Assert.Equal("out", result.OutputPort);
         Assert.Contains("screenshot", dev.Calls);
         Assert.Equal("8", ctx.Variables["atk"]);
+        Assert.True(ctx.Variables.ContainsKey("atkFraction"));
     }
 
     [Fact]
