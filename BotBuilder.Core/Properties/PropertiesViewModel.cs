@@ -46,6 +46,12 @@ public partial class PropertiesViewModel : ObservableObject
         && _registry.TryGet(Node.TypeKey, out var def) && def is not null
         && def.ConfigFields.Any(f => f.Key == TemplateMatchCore.RegionWidthKey);
 
+    /// <summary>Whether the selected action exposes Measure Bar fill/empty colour fields the dropper can fill.</summary>
+    public bool SupportsColorPicking =>
+        Node is not null
+        && _registry.TryGet(Node.TypeKey, out var def) && def is not null
+        && def.ConfigFields.Any(f => f.Key == BarMeasureCore.FillColorKey);
+
     /// <summary>Whether the selected node is a Nested Bot card (drives the panel's nested-bot section).</summary>
     public bool IsNestedBotCard => Node is not null && Node.TypeKey == NestedBotAction.NestedBotTypeKey;
 
@@ -205,6 +211,7 @@ public partial class PropertiesViewModel : ObservableObject
         OnPropertyChanged(nameof(Targets));
         OnPropertyChanged(nameof(SupportsCoordinatePicking));
         OnPropertyChanged(nameof(SupportsRegionPicking));
+        OnPropertyChanged(nameof(SupportsColorPicking));
         OnPropertyChanged(nameof(IsNestedBotCard));
         OnPropertyChanged(nameof(NestedBotEntries));
         OnPropertyChanged(nameof(SelectedNestedBotId));
