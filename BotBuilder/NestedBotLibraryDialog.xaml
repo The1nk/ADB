@@ -18,6 +18,7 @@
         </StackPanel>
         <ListView x:Name="EntriesList" ItemsSource="{Binding Entries}"
                   Background="{DynamicResource WindowBackgroundBrush}"
+                  Foreground="{DynamicResource PrimaryTextBrush}"
                   AutomationProperties.Name="Nested bot library entries">
             <ListView.View>
                 <GridView>
