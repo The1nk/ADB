@@ -31,6 +31,7 @@ public sealed class AssertImageAbsentAction : ScreenActionBase
     [
         TemplateNameField(),
         ConfidenceField(),
+        .. FrameSourceConfig.Fields(),
     ];
 
     public override Task<ActionResult> ExecuteAsync(ActionExecutionContext context, CancellationToken ct)
