@@ -40,6 +40,9 @@ Why click 10,000 times when a damn bot will click 10,001 and never complain? ADB
 - **Throw Error** — rage-quit the current flow with a message. Blows past loops and pops you out of a nested bot back to the parent (or into your Error Handler if you wired one).
 - **Image matching** (OpenCvSharp) — find / wait-for / assert-absent template images on Screen *and* Android, with a coordinate & region picker. Hit **Capture**, snip the loot button once — it's baked straight into the `.bot` (no loose PNGs, no clutter in your working directory) — and it clicks it until the heat death of the universe.
 - **Capture Frame** — snap the screen *once*, then let a whole gang of Find Image reads feed off that single frame instead of re-grabbing pixels every time. Works on windows *and* phones. Flip a reader's **Source** to *Stored* and point it at your frame's name.
+- **Measure Bar** — got a health/XP/stat bar? Read its value straight off the pixels in one scan instead of
+  matching a pile of images. Tell it the fill (and/or empty) colour, the region, and 0..15 — it hands back the
+  number. Windows *and* Android.
 - **OCR** (Tesseract, bundled `eng`) — read / find / wait-for / assert-absent text. Reads your gold counter, your cooldowns, and the "YOU DIED" screen so the bot knows when to ragequit gracefully.
 - **Lua scripting** (MoonSharp) — a "Run Lua Script" action with `http`, `json`, `fs`, `process`, and `log` host APIs for whenever the visual blocks aren't enough and you need to go full mad scientist.
 - **Input & windows** — mouse/keyboard actions, activate window, and on Android: tap, long-press, swipe, send text (plain, or **full Unicode via ADBKeyboard**), and hammer a key (Backspace ×50 to nuke a field). The clicky-clicky.

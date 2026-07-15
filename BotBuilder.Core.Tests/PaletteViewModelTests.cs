@@ -59,10 +59,10 @@ public class PaletteViewModelTests
         Assert.Equal(6, input.Items.Count); // Click, Right Click, Double Click, Mouse Move, Type Text, Key Press
 
         var android = palette.Categories.Single(c => c.Name == "Android");
-        Assert.Equal(19, android.Items.Count); // Tap, Swipe, Long Press, Press Back, Send Text, Press Key, Enable ADB Keyboard, Restore Keyboard, Launch App, Install APK, Screenshot, Capture Frame, Find Image, Wait for Image, Assert Image Absent, Read Text, Find Text, Wait for Text, Assert Text Absent
+        Assert.Equal(20, android.Items.Count); // Tap, Swipe, Long Press, Press Back, Send Text, Press Key, Enable ADB Keyboard, Restore Keyboard, Launch App, Install APK, Screenshot, Capture Frame, Measure Bar, Find Image, Wait for Image, Assert Image Absent, Read Text, Find Text, Wait for Text, Assert Text Absent
 
         var screen = palette.Categories.Single(c => c.Name == "Screen");
-        Assert.Equal(9, screen.Items.Count); // Find/Wait/AssertAbsent Image + Screenshot + Capture Frame + Read/Find/Wait/AssertAbsent Text
+        Assert.Equal(10, screen.Items.Count); // Find/Wait/AssertAbsent Image + Screenshot + Capture Frame + Measure Bar + Read/Find/Wait/AssertAbsent Text
 
         var scripting = palette.Categories.Single(c => c.Name == "Scripting");
         Assert.Single(scripting.Items); // Run Lua Script
@@ -96,7 +96,7 @@ public class PaletteViewModelTests
         var palette = new PaletteViewModel(SeededRegistry()) { SearchText = "log" };
         palette.SearchText = "";
 
-        Assert.Equal(56, palette.Categories.SelectMany(c => c.Items).Count()); // 11 Control Flow + 4 Data + 1 Scripting + 6 Input + 9 Screen + 19 Android + 5 Browser + 1 Window
+        Assert.Equal(58, palette.Categories.SelectMany(c => c.Items).Count()); // 11 Control Flow + 4 Data + 1 Scripting + 6 Input + 10 Screen + 20 Android + 5 Browser + 1 Window
     }
 
     [Fact]
