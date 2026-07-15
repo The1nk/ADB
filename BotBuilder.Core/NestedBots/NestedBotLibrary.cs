@@ -82,7 +82,7 @@ public sealed class NestedBotLibrary
     }
 
     /// <summary>The nested-bot ids referenced by a bot's Nested Bot action cards.</summary>
-    private static IEnumerable<Guid> ReferencedIds(Bot bot)
+    public static IEnumerable<Guid> ReferencedIds(Bot bot)
     {
         foreach (var action in bot.Actions)
         {
