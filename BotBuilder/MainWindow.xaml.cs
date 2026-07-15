@@ -102,6 +102,12 @@ public partial class MainWindow : Window
         OpenMenuItem.IsEnabled = false;
         OpenMenuItem.ToolTip = "Available in the main bot window — nested bots live inside the parent file.";
 
+        // Disable Manage Nested Bot Library — the library is a whole-file/root concern; a child editor's
+        // _editor is the nested entry's own (library-less) graph, not the root, so reachability computed
+        // from it would be wrong (every entry would look unused).
+        ManageLibraryMenuItem.IsEnabled = false;
+        ManageLibraryMenuItem.ToolTip = "Available in the main bot window — the nested-bot library belongs to the parent file.";
+
         // Hide Save As — a nested entry has no independent file
         SaveAsMenuItem.Visibility = Visibility.Collapsed;
 

@@ -128,7 +128,7 @@
                 <Separator />
                 <MenuItem Header="_Tidy Up" Click="TidyUp_Click" InputGestureText="Ctrl+L" />
                 <Separator />
-                <MenuItem Header="Manage Nested Bot _Library…" Click="ManageNestedBotLibrary_Click" />
+                <MenuItem x:Name="ManageLibraryMenuItem" Header="Manage Nested Bot _Library…" Click="ManageNestedBotLibrary_Click" />
             </MenuItem>
             <MenuItem Header="_Run">
                 <MenuItem Header="_Test Run..." Click="TestRun_Click" InputGestureText="F5" />
