@@ -58,7 +58,15 @@ public class BotExecutor
             };
         }
 
-        var state = new RunState(graph, _executors, _controlFlow, context, options.Log ?? (_ => { }), progress);
+        // Serialize the shared log + progress sinks so concurrent Run Parallel branches can't corrupt a
+        // non-thread-safe sink (file writer, UI list, etc.). A single per-run lock; uncontended for the common
+        // single-threaded run. Monitor is reentrant, so a progress handler that itself logs won't deadlock.
+        var sinkGate = new object();
+        var rawLog = options.Log ?? (_ => { });
+        void SynchronizedLog(string message) { lock (sinkGate) { rawLog(message); } }
+        var synchronizedProgress = progress is null ? null : new SynchronizedProgress(progress, sinkGate);
+
+        var state = new RunState(graph, _executors, _controlFlow, context, SynchronizedLog, synchronizedProgress);
         var outcome = await WalkAsync(state, entry, ct);
 
         // Global Error Handler: when the walk ends in an unhandled failure and the bot has an Error Handler
@@ -239,6 +247,25 @@ public class BotExecutor
         private int _actionsExecuted;
         public int ActionsExecuted => Volatile.Read(ref _actionsExecuted);
         public void RecordActionExecuted() => Interlocked.Increment(ref _actionsExecuted);
+    }
+
+    /// <summary>Wraps an <see cref="IProgress{T}"/> so concurrent Run Parallel branches report one at a time,
+    /// sharing the run's sink lock with the log delegate.</summary>
+    private sealed class SynchronizedProgress : IProgress<ExecutionProgress>
+    {
+        private readonly IProgress<ExecutionProgress> _inner;
+        private readonly object _gate;
+
+        public SynchronizedProgress(IProgress<ExecutionProgress> inner, object gate)
+        {
+            _inner = inner;
+            _gate = gate;
+        }
+
+        public void Report(ExecutionProgress value)
+        {
+            lock (_gate) { _inner.Report(value); }
+        }
     }
 
 }
