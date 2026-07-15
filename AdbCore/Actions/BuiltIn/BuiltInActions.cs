@@ -69,6 +69,7 @@ public static class BuiltInActions
         Add(new InstallApkAction(), definitions, executors);
         Add(new AndroidScreenshotAction(), definitions, executors);
         Add(new AndroidCaptureFrameAction(), definitions, executors);
+        Add(new AndroidMeasureBarAction(), definitions, executors);
 
         // Android image matching (handle-based device + injected matcher/RNG; mirrors Screen via TemplateMatchCore).
         Add(new AndroidFindImageAction(templateMatcher, randomSource), definitions, executors);
