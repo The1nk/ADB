@@ -42,7 +42,8 @@ Why click 10,000 times when a damn bot will click 10,001 and never complain? ADB
 - **Capture Frame** — snap the screen *once*, then let a whole gang of Find Image reads feed off that single frame instead of re-grabbing pixels every time. Works on windows *and* phones. Flip a reader's **Source** to *Stored* and point it at your frame's name.
 - **Measure Bar** — got a health/XP/stat bar? Read its value straight off the pixels in one scan instead of
   matching a pile of images. Tell it the fill (and/or empty) colour, the region, and 0..15 — it hands back the
-  number. Windows *and* Android.
+  number. Windows *and* Android. Don't want to eyeball a hex code? Hit **Pick fill/empty colour…** and click
+  the pixel — the eyedropper samples it for you.
 - **OCR** (Tesseract, bundled `eng`) — read / find / wait-for / assert-absent text. Reads your gold counter, your cooldowns, and the "YOU DIED" screen so the bot knows when to ragequit gracefully.
 - **Lua scripting** (MoonSharp) — a "Run Lua Script" action with `http`, `json`, `fs`, `process`, and `log` host APIs for whenever the visual blocks aren't enough and you need to go full mad scientist.
 - **Input & windows** — mouse/keyboard actions, activate window, and on Android: tap, long-press, swipe, send text (plain, or **full Unicode via ADBKeyboard**), and hammer a key (Backspace ×50 to nuke a field). The clicky-clicky.
