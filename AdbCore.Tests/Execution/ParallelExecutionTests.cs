@@ -1,3 +1,4 @@
+using System.Threading;
 using AdbCore.Actions.BuiltIn;
 using AdbCore.Execution;
 using AdbCore.Models;
@@ -187,6 +188,22 @@ public class ParallelExecutionTests
             await Gate.Task.WaitAsync(ct); // throws OperationCanceledException if ct is cancelled first
             Completed = true;
             return ActionResult.Ok(string.Empty);
+        }
+    }
+
+    /// <summary>A SYNCHRONOUS executor (returns Task.FromResult, mimicking the real CPU-bound executors) that
+    /// blocks the calling thread on a shared Barrier. Two branches sharing one Barrier(2) can only both pass if
+    /// they run on different threads at the same time — i.e. genuinely in parallel. If they ran sequentially,
+    /// the first blocks until its timeout and fails.</summary>
+    private sealed class BarrierExecutor : IActionExecutor
+    {
+        public required string TypeKey { get; init; }
+        public required Barrier Barrier { get; init; }
+
+        public Task<ActionResult> ExecuteAsync(ActionExecutionContext context, CancellationToken ct)
+        {
+            var passed = Barrier.SignalAndWait(TimeSpan.FromSeconds(3));
+            return Task.FromResult(passed ? ActionResult.Ok(string.Empty) : ActionResult.Fail("barrier timeout — branch ran sequentially"));
         }
     }
 
@@ -408,5 +425,33 @@ public class ParallelExecutionTests
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => runTask);
         Assert.False(gated.Completed);
+    }
+
+    [Fact(Timeout = 20000)]
+    public async Task Parallel_BranchesRunConcurrently()
+    {
+        var rp = RunParallel(out var rpId);
+        var x = Node("x", out var xId);
+        var y = Node("y", out var yId);
+        var join = Node(JoinAction.JoinTypeKey, out var joinId);
+        var done = Node("done", out var doneId);
+
+        var bot = new Bot { Name = "par-concurrent" };
+        bot.Actions.AddRange(new[] { rp, x, y, join, done });
+        bot.Connections.Add(Edge(rpId, RunParallelAction.BranchPort(1), xId));
+        bot.Connections.Add(Edge(rpId, RunParallelAction.BranchPort(2), yId));
+        bot.Connections.Add(Edge(xId, "out", joinId));
+        bot.Connections.Add(Edge(yId, "out", joinId));
+        bot.Connections.Add(Edge(joinId, JoinAction.AllSucceededPort, doneId));
+
+        using var barrier = new Barrier(2);
+        var registry = new ActionExecutorRegistry();
+        registry.Register(new BarrierExecutor { TypeKey = "x", Barrier = barrier });
+        registry.Register(new BarrierExecutor { TypeKey = "y", Barrier = barrier });
+        registry.Register(new FakeExecutor { TypeKey = "done", Behavior = c => ActionResult.Ok(string.Empty) });
+
+        var result = await new BotExecutor(registry).RunAsync(bot, new ExecutionOptions(), null, default);
+
+        Assert.True(result.Success); // only possible if x and y ran on different threads simultaneously
     }
 }

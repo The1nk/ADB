@@ -209,8 +209,13 @@ marker with no input port and a single `out` port. When the top-level walk ends 
 `BotGraph.ErrorHandler` is set, `RunAsync` seeds `error.message` / `error.action` / `error.actionId` /
 `error.typeKey` into the run variables and re-walks from the Error Handler node (looping — so a recovery flow
 wired back to an earlier node yields a reboot/retry loop; iterative, cancellable). With no Error Handler the
-behavior is unchanged. `Run Parallel` aggregates branch failures at the Join first; only a resulting halt
-reaches the Error Handler.
+behavior is unchanged. `Run Parallel` runs its wired branches **concurrently** — each branch walk is offloaded
+to the thread pool (`Task.Run`, `ParallelControlFlowExecutor`) rather than run one after another. Run-wide
+state stays safe under concurrent branches: `Variables` is a `ConcurrentDictionary`, and `BotExecutor`
+serializes the run's log and progress sinks under one per-run lock so branches can't corrupt a non-thread-safe
+sink (file writer, UI list, etc.). `Run Parallel` aggregates branch failures at the Join first (per
+`ParallelErrorStrategy`: HaltAll/WaitThenHalt/Continue); only a resulting halt reaches the Error Handler, and
+a Loop-Break still cannot cross a branch boundary.
 
 A **Throw Error** node (`control.throwError`, `ThrowErrorAction`) deliberately fails the run with a
 configurable (`message`, `${var}`-interpolated) message: it has one input and no outputs, so its failure
