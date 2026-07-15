@@ -48,6 +48,7 @@ public static class BuiltInActions
         Add(new ScreenshotAction(windowCapture), definitions, executors);
         Add(new CaptureFrameAction(windowCapture), definitions, executors);
         Add(new MeasureBarAction(windowCapture), definitions, executors);
+        Add(new GetPixelColorAction(windowCapture), definitions, executors);
 
         // Screen OCR (Tesseract; reuses the window capture + RNG. The engine is internally locked for concurrency.)
         var ocrEngine = new AdbCore.Ocr.TesseractOcrEngine();
@@ -70,6 +71,7 @@ public static class BuiltInActions
         Add(new AndroidScreenshotAction(), definitions, executors);
         Add(new AndroidCaptureFrameAction(), definitions, executors);
         Add(new AndroidMeasureBarAction(), definitions, executors);
+        Add(new AndroidGetPixelColorAction(), definitions, executors);
 
         // Android image matching (handle-based device + injected matcher/RNG; mirrors Screen via TemplateMatchCore).
         Add(new AndroidFindImageAction(templateMatcher, randomSource), definitions, executors);

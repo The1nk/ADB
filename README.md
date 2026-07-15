@@ -44,6 +44,8 @@ Why click 10,000 times when a damn bot will click 10,001 and never complain? ADB
   matching a pile of images. Tell it the fill (and/or empty) colour, the region, and 0..15 — it hands back the
   number. Windows *and* Android. Don't want to eyeball a hex code? Hit **Pick fill/empty colour…** and click
   the pixel — the eyedropper samples it for you.
+- **Get Pixel Color** — poke a single pixel and get its colour back (`pixelHex`, `pixelR/G/B`) to branch on.
+  Handy for "is that light green yet?" checks. Windows *and* Android.
 - **OCR** (Tesseract, bundled `eng`) — read / find / wait-for / assert-absent text. Reads your gold counter, your cooldowns, and the "YOU DIED" screen so the bot knows when to ragequit gracefully.
 - **Lua scripting** (MoonSharp) — a "Run Lua Script" action with `http`, `json`, `fs`, `process`, and `log` host APIs for whenever the visual blocks aren't enough and you need to go full mad scientist.
 - **Input & windows** — mouse/keyboard actions, activate window, and on Android: tap, long-press, swipe, send text (plain, or **full Unicode via ADBKeyboard**), and hammer a key (Backspace ×50 to nuke a field). The clicky-clicky.
