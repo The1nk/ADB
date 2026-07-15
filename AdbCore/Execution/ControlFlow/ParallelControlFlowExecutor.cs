@@ -75,7 +75,11 @@ public sealed class ParallelControlFlowExecutor : IControlFlowExecutor
             }
         }
 
-        var tasks = Enumerable.Range(0, branchStarts.Count).Select(RunBranchAsync).ToArray();
+        // Offload each branch to the thread pool: the branch executors are largely synchronous, so without
+        // this the branches would run to completion one after another (nothing yields). Do NOT pass a token to
+        // Task.Run — RunBranchAsync handles sibling-cancel internally via the linked token and its catch filter,
+        // and a token here would turn a sibling-halt into a faulted task that Task.WhenAll rethrows.
+        var tasks = Enumerable.Range(0, branchStarts.Count).Select(i => Task.Run(() => RunBranchAsync(i))).ToArray();
         await Task.WhenAll(tasks); // a genuine user cancellation (outer ct) surfaces as OperationCanceledException
 
         if (branchBreakViolation is not null)
