@@ -178,9 +178,11 @@ middle-drag to pan)" note wherever the three surfaces describe these picker/capt
 
 ## Suggested Slicing (for the implementation plan)
 
-1. `ViewportTransform` + tests, and the `ZoomPanImageHost` control (with the built-in toolbar and
-   interaction), in `AdbUi.Theme` — backend/library slice.
-2. Adopt in the three BotBuilder dialogs (CoordinatePicker, RegionPicker, ColorDropper); remove
-   dead `CoordinateMapping` once no caller remains — visual slice.
-3. Adopt in BotCapture `RegionSelectView` — visual slice.
-4. Docs sync across the three surfaces.
+Two slices, to minimize review round-trips:
+
+1. **All development.** `ViewportTransform` + tests and the `ZoomPanImageHost` control (toolbar +
+   interaction) in `AdbUi.Theme`, **and** adopting it across all four surfaces — the three
+   BotBuilder dialogs (CoordinatePicker, RegionPicker, ColorDropper) and BotCapture's
+   `RegionSelectView` — removing the dead `CoordinateMapping` once no caller remains. Because this
+   slice changes the WPF pickers, it is a **visual slice** the user verifies before merge.
+2. **Docs sync** across the three surfaces (`CLAUDE.md`, `README.md`, `../ADB.wiki`).
