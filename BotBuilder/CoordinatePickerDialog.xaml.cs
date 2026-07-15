@@ -1,13 +1,8 @@
 using System.Collections.Generic;
 using System.Drawing;
-using System.Drawing.Imaging;
-using System.IO;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Input;
 using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Shapes;
+using AdbUi.Theme.Controls;
 using BotBuilder.Core.Picker;
 
 namespace BotBuilder;
@@ -15,34 +10,28 @@ namespace BotBuilder;
 public partial class CoordinatePickerDialog : Window
 {
     private readonly CoordinatePickerViewModel _vm;
-    private readonly int _sourceWidth;
-    private readonly int _sourceHeight;
 
     public CoordinatePickerDialog(CoordinatePickerViewModel vm, Bitmap frame)
     {
         InitializeComponent();
         _vm = vm;
-        _sourceWidth = frame.Width;
-        _sourceHeight = frame.Height;
-        FrameImage.Source = ToImageSource(frame);
+        Viewer.SetImage(FrameImageSource.ToImageSource(frame));
+        Viewer.ImagePointerDown += OnPointerDown;
         PromptText.Text = _vm.CurrentPrompt;
     }
 
     /// <summary>The collected (XKey, YKey, X, Y) write-back tuples — valid after the dialog returns true.</summary>
     public IReadOnlyList<(string XKey, string YKey, int X, int Y)> Results => _vm.Results();
 
-    private void OnImageClick(object sender, MouseButtonEventArgs e)
+    private void OnPointerDown(object? sender, ImagePointerEventArgs e)
     {
-        var pos = e.GetPosition(FrameImage);
-        var mapped = CoordinateMapping.ToSourcePixel(
-            pos.X, pos.Y, FrameImage.ActualWidth, FrameImage.ActualHeight, _sourceWidth, _sourceHeight);
-        if (mapped is not (int sx, int sy))
+        if (!e.InsideImage)
         {
-            return; // clicked the letterbox margin — ignore
+            return; // clicked outside the image (centered margin) — ignore
         }
 
-        _vm.RecordClick(sx, sy);
-        DrawMarker(pos);
+        _vm.RecordClick(e.SourceX, e.SourceY);
+        Viewer.AddDot(e.SourceX, e.SourceY, Colors.Lime, System.Windows.Media.Color.FromArgb(80, 0, 255, 0));
         PromptText.Text = _vm.CurrentPrompt;
 
         if (_vm.IsComplete)
@@ -52,44 +41,9 @@ public partial class CoordinatePickerDialog : Window
         }
     }
 
-    private void DrawMarker(System.Windows.Point at)
-    {
-        var dot = new Ellipse
-        {
-            Width = 14,
-            Height = 14,
-            Stroke = System.Windows.Media.Brushes.Lime,
-            StrokeThickness = 2,
-            Fill = new SolidColorBrush(System.Windows.Media.Color.FromArgb(80, 0, 255, 0)),
-        };
-        // `at` is relative to FrameImage, whose Stretch=Uniform content is letterbox-centred within the host
-        // Grid that MarkerCanvas fills — so translate the image's origin into the canvas before placing the dot,
-        // otherwise the marker is offset by the letterbox margin (it would land in the black bars). Mirrors the
-        // origin translation RegionPickerDialog applies to its rubber-band.
-        var origin = FrameImage.TranslatePoint(new System.Windows.Point(0, 0), MarkerCanvas);
-        Canvas.SetLeft(dot, origin.X + at.X - 7);
-        Canvas.SetTop(dot, origin.Y + at.Y - 7);
-        MarkerCanvas.Children.Add(dot);
-    }
-
     private void OnCancel(object sender, RoutedEventArgs e)
     {
         DialogResult = false;
         Close();
-    }
-
-    // Decodes the bitmap into a frozen WPF source so the caller can dispose the source Bitmap immediately.
-    private static ImageSource ToImageSource(Bitmap bitmap)
-    {
-        using var ms = new MemoryStream();
-        bitmap.Save(ms, ImageFormat.Png);
-        ms.Position = 0;
-        var image = new BitmapImage();
-        image.BeginInit();
-        image.CacheOption = BitmapCacheOption.OnLoad;
-        image.StreamSource = ms;
-        image.EndInit();
-        image.Freeze();
-        return image;
     }
 }
