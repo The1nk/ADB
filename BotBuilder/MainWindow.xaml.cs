@@ -1000,6 +1000,55 @@ public partial class MainWindow : Window
     private ConfigFieldViewModel? FieldByKey(string key) =>
         _editor.Properties.Fields.FirstOrDefault(f => f.Key == key);
 
+    private void PickFillColor_Click(object sender, RoutedEventArgs e)
+        => PickColorInto(AdbCore.Actions.BuiltIn.BarMeasureCore.FillColorKey, "Pick fill colour");
+
+    private void PickEmptyColor_Click(object sender, RoutedEventArgs e)
+        => PickColorInto(AdbCore.Actions.BuiltIn.BarMeasureCore.EmptyColorKey, "Pick empty colour");
+
+    private void PickColorInto(string fieldKey, string title)
+    {
+        var node = _editor.Properties.Node;
+        if (node is null)
+        {
+            return;
+        }
+
+        var target = _editor.TargetBar.ResolveForNode(node.TargetId);
+        if (target is null)
+        {
+            MessageBox.Show(
+                "Add a target (Window or Android device) first, then pick a colour against it.",
+                title, MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        var frame = _frameCapturer.TryCapture(target.Type, target.Selector, out var error);
+        if (frame is null)
+        {
+            MessageBox.Show(error ?? "Couldn't capture the target.", title, MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        string? hex;
+        bool confirmed;
+        try
+        {
+            var dialog = new ColorDropperDialog(frame) { Owner = this };
+            confirmed = dialog.ShowDialog() == true;
+            hex = dialog.PickedHex;
+        }
+        finally
+        {
+            frame.Dispose();
+        }
+
+        if (confirmed && hex is not null && FieldByKey(fieldKey) is { } field)
+        {
+            field.Value = hex;
+        }
+    }
+
     private void CaptureField_Click(object sender, RoutedEventArgs e)
     {
         if (sender is not FrameworkElement { DataContext: ConfigFieldViewModel field })

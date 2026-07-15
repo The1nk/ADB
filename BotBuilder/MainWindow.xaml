@@ -480,6 +480,14 @@
                                     Click="PickRegion_Click"
                                     Visibility="{Binding SupportsRegionPicking, Converter={StaticResource BoolToVis}}" />
 
+                            <Button Content="Pick fill colour…" Margin="0,4,0,0" Padding="6,3" HorizontalAlignment="Left"
+                                    Click="PickFillColor_Click"
+                                    Visibility="{Binding SupportsColorPicking, Converter={StaticResource BoolToVis}}" />
+
+                            <Button Content="Pick empty colour…" Margin="0,4,0,0" Padding="6,3" HorizontalAlignment="Left"
+                                    Click="PickEmptyColor_Click"
+                                    Visibility="{Binding SupportsColorPicking, Converter={StaticResource BoolToVis}}" />
+
                             <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0" Margin="0,10,0,0" Padding="0,8,0,0"
                                     Visibility="{Binding SupportsRetry, Converter={StaticResource BoolToVis}}">
                                 <StackPanel>
