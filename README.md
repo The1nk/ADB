@@ -43,9 +43,11 @@ Why click 10,000 times when a damn bot will click 10,001 and never complain? ADB
 - **Measure Bar** — got a health/XP/stat bar? Read its value straight off the pixels in one scan instead of
   matching a pile of images. Tell it the fill (and/or empty) colour, the region, and 0..15 — it hands back the
   number. Windows *and* Android. Don't want to eyeball a hex code? Hit **Pick fill/empty colour…** and click
-  the pixel — the eyedropper samples it for you.
+  the pixel — the eyedropper samples it for you, and each hex box shows a little **colour swatch** so you can
+  see what you picked.
 - **Get Pixel Color** — poke a single pixel and get its colour back (`pixelHex`, `pixelR/G/B`) to branch on.
-  Handy for "is that light green yet?" checks. Windows *and* Android.
+  Handy for "is that light green yet?" checks. Windows *and* Android. Hit **Pick…** to click the pixel on a
+  zoomed-in shot instead of eyeballing its `x`,`y`.
 - **Zoom every picker** — any tool where you click/drag on a captured window or phone (the coordinate picker,
   region picker, the colour eyedropper, and BotCapture's template snipper) now **zooms and pans**: spin the
   **wheel** to zoom right at the cursor, **middle-drag** to slide around, or smack **Fit** / **100%**. Line up
