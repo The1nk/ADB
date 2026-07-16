@@ -10,4 +10,5 @@ public enum ConfigFieldType
     Enum,
     FilePath,
     ImageTemplate,
+    Color,
 }

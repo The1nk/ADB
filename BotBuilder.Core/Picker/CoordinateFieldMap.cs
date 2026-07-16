@@ -14,6 +14,8 @@ public static class CoordinateFieldMap
             ["input.rightClick"] = [new CoordinatePoint("x", "y", "Target")],
             ["input.doubleClick"] = [new CoordinatePoint("x", "y", "Target")],
             ["input.mouseMove"] = [new CoordinatePoint("x", "y", "Target")],
+            ["screen.getPixelColor"] = [new CoordinatePoint("x", "y", "Pixel")],
+            ["android.getPixelColor"] = [new CoordinatePoint("x", "y", "Pixel")],
         };
 
     public static bool Supports(string typeKey) => Map.ContainsKey(typeKey);
