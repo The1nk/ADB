@@ -49,6 +49,23 @@ public sealed class NestedBotGlyphVisibilityConverter : IValueConverter
         => throw new NotSupportedException();
 }
 
+/// <summary>Turns a #RRGGBB hex string into a SolidColorBrush for the colour-field swatch; invalid/empty → transparent.</summary>
+public sealed class HexToBrushConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        if (BotBuilder.Core.Picker.ColorHex.TryParse(value as string, out var rgb))
+        {
+            return new SolidColorBrush(Color.FromRgb((byte)rgb.R, (byte)rgb.G, (byte)rgb.B));
+        }
+
+        return Brushes.Transparent;
+    }
+
+    public object ConvertBack(object value, Type targetType, object? parameter, CultureInfo culture)
+        => throw new NotSupportedException();
+}
+
 /// <summary>[IsSelected (bool), RunState (NodeRunState)] -> node-card border brush. Run outcome wins over
 /// selection: Failed = red, Succeeded = green, else the selection colour (blue selected / grey not).</summary>
 public sealed class NodeBorderConverter : System.Windows.Data.IMultiValueConverter

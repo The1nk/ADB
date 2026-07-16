@@ -32,8 +32,8 @@ public static class BarMeasureCore
     /// The action appends the shared ROI + Source fields around these.</summary>
     public static IEnumerable<ConfigField> Fields() =>
     [
-        new ConfigField { Key = FillColorKey, Label = "Fill Color (hex)", Type = ConfigFieldType.String },
-        new ConfigField { Key = EmptyColorKey, Label = "Empty Color (hex)", Type = ConfigFieldType.String },
+        new ConfigField { Key = FillColorKey, Label = "Fill Color (hex)", Type = ConfigFieldType.Color },
+        new ConfigField { Key = EmptyColorKey, Label = "Empty Color (hex)", Type = ConfigFieldType.Color },
         new ConfigField { Key = ToleranceKey, Label = "Tolerance", Type = ConfigFieldType.Number, DefaultValue = DefaultTolerance },
         new ConfigField
         {

@@ -14,6 +14,7 @@ public sealed class ConfigFieldTemplateSelector : DataTemplateSelector
     public DataTemplate? EnumTemplate { get; set; }
     public DataTemplate? FilePathTemplate { get; set; }
     public DataTemplate? ImageTemplateTemplate { get; set; }
+    public DataTemplate? ColorTemplate { get; set; }
 
     public override DataTemplate? SelectTemplate(object? item, DependencyObject container)
     {
@@ -30,6 +31,7 @@ public sealed class ConfigFieldTemplateSelector : DataTemplateSelector
             AdbCore.Actions.ConfigFieldType.Enum => EnumTemplate,
             AdbCore.Actions.ConfigFieldType.FilePath => FilePathTemplate,
             AdbCore.Actions.ConfigFieldType.ImageTemplate => ImageTemplateTemplate,
+            AdbCore.Actions.ConfigFieldType.Color => ColorTemplate,
             _ => StringTemplate,
         };
     }

@@ -11,6 +11,7 @@
         <BooleanToVisibilityConverter x:Key="BoolToVis" />
         <local:TemplateImageConverter x:Key="TemplateImage" />
         <local:NegateBoolConverter x:Key="NegateBool" />
+        <local:HexToBrushConverter x:Key="HexToBrush" />
 
         <DataTemplate x:Key="FieldString">
             <StackPanel Margin="0,4">
@@ -97,6 +98,17 @@
                 </Border>
             </StackPanel>
         </DataTemplate>
+        <DataTemplate x:Key="FieldColor">
+            <StackPanel Margin="0,4">
+                <TextBlock Text="{Binding Label}" FontSize="11" Foreground="{DynamicResource SecondaryTextBrush}" />
+                <DockPanel>
+                    <Border DockPanel.Dock="Right" Width="22" Height="22" Margin="6,0,0,0" CornerRadius="2"
+                            BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"
+                            Background="{Binding Value, Converter={StaticResource HexToBrush}}" />
+                    <TextBox Text="{Binding Value, UpdateSourceTrigger=PropertyChanged}" />
+                </DockPanel>
+            </StackPanel>
+        </DataTemplate>
 
         <local:ConfigFieldTemplateSelector x:Key="FieldSelector"
             StringTemplate="{StaticResource FieldString}"
@@ -105,7 +117,8 @@
             BooleanTemplate="{StaticResource FieldBoolean}"
             EnumTemplate="{StaticResource FieldEnum}"
             FilePathTemplate="{StaticResource FieldFilePath}"
-            ImageTemplateTemplate="{StaticResource FieldImageTemplate}" />
+            ImageTemplateTemplate="{StaticResource FieldImageTemplate}"
+            ColorTemplate="{StaticResource FieldColor}" />
     </Window.Resources>
     <DockPanel>
         <Menu DockPanel.Dock="Top">

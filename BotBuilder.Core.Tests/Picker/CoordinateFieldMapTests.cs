@@ -40,4 +40,15 @@ public class CoordinateFieldMapTests
         Assert.False(CoordinateFieldMap.Supports(typeKey));
         Assert.Empty(CoordinateFieldMap.ForTypeKey(typeKey));
     }
+
+    [Theory]
+    [InlineData("screen.getPixelColor")]
+    [InlineData("android.getPixelColor")]
+    public void GetPixelColor_HasOnePoint_XY_Pixel(string typeKey)
+    {
+        var points = CoordinateFieldMap.ForTypeKey(typeKey);
+        Assert.True(CoordinateFieldMap.Supports(typeKey));
+        var p = Assert.Single(points);
+        Assert.Equal(("x", "y", "Pixel"), (p.XKey, p.YKey, p.Label));
+    }
 }
